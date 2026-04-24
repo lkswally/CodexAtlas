@@ -1,0 +1,14 @@
+{
+  "schema_version": "1.0",
+  "projects": [
+    {
+      "created_at": "2026-04-24T16:48:47.774217+00:00",
+      "project_name": "ATLAS_SANDBOX_OBSERVABILITY",
+      "project_root": "C:\\Proyectos\\ATLAS_SANDBOX_OBSERVABILITY",
+      "project_profile": "internal_tool",
+      "generated_from_skill": "project-bootstrap",
+      "atlas_root": "C:\\Proyectos\\Codex-Atlas",
+      "status": "bootstrapped"
+    }
+  ]
+}

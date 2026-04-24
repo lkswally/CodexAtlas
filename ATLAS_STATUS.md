@@ -23,6 +23,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Codex-native system-prompt guidance now lives explicitly in `AGENTS.md` plus `docs/codex_system_prompt.md`
 - Claude-vibecoding reference analysis is now captured canonically in `docs/claude_vibecoding_assessment.md`
 - Manual quality-gate policies now cover anti-generic output, evidence, project boundaries and template quality
+- Atlas now has persistent observability files for derived projects, routing decisions and governance events under `memory/`
 - Dedicated execution tests now cover `repo-audit`, `project-bootstrap` and `product-branding-review`
 - Dedicated certification tests now cover clean and contaminated derived-project cases
 - Codex-native documentary base for agents, workflows, policies, commands, validators, memory and adapters
@@ -70,6 +71,9 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Model routing, MCP routing and cost control policies are documented
 - Evidence-required, project-boundary and template-quality policies are now documented as Atlas-native quality gates
 - Decision log, breadcrumbs and session summaries exist for continuity
+- `memory/derived_projects.json` now records projects created by Atlas bootstrap
+- `memory/routing_log.jsonl` now captures structured orchestrator decisions without storing full task text
+- `memory/governance_events.jsonl` now captures append-only governance validation events
 - Governance check validates the root-first canonical structure, legacy compatibility mirrors and skill metadata contract
 - Governance check validates advanced skill metadata including operational limits and approval escalation triggers
 - Governance check also validates consistency between declared execution behavior and the helper behavior spec
@@ -97,6 +101,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - `project-bootstrap` now generates richer README and AGENTS templates plus profile-specific directories
 - The README and AGENTS content no longer lives inline in the orchestrator; it is rendered from per-profile template files
 - `project-bootstrap` now performs a real filesystem preflight for `output_dir` before allowing execution
+- Successful `project-bootstrap` executions now append a derived-project entry to the Atlas observability catalog
 - `certify-project` now validates metadata, minimum structure, profile directories and Atlas-core separation for derived projects
 - `product-branding-review` can return a structured checklist without touching files
 - No skill introduces automatic execution, hooks or MCP activation
@@ -109,6 +114,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Skill governance now validates rendered README and AGENTS template quality for every bootstrap profile
 - Orchestrator output now reflects approval reasons and execution blockers derived from skill metadata and task wording
 - Orchestrator output now includes bootstrap preflight status and `safe_to_execute` based on the real target path
+- Orchestrator decisions are now logged append-only for later review
 
 ## GitHub block status
 

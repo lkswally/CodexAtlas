@@ -1,7 +1,10 @@
+import os
 import json
 import shutil
 import uuid
 from pathlib import Path
+
+os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
 from tools.atlas_dispatcher import dispatch
 

@@ -31,6 +31,9 @@
     "config/",
     "validators/",
     "memory/",
+    "memory/derived_projects.json",
+    "memory/routing_log.jsonl",
+    "memory/governance_events.jsonl",
     "docs/",
     "tests/"
   ],

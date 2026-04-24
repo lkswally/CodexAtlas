@@ -1,8 +1,12 @@
+import os
 from pathlib import Path
 from unittest.mock import patch
 
+os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
+
 from tools.atlas_governance_check import (
     _find_forbidden_canonical_root_artifacts,
+    _record_governance_event,
     _read_text,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
@@ -287,3 +291,30 @@ def test_governance_detects_forbidden_canonical_root_artifacts():
 
     assert "forbidden_canonical_artifact:.claude" in findings
     assert "forbidden_canonical_artifact:CLAUDE.md" in findings
+
+
+def test_governance_records_structured_event():
+    captured = []
+
+    def fake_append(path, record):
+        captured.append((path, record))
+
+    with patch("tools.atlas_governance_check._event_logging_enabled", return_value=True):
+        with patch("tools.atlas_governance_check._append_jsonl_record", side_effect=fake_append):
+            _record_governance_event(
+                ROOT,
+                None,
+                {
+                    "ok": True,
+                    "findings": [],
+                    "profile": "canonical",
+                },
+            )
+
+    assert len(captured) == 1
+    path, record = captured[0]
+    assert path.name == "governance_events.jsonl"
+    assert record["root"] == str(ROOT)
+    assert record["project"] is None
+    assert record["ok"] is True
+    assert record["findings_count"] == 0

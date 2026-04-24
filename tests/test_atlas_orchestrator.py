@@ -1,5 +1,8 @@
+import os
 from pathlib import Path
 from unittest.mock import patch
+
+os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
 from tools.atlas_orchestrator import orchestrate_task
 
@@ -224,3 +227,24 @@ def test_bootstrap_project_text_does_not_trigger_false_deploy_or_delete_blockers
     assert not any(reason.startswith("dangerous_task_keyword:deploy") for reason in result["approval_reasons"])
     assert not any(reason.startswith("dangerous_task_keyword:delete") for reason in result["approval_reasons"])
     assert not any(blocker.startswith("skill_forbidden_action:deploy") for blocker in result["execution_blockers"])
+
+
+def test_orchestrator_appends_structured_routing_log():
+    captured = []
+
+    def fake_append(path, record):
+        captured.append((path, record))
+
+    with patch("tools.atlas_orchestrator._event_logging_enabled", return_value=True):
+        with patch("tools.atlas_orchestrator._append_jsonl_record", side_effect=fake_append):
+            result = orchestrate_task("Plan the next architecture phases for Atlas.")
+
+    assert result["intent"] == "planning"
+    assert len(captured) == 1
+    path, record = captured[0]
+    assert path.name == "routing_log.jsonl"
+    assert record["intent"] == "planning"
+    assert record["recommended_agent"] == "planner"
+    assert record["recommended_workflow"] == "orchestrator_routing"
+    assert record["task_fingerprint"]
+    assert "task" not in record

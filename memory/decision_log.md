@@ -125,3 +125,10 @@
 - Impact: Atlas now has an explicit `docs/codex_system_prompt.md`, a canonical reference assessment, stronger quality-gate policies and a clearer seven-phase pipeline
 - Risk: the documentary layer can drift if future Atlas changes update workflows or policies without updating the assessment
 - Rollback: remove the new docs and policies and fall back to the previous lighter guidance surface
+
+## 2026-04-24
+- Decision: add append-only observability logs for routing, governance and derived-project creation
+- Reason: Atlas needed lightweight system visibility over time without introducing MCPs, hooks, external dependencies or runtime risk
+- Impact: the orchestrator now logs structured decisions, `project-bootstrap` records created derivatives, and governance check records validation events under `memory/`
+- Risk: observability can become noisy if future changes log too much detail or allow sensitive payloads into persistent files
+- Rollback: remove the logging helpers, delete the new memory files and return to purely ad-hoc inspection

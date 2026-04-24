@@ -1,5 +1,8 @@
+import os
 from pathlib import Path
 from unittest.mock import patch
+
+os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
 from tools.atlas_orchestrator import execute_skill, get_project_bootstrap_contract
 
@@ -38,14 +41,20 @@ def test_project_bootstrap_execution_returns_contract_and_expected_writes():
     def fake_write(path, content):
         written_files[path.name] = content
 
+    derived_project_events = []
+
+    def fake_record(root, payload):
+        derived_project_events.append((root, payload))
+
     with patch("pathlib.Path.mkdir", new=fake_mkdir):
         with patch("tools.atlas_orchestrator._write_file_if_missing", side_effect=fake_write):
-            execution = execute_skill(
-                "project-bootstrap",
-                "Bootstrap a new derived project.",
-                output_dir=target,
-                project_type="ai_agent_system",
-            )
+            with patch("tools.atlas_orchestrator._record_derived_project_creation", side_effect=fake_record):
+                execution = execute_skill(
+                    "project-bootstrap",
+                    "Bootstrap a new derived project.",
+                    output_dir=target,
+                    project_type="ai_agent_system",
+                )
 
     assert execution["skill"] == "project-bootstrap"
     assert execution["ok"] is True
@@ -71,6 +80,11 @@ def test_project_bootstrap_execution_returns_contract_and_expected_writes():
     assert "{{" not in written_files["README.md"]
     assert "{{" not in written_files["AGENTS.md"]
     assert '"project_profile": "ai_agent_system"' in written_files[".atlas-project.json"]
+    assert len(derived_project_events) == 1
+    _, event_payload = derived_project_events[0]
+    assert event_payload["project_name"] == "DerivedProject"
+    assert event_payload["project_profile"] == "ai_agent_system"
+    assert event_payload["generated_from_skill"] == "project-bootstrap"
 
 
 def test_project_bootstrap_execution_rejects_invalid_project_type():

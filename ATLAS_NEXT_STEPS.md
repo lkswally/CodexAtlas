@@ -35,6 +35,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep `docs/codex_system_prompt.md` and `AGENTS.md` aligned so Atlas does not grow two competing instruction surfaces
 - Keep the Claude-vibecoding assessment current if Atlas adopts or rejects new reference patterns
 - Keep manual quality-gate policies stronger than the repo narrative, not weaker
+- Keep observability logs append-only, lightweight and free of sensitive task payloads
 
 ## Possible future improvements
 
@@ -44,6 +45,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Read-only quality-gate helpers for evidence, boundary and template checks if they prove reusable beyond current governance
 - Stronger certification summaries that can be consumed by future handoff or reporting layers without adding autonomy
 - Manual validator bundle for architecture drift and boundary checks
+- Small read-only observability summaries built on top of the new routing and governance logs
 - Stronger docs for derived-project extraction and adapter contracts
 - A second-level orchestrator that can consume structured task metadata instead of only free text
 - Skill-aware routing with richer signals than keyword matching
@@ -70,6 +72,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - external templates diverging from supported render variables or from per-profile contract metadata
 - template quality checks becoming weaker than the actual bootstrap output as profiles evolve
 - certification rules drifting away from the real bootstrap contract or from derived-project metadata
+- observability logs growing without retention or summary rules
 - Too many low-value skills diluting Atlas-native guidance
 
 ## Do not touch yet

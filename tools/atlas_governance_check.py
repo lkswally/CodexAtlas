@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
@@ -55,6 +57,9 @@ REQUIRED_ROOT_FILES = (
     "memory/session_summaries.md",
     "memory/project_state.json",
     "memory/context_refresh_protocol.md",
+    "memory/derived_projects.json",
+    "memory/routing_log.jsonl",
+    "memory/governance_events.jsonl",
     "docs/architecture.md",
     "docs/claude_to_codex_mapping.md",
     "docs/codex_system_prompt.md",
@@ -217,6 +222,7 @@ FORBIDDEN_CANONICAL_ROOT_ARTIFACTS = (
     ".claude",
     "CLAUDE.md",
 )
+GOVERNANCE_EVENTS_LOG = "governance_events.jsonl"
 
 
 def _primary_registry_path(root: Path) -> Path:
@@ -265,6 +271,48 @@ def _load_project_state(root: Path) -> Dict[str, object]:
 
 def _load_model_profiles(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "model_profiles.json").read_text(encoding="utf-8"))
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _append_jsonl_record(path: Path, record: Dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+def _event_logging_enabled(root: Path) -> bool:
+    if os.environ.get("ATLAS_DISABLE_EVENT_LOGS", "").strip() == "1":
+        return False
+    return root.resolve() == DEFAULT_ROOT.resolve()
+
+
+def _record_governance_event(root: Path, project: Optional[Path], result: Dict[str, object]) -> None:
+    if not _event_logging_enabled(root):
+        return
+    entry: Dict[str, Any] = {
+        "timestamp": _utc_now_iso(),
+        "root": str(root),
+        "project": str(project.resolve()) if project else None,
+        "profile": result.get("profile"),
+        "ok": bool(result.get("ok")),
+        "findings_count": len(list(result.get("findings", []))),
+        "findings": list(result.get("findings", [])),
+    }
+    atlas = result.get("atlas")
+    if isinstance(atlas, dict):
+        entry["atlas_ok"] = bool(atlas.get("ok"))
+    project_result = result.get("project")
+    if isinstance(project_result, dict):
+        entry["derived_project_ok"] = bool(project_result.get("ok"))
+    _append_jsonl_record(root / "memory" / GOVERNANCE_EVENTS_LOG, entry)
+
+
+def _finalize_governance_result(root: Path, project: Optional[Path], result: Dict[str, object]) -> Dict[str, object]:
+    _record_governance_event(root, project, result)
+    return result
 
 
 def _find_forbidden_canonical_root_artifacts(root: Path) -> List[str]:
@@ -912,19 +960,31 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
                 findings.append(f"missing_adapter_surface:{label}")
 
     if findings:
-        return {"ok": False, "findings": findings, "profile": "canonical" if is_canonical_root else "adapter"}
+        return _finalize_governance_result(
+            root,
+            project.resolve() if project else None,
+            {"ok": False, "findings": findings, "profile": "canonical" if is_canonical_root else "adapter"},
+        )
 
     try:
         registry = _load_registry(root, is_canonical_root)
     except Exception as exc:
-        return {"ok": False, "findings": [f"invalid_registry_json:{exc}"], "profile": "canonical" if is_canonical_root else "adapter"}
+        return _finalize_governance_result(
+            root,
+            project.resolve() if project else None,
+            {"ok": False, "findings": [f"invalid_registry_json:{exc}"], "profile": "canonical" if is_canonical_root else "adapter"},
+        )
 
     project_state: Dict[str, object] = {}
     if is_canonical_root:
         try:
             project_state = _load_project_state(root)
         except Exception as exc:
-            return {"ok": False, "findings": [f"invalid_project_state_json:{exc}"], "profile": "canonical"}
+            return _finalize_governance_result(
+                root,
+                project.resolve() if project else None,
+                {"ok": False, "findings": [f"invalid_project_state_json:{exc}"], "profile": "canonical"},
+            )
 
     missing_top_level = REQUIRED_TOP_LEVEL - set(registry.keys())
     if missing_top_level:
@@ -933,7 +993,11 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
     commands = registry.get("commands", [])
     if not isinstance(commands, list) or not commands:
         findings.append("commands_empty_or_invalid")
-        return {"ok": False, "findings": findings, "profile": "canonical" if is_canonical_root else "adapter"}
+        return _finalize_governance_result(
+            root,
+            project.resolve() if project else None,
+            {"ok": False, "findings": findings, "profile": "canonical" if is_canonical_root else "adapter"},
+        )
 
     seen_ids: Set[str] = set()
     seen_aliases: Set[str] = set()
@@ -980,7 +1044,11 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
     if is_canonical_root:
         if not isinstance(project_state, dict):
             findings.append("project_state_not_object")
-            return {"ok": False, "findings": findings, "profile": "canonical"}
+            return _finalize_governance_result(
+                root,
+                project.resolve() if project else None,
+                {"ok": False, "findings": findings, "profile": "canonical"},
+            )
 
         missing_state_keys = REQUIRED_PROJECT_STATE_KEYS - set(project_state.keys())
         if missing_state_keys:
@@ -1005,17 +1073,18 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
 
     atlas_result = {"ok": not findings, "findings": findings, "profile": "canonical" if is_canonical_root else "adapter"}
     if project is None:
-        return atlas_result
+        return _finalize_governance_result(root, None, atlas_result)
 
     project_root = project.resolve()
     project_result = _validate_derived_project(project_root)
-    return {
+    combined_result = {
         "ok": bool(atlas_result["ok"]) and bool(project_result["ok"]),
         "findings": list(atlas_result["findings"]) + list(project_result["findings"]),
         "profile": "canonical+derived_project" if is_canonical_root else "adapter+derived_project",
         "atlas": atlas_result,
         "project": project_result,
     }
+    return _finalize_governance_result(root, project_root, combined_result)
 
 
 def format_report(result: Dict[str, object]) -> str:

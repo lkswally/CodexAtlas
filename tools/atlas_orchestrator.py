@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import importlib.util
 import json
+import os
 import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -15,6 +18,9 @@ SKILLS_DIR = DEFAULT_ROOT / "skills"
 
 MODEL_PROFILE_PATH = CONFIG_DIR / "model_profiles.json"
 MCP_PROFILE_PATH = CONFIG_DIR / "mcp_profiles.json"
+MEMORY_DIR_NAME = "memory"
+DERIVED_PROJECTS_LOG = "derived_projects.json"
+ROUTING_LOG = "routing_log.jsonl"
 
 
 INTENT_ORDER = (
@@ -317,6 +323,45 @@ PROJECT_TYPE_KEYWORDS = {
 
 def _load_json(path: Path) -> Dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8-sig"))
+
+
+def _utc_now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat()
+
+
+def _memory_dir(root: Path) -> Path:
+    return root / MEMORY_DIR_NAME
+
+
+def _event_logging_enabled(root: Path) -> bool:
+    if os.environ.get("ATLAS_DISABLE_EVENT_LOGS", "").strip() == "1":
+        return False
+    return root.resolve() == DEFAULT_ROOT.resolve()
+
+
+def _append_jsonl_record(path: Path, record: Dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+def _load_json_or_default(path: Path, default: Dict[str, Any]) -> Dict[str, Any]:
+    if not path.exists():
+        return dict(default)
+    try:
+        data = json.loads(path.read_text(encoding="utf-8-sig"))
+    except Exception:
+        return dict(default)
+    return data if isinstance(data, dict) else dict(default)
+
+
+def _write_json(path: Path, payload: Dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def _task_fingerprint(task: str) -> str:
+    return hashlib.sha256(task.strip().encode("utf-8")).hexdigest()[:16]
 
 
 def _normalize(task: str) -> str:
@@ -944,6 +989,50 @@ def _structured_behavior_metadata(behavior: Optional[Dict[str, Any]]) -> Optiona
     }
 
 
+def _record_routing_decision(root: Path, payload: Dict[str, Any]) -> None:
+    if not _event_logging_enabled(root):
+        return
+    entry = {
+        "timestamp": _utc_now_iso(),
+        "task_fingerprint": _task_fingerprint(str(payload.get("task", ""))),
+        "intent": payload.get("intent"),
+        "recommended_agent": payload.get("recommended_agent"),
+        "recommended_skill": payload.get("recommended_skill"),
+        "recommended_workflow": payload.get("recommended_workflow"),
+        "model_profile": payload.get("model_profile"),
+        "suggested_mcp_ids": [item.get("id") for item in payload.get("suggested_mcps", []) if isinstance(item, dict)],
+        "requires_human_approval": bool(payload.get("requires_human_approval")),
+        "risk_level": payload.get("risk_level"),
+        "safe_to_execute": payload.get("safe_to_execute"),
+        "execution_allowed": payload.get("execution_allowed"),
+        "project_type": payload.get("project_type"),
+    }
+    _append_jsonl_record(_memory_dir(root) / ROUTING_LOG, entry)
+
+
+def _record_derived_project_creation(root: Path, payload: Dict[str, Any]) -> None:
+    if not _event_logging_enabled(root):
+        return
+    path = _memory_dir(root) / DERIVED_PROJECTS_LOG
+    document = _load_json_or_default(path, {"schema_version": "1.0", "projects": []})
+    projects = document.get("projects")
+    if not isinstance(projects, list):
+        projects = []
+    projects.append(
+        {
+            "created_at": _utc_now_iso(),
+            "project_name": payload.get("project_name"),
+            "project_root": payload.get("project_root"),
+            "project_profile": payload.get("project_profile"),
+            "generated_from_skill": payload.get("generated_from_skill"),
+            "atlas_root": payload.get("atlas_root"),
+            "status": payload.get("status"),
+        }
+    )
+    document["projects"] = projects
+    _write_json(path, document)
+
+
 def _build_project_bootstrap_scope(task: str) -> str:
     return "\n".join(
         [
@@ -1133,6 +1222,17 @@ def _execute_project_bootstrap(
         )
         + "\n",
     )
+    _record_derived_project_creation(
+        resolved_root,
+        {
+            "project_name": target.name,
+            "project_root": str(target),
+            "project_profile": resolved_project_type,
+            "generated_from_skill": "project-bootstrap",
+            "atlas_root": str(DEFAULT_ROOT),
+            "status": "bootstrapped",
+        },
+    )
 
     return {
         "skill": "project-bootstrap",
@@ -1249,7 +1349,7 @@ def orchestrate_task(
     execution_allowed = bool(recommended_skill and skill_metadata and skill_metadata.get("supports_execution")) and safe_to_execute and not execution_blockers
     risk_level = _merge_risk(RISK_BY_INTENT[intent], skill_metadata, requires_human_approval)
 
-    return {
+    result = {
         "task": task,
         "intent": intent,
         "recommended_agent": recommended_agent,
@@ -1283,6 +1383,8 @@ def orchestrate_task(
             execution_blockers,
         ),
     }
+    _record_routing_decision(root, result)
+    return result
 
 
 def main(argv: Optional[List[str]] = None) -> int:
