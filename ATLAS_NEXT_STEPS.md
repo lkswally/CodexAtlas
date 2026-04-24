@@ -36,6 +36,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep the Claude-vibecoding assessment current if Atlas adopts or rejects new reference patterns
 - Keep manual quality-gate policies stronger than the repo narrative, not weaker
 - Keep observability logs append-only, lightweight and free of sensitive task payloads
+- Keep the MCP experiment limited to a single read-only profile until Atlas proves the governance model holds
 
 ## Possible future improvements
 
@@ -46,6 +47,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Stronger certification summaries that can be consumed by future handoff or reporting layers without adding autonomy
 - Manual validator bundle for architecture drift and boundary checks
 - Small read-only observability summaries built on top of the new routing and governance logs
+- A second controlled MCP only after the first one proves useful without broadening Atlas risk
 - Stronger docs for derived-project extraction and adapter contracts
 - A second-level orchestrator that can consume structured task metadata instead of only free text
 - Skill-aware routing with richer signals than keyword matching
@@ -73,6 +75,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - template quality checks becoming weaker than the actual bootstrap output as profiles evolve
 - certification rules drifting away from the real bootstrap contract or from derived-project metadata
 - observability logs growing without retention or summary rules
+- MCP profile sprawl diluting the default-deny rule
 - Too many low-value skills diluting Atlas-native guidance
 
 ## Do not touch yet

@@ -88,3 +88,11 @@ Cada conector futuro debe terminar en una decision concreta:
 - disenar sin implementar
 - watchlist
 - descartar
+
+## Decision vigente
+
+Evaluacion actual:
+- `docs_search` es el primer MCP aprobado solo como experimento read-only y siempre bajo aprobacion humana.
+- `github` queda en watchlist hasta que la superficie disponible sea realmente util para lectura estructural de repo, PRs e issues.
+- `filesystem` restringido queda diferido porque Atlas ya resuelve la mayoria del trabajo con acceso local normal.
+- `engram` queda diferido porque Atlas ya tiene memoria file-backed y no debe duplicar fuentes de verdad todavia.

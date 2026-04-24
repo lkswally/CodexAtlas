@@ -64,6 +64,7 @@ REQUIRED_ROOT_FILES = (
     "docs/claude_to_codex_mapping.md",
     "docs/codex_system_prompt.md",
     "docs/claude_vibecoding_assessment.md",
+    "docs/mcp_read_only_evaluation.md",
     "adapters/reyesoft/README.md",
     "skills/README.md",
     "skills/project-bootstrap/skill.md",
@@ -223,6 +224,26 @@ FORBIDDEN_CANONICAL_ROOT_ARTIFACTS = (
     "CLAUDE.md",
 )
 GOVERNANCE_EVENTS_LOG = "governance_events.jsonl"
+REQUIRED_MCP_PROFILE_FIELDS = {
+    "purpose",
+    "risk_level",
+    "default_mode",
+    "requires_approval",
+    "provider_kind",
+    "atlas_decision",
+    "experimental_enabled",
+    "read_only_scope",
+    "rollback",
+    "when_to_use",
+    "when_not_to_use",
+}
+VALID_MCP_ATLAS_DECISIONS = {
+    "experimental_read_only",
+    "watchlist",
+    "defer",
+    "discard",
+    "supporting_profile",
+}
 
 
 def _primary_registry_path(root: Path) -> Path:
@@ -273,6 +294,10 @@ def _load_model_profiles(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "model_profiles.json").read_text(encoding="utf-8"))
 
 
+def _load_mcp_profiles(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "mcp_profiles.json").read_text(encoding="utf-8"))
+
+
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
@@ -307,6 +332,17 @@ def _record_governance_event(root: Path, project: Optional[Path], result: Dict[s
     project_result = result.get("project")
     if isinstance(project_result, dict):
         entry["derived_project_ok"] = bool(project_result.get("ok"))
+    try:
+        mcp_profiles = _load_mcp_profiles(root)
+        profiles = mcp_profiles.get("profiles", {})
+        if isinstance(profiles, dict):
+            entry["experimental_mcp_profiles"] = sorted(
+                profile_id
+                for profile_id, profile in profiles.items()
+                if isinstance(profile, dict) and bool(profile.get("experimental_enabled"))
+            )
+    except Exception:
+        entry["experimental_mcp_profiles"] = []
     _append_jsonl_record(root / "memory" / GOVERNANCE_EVENTS_LOG, entry)
 
 
@@ -322,6 +358,59 @@ def _find_forbidden_canonical_root_artifacts(root: Path) -> List[str]:
         if path.exists():
             findings.append(f"forbidden_canonical_artifact:{rel}")
     return findings
+
+
+def _validate_mcp_profiles(root: Path, findings: List[str]) -> None:
+    try:
+        config = _load_mcp_profiles(root)
+    except Exception as exc:
+        findings.append(f"invalid_mcp_profiles_json:{exc}")
+        return
+
+    if str(config.get("default_policy", "")).strip() != "deny":
+        findings.append("mcp_profiles_default_policy_must_be_deny")
+
+    profiles = config.get("profiles")
+    if not isinstance(profiles, dict) or not profiles:
+        findings.append("mcp_profiles_missing_profiles")
+        return
+
+    experimental_profiles: List[str] = []
+    for profile_id, profile in profiles.items():
+        if not isinstance(profile, dict):
+            findings.append(f"mcp_profile_invalid_object:{profile_id}")
+            continue
+
+        missing_fields = REQUIRED_MCP_PROFILE_FIELDS - set(profile.keys())
+        if missing_fields:
+            findings.append(f"mcp_profile_missing_fields:{profile_id}:{','.join(sorted(missing_fields))}")
+
+        if str(profile.get("default_mode", "")).strip() != "read_only":
+            findings.append(f"mcp_profile_invalid_default_mode:{profile_id}:{profile.get('default_mode')}")
+
+        if not isinstance(profile.get("requires_approval"), bool):
+            findings.append(f"mcp_profile_requires_approval_not_boolean:{profile_id}")
+
+        if not isinstance(profile.get("experimental_enabled"), bool):
+            findings.append(f"mcp_profile_experimental_enabled_not_boolean:{profile_id}")
+
+        if str(profile.get("atlas_decision", "")).strip() not in VALID_MCP_ATLAS_DECISIONS:
+            findings.append(f"mcp_profile_invalid_atlas_decision:{profile_id}:{profile.get('atlas_decision')}")
+
+        for list_field in ("when_to_use", "when_not_to_use"):
+            value = profile.get(list_field)
+            if not isinstance(value, list) or not value or not all(isinstance(item, str) and item.strip() for item in value):
+                findings.append(f"mcp_profile_invalid_list:{profile_id}:{list_field}")
+
+        if bool(profile.get("experimental_enabled")):
+            experimental_profiles.append(profile_id)
+            if str(profile.get("atlas_decision", "")).strip() != "experimental_read_only":
+                findings.append(f"mcp_profile_experimental_requires_decision:{profile_id}")
+            if not bool(profile.get("requires_approval")):
+                findings.append(f"mcp_profile_experimental_requires_approval:{profile_id}")
+
+    if len(experimental_profiles) > 1:
+        findings.append(f"mcp_profiles_multiple_experimental:{','.join(sorted(experimental_profiles))}")
 
 
 def _load_skill_behavior_specs(root: Path) -> Dict[str, Dict[str, Any]]:
@@ -1066,6 +1155,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         if not isinstance(legacy_compatibility, dict):
             findings.append("project_state_invalid_legacy_compatibility")
 
+        _validate_mcp_profiles(root, findings)
         _validate_skill_catalog(root, findings)
         _check_legacy_mirror(_primary_registry_path(root), _legacy_registry_path(root), "atomic_command_registry", findings)
         _check_legacy_mirror(_primary_mcp_policy_path(root), _legacy_mcp_policy_path(root), "mcp_connector_policy", findings)

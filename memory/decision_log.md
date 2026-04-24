@@ -132,3 +132,10 @@
 - Impact: the orchestrator now logs structured decisions, `project-bootstrap` records created derivatives, and governance check records validation events under `memory/`
 - Risk: observability can become noisy if future changes log too much detail or allow sensitive payloads into persistent files
 - Rollback: remove the logging helpers, delete the new memory files and return to purely ad-hoc inspection
+
+## 2026-04-24
+- Decision: approve only `docs_search` as the first experimental read-only MCP and keep the rest denied or deferred
+- Reason: Atlas needed one low-risk external context path for unstable docs and version checks, while GitHub, filesystem and Engram still carry either insufficient current value or broader risk
+- Impact: MCP metadata, routing and governance now expose a single experimental read-only profile, and governance logs which experimental MCPs are active
+- Risk: the experimental profile could expand informally if future edits ignore the one-experiment-at-a-time rule
+- Rollback: set `experimental_enabled` to `false` for `docs_search`, keep all MCPs advisory-only, and re-run governance

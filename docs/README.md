@@ -7,3 +7,4 @@ Current documents:
 - `claude_to_codex_mapping.md`
 - `codex_system_prompt.md`
 - `claude_vibecoding_assessment.md`
+- `mcp_read_only_evaluation.md`

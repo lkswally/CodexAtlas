@@ -714,6 +714,22 @@ def _suggest_mcp_ids(task: str, intent: str) -> List[str]:
     normalized = _normalize(task)
     suggestions: List[str] = []
 
+    if any(
+        token in normalized
+        for token in (
+            "latest",
+            "look up",
+            "current version",
+            "current docs",
+            "current release",
+            "official docs",
+            "api reference",
+            "sdk docs",
+            "documentation site",
+        )
+    ):
+        suggestions.append("docs_search")
+
     if any(token in normalized for token in ("database", "schema", "table", "column", "sql")):
         suggestions.append("database_schema")
 
@@ -723,13 +739,10 @@ def _suggest_mcp_ids(task: str, intent: str) -> List[str]:
     ):
         suggestions.append("github")
 
-    if any(
-        token in normalized
-        for token in ("latest", "look up", "search the web", "current version", "current docs", "current release")
-    ):
+    if any(token in normalized for token in ("search the web",)):
         suggestions.append("web_search")
 
-    if any(token in normalized for token in ("api reference", "official docs", "sdk docs", "documentation site")):
+    if any(token in normalized for token in ("official product guidance", "library docs")):
         suggestions.append("docs")
 
     if any(token in normalized for token in ("analytics", "metric", "telemetry", "funnel", "dashboard metrics")):
@@ -739,7 +752,7 @@ def _suggest_mcp_ids(task: str, intent: str) -> List[str]:
         suggestions.append("filesystem")
 
     if intent == "research" and not suggestions and "docs" in normalized:
-        suggestions.append("docs")
+        suggestions.append("docs_search")
 
     seen: List[str] = []
     for item in suggestions:
@@ -770,7 +783,7 @@ def _build_mcp_reason(suggested_ids: List[str], mcp_profiles: Dict[str, Any]) ->
     for mcp_id in suggested_ids:
         profile = mcp_profiles["profiles"][mcp_id]
         details.append(
-            f"{mcp_id} ({profile['default_mode']}, approval={str(profile['requires_approval']).lower()}, risk={profile['risk_level']})"
+            f"{mcp_id} ({profile['default_mode']}, approval={str(profile['requires_approval']).lower()}, risk={profile['risk_level']}, decision={profile.get('atlas_decision', 'unknown')})"
         )
     return (
         "Suggested MCPs remain advisory only and are not connected automatically. "
@@ -1001,6 +1014,15 @@ def _record_routing_decision(root: Path, payload: Dict[str, Any]) -> None:
         "recommended_workflow": payload.get("recommended_workflow"),
         "model_profile": payload.get("model_profile"),
         "suggested_mcp_ids": [item.get("id") for item in payload.get("suggested_mcps", []) if isinstance(item, dict)],
+        "suggested_mcp_details": [
+            {
+                "id": item.get("id"),
+                "atlas_decision": item.get("atlas_decision"),
+                "experimental_enabled": item.get("experimental_enabled"),
+            }
+            for item in payload.get("suggested_mcps", [])
+            if isinstance(item, dict)
+        ],
         "requires_human_approval": bool(payload.get("requires_human_approval")),
         "risk_level": payload.get("risk_level"),
         "safe_to_execute": payload.get("safe_to_execute"),
@@ -1332,6 +1354,10 @@ def orchestrate_task(
             "default_mode": mcp_profiles["profiles"][mcp_id]["default_mode"],
             "requires_approval": mcp_profiles["profiles"][mcp_id]["requires_approval"],
             "risk_level": mcp_profiles["profiles"][mcp_id]["risk_level"],
+            "provider_kind": mcp_profiles["profiles"][mcp_id].get("provider_kind"),
+            "atlas_decision": mcp_profiles["profiles"][mcp_id].get("atlas_decision"),
+            "experimental_enabled": bool(mcp_profiles["profiles"][mcp_id].get("experimental_enabled")),
+            "read_only_scope": mcp_profiles["profiles"][mcp_id].get("read_only_scope"),
         }
         for mcp_id in suggested_mcp_ids
     ]

@@ -56,6 +56,24 @@ def test_database_task_suggests_database_schema_read_only():
     assert database_mcp["default_mode"] == "read_only"
 
 
+def test_docs_search_is_the_only_experimental_read_only_mcp():
+    result = orchestrate_task("Look up the current official SDK docs and latest release notes.")
+    assert any(item["id"] == "docs_search" for item in result["suggested_mcps"])
+    docs_search = next(item for item in result["suggested_mcps"] if item["id"] == "docs_search")
+    assert docs_search["default_mode"] == "read_only"
+    assert docs_search["experimental_enabled"] is True
+    assert docs_search["atlas_decision"] == "experimental_read_only"
+
+
+def test_github_task_stays_watchlist_and_requires_approval():
+    result = orchestrate_task("Inspect the GitHub pull request state before review.")
+    assert any(item["id"] == "github" for item in result["suggested_mcps"])
+    github_mcp = next(item for item in result["suggested_mcps"] if item["id"] == "github")
+    assert github_mcp["experimental_enabled"] is False
+    assert github_mcp["atlas_decision"] == "watchlist"
+    assert result["requires_human_approval"] is True
+
+
 def test_simple_documentation_task_routes_to_cost_saver():
     result = orchestrate_task("Update the README and document the current status.")
     assert result["intent"] == "documentation"

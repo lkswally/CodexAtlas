@@ -1,19 +1,26 @@
 {
   "default_policy": "deny",
   "profiles": {
-    "filesystem": {
-      "purpose": "Access additional filesystem contexts when a task truly depends on files not already available through normal repo inspection.",
-      "risk_level": "medium",
+    "docs_search": {
+      "purpose": "Gather current official documentation or version-sensitive references through read-only search and docs lookup.",
+      "risk_level": "low",
       "default_mode": "read_only",
       "requires_approval": true,
+      "provider_kind": "builtin_read_only",
+      "atlas_decision": "experimental_read_only",
+      "experimental_enabled": true,
+      "read_only_scope": "official docs, current versions and reference lookup only",
+      "rollback": "disable experimental_enabled and fall back to local docs plus manual browsing only",
       "when_to_use": [
-        "cross-workspace inspection",
-        "external project comparison",
-        "structured file inventory beyond the active workspace"
+        "official docs",
+        "API references",
+        "current versions or releases",
+        "externally changing documentation"
       ],
       "when_not_to_use": [
-        "normal repo browsing",
-        "tasks solvable with built-in local file access"
+        "tasks already covered by local docs",
+        "subjective brainstorming",
+        "repo-only architecture work"
       ]
     },
     "github": {
@@ -21,6 +28,11 @@
       "risk_level": "medium",
       "default_mode": "read_only",
       "requires_approval": true,
+      "provider_kind": "codex_app",
+      "atlas_decision": "watchlist",
+      "experimental_enabled": false,
+      "read_only_scope": "future repo, PR and issue inspection once a read-only surface is available",
+      "rollback": "keep disabled until the connector exposes the read-only repository surface Atlas actually needs",
       "when_to_use": [
         "pull request review",
         "issue or branch inspection",
@@ -31,11 +43,55 @@
         "changes that do not depend on GitHub state"
       ]
     },
+    "filesystem": {
+      "purpose": "Access additional filesystem contexts when a task truly depends on files not already available through normal repo inspection.",
+      "risk_level": "medium",
+      "default_mode": "read_only",
+      "requires_approval": true,
+      "provider_kind": "external_mcp",
+      "atlas_decision": "defer",
+      "experimental_enabled": false,
+      "read_only_scope": "explicit external paths and cross-workspace inventory only",
+      "rollback": "keep disabled and continue using normal repo access for local work",
+      "when_to_use": [
+        "cross-workspace inspection",
+        "external project comparison",
+        "structured file inventory beyond the active workspace"
+      ],
+      "when_not_to_use": [
+        "normal repo browsing",
+        "tasks solvable with built-in local file access"
+      ]
+    },
+    "engram": {
+      "purpose": "Persistent external memory for cross-session recall and structured knowledge retrieval.",
+      "risk_level": "high",
+      "default_mode": "read_only",
+      "requires_approval": true,
+      "provider_kind": "external_mcp",
+      "atlas_decision": "defer",
+      "experimental_enabled": false,
+      "read_only_scope": "memory lookup only, with no writes or sync enabled",
+      "rollback": "do not enable and continue using file-backed memory under memory/",
+      "when_to_use": [
+        "future memory experiments when file-backed memory becomes insufficient",
+        "cross-session recall that cannot be handled by local markdown or JSON logs"
+      ],
+      "when_not_to_use": [
+        "current Atlas memory flows",
+        "tasks already covered by decision_log, session_summaries or breadcrumbs"
+      ]
+    },
     "web_search": {
       "purpose": "Gather current external information or verify unstable facts.",
       "risk_level": "medium",
       "default_mode": "read_only",
       "requires_approval": true,
+      "provider_kind": "builtin_read_only",
+      "atlas_decision": "supporting_profile",
+      "experimental_enabled": false,
+      "read_only_scope": "current facts and unstable external information",
+      "rollback": "use only local context when web verification is not needed",
       "when_to_use": [
         "latest docs",
         "current versions",
@@ -51,6 +107,11 @@
       "risk_level": "medium",
       "default_mode": "read_only",
       "requires_approval": true,
+      "provider_kind": "external_mcp",
+      "atlas_decision": "watchlist",
+      "experimental_enabled": false,
+      "read_only_scope": "schema and metadata only, never business data or writes",
+      "rollback": "keep disabled and use static schema artifacts or manual review instead",
       "when_to_use": [
         "schema review",
         "table and column analysis",
@@ -66,6 +127,11 @@
       "risk_level": "low",
       "default_mode": "read_only",
       "requires_approval": true,
+      "provider_kind": "builtin_read_only",
+      "atlas_decision": "supporting_profile",
+      "experimental_enabled": false,
+      "read_only_scope": "official product and library documentation only",
+      "rollback": "fall back to local docs and explicit web verification only when needed",
       "when_to_use": [
         "API references",
         "library or platform docs",
@@ -81,6 +147,11 @@
       "risk_level": "medium",
       "default_mode": "read_only",
       "requires_approval": true,
+      "provider_kind": "external_mcp",
+      "atlas_decision": "watchlist",
+      "experimental_enabled": false,
+      "read_only_scope": "aggregated metrics and telemetry summaries only",
+      "rollback": "keep disabled and rely on exported reports when metrics review is needed",
       "when_to_use": [
         "performance trends",
         "usage analysis",

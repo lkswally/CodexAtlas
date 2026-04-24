@@ -1,4 +1,5 @@
 import os
+import json
 from pathlib import Path
 from unittest.mock import patch
 
@@ -8,6 +9,7 @@ from tools.atlas_governance_check import (
     _find_forbidden_canonical_root_artifacts,
     _record_governance_event,
     _read_text,
+    _validate_mcp_profiles,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
@@ -318,3 +320,17 @@ def test_governance_records_structured_event():
     assert record["project"] is None
     assert record["ok"] is True
     assert record["findings_count"] == 0
+
+
+def test_mcp_profiles_reject_multiple_experimental_profiles():
+    findings = []
+    config_path = ROOT / "config" / "mcp_profiles.json"
+    modified = json.loads(config_path.read_text(encoding="utf-8"))
+    modified["profiles"]["docs_search"]["experimental_enabled"] = True
+    modified["profiles"]["github"]["experimental_enabled"] = True
+    modified["profiles"]["github"]["atlas_decision"] = "experimental_read_only"
+
+    with patch("tools.atlas_governance_check._load_mcp_profiles", return_value=modified):
+        _validate_mcp_profiles(ROOT, findings)
+
+    assert any(finding.startswith("mcp_profiles_multiple_experimental:") for finding in findings)
