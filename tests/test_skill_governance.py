@@ -2,6 +2,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from tools.atlas_governance_check import (
+    _find_forbidden_canonical_root_artifacts,
     _read_text,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
@@ -271,3 +272,18 @@ def test_bootstrap_templates_reject_invalid_placeholders():
             "recommendation=ensure_the_placeholder_is_whitelisted_and_rendered_or_convert_it_to_static_text"
             for finding in findings
         )
+
+
+def test_governance_detects_forbidden_canonical_root_artifacts():
+    original_exists = Path.exists
+
+    def fake_exists(path):
+        if path in {ROOT / ".claude", ROOT / "CLAUDE.md"}:
+            return True
+        return original_exists(path)
+
+    with patch("pathlib.Path.exists", new=fake_exists):
+        findings = _find_forbidden_canonical_root_artifacts(ROOT)
+
+    assert "forbidden_canonical_artifact:.claude" in findings
+    assert "forbidden_canonical_artifact:CLAUDE.md" in findings

@@ -5,12 +5,14 @@ This document keeps inspiration from Claude-oriented repos separate from Codex-n
 ## Mapping
 
 - `CLAUDE.md` -> `AGENTS.md` plus focused docs under `docs/`
+- Claude system prompt logic -> `docs/codex_system_prompt.md` plus policy and workflow docs
 - `~/.claude/agents` -> project-local `agents/` documentation and Codex global agents outside the repo
 - `~/.claude/hooks` -> manual validators and policies, not automatic hooks
 - Claude settings files -> repo docs plus local Codex config outside the repo
 - Engram MCP -> markdown and JSON memory files under `memory/`
 - reactive Claude guards -> explicit policies plus manual validation
 - deploy agent -> documented workflow with human approval, not automatic deploy
+- certification phase -> `certify-project` plus policy-backed manual quality gates
 
 ## Atlas-native placement
 

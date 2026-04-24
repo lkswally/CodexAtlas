@@ -37,11 +37,15 @@ REQUIRED_ROOT_FILES = (
     "workflows/create_project.md",
     "workflows/audit_project.md",
     "workflows/certify_output.md",
+    "workflows/certify_project.md",
     "workflows/audit_repo.md",
     "policies/anti_generic_output_policy.md",
+    "policies/evidence_required_policy.md",
     "policies/safe_execution_policy.md",
     "policies/human_approval_policy.md",
+    "policies/project_boundary_check_policy.md",
     "policies/project_derivative_policy.md",
+    "policies/template_quality_check_policy.md",
     "policies/mcp_connector_policy.md",
     "policies/model_routing_policy.md",
     "policies/mcp_routing_policy.md",
@@ -53,6 +57,8 @@ REQUIRED_ROOT_FILES = (
     "memory/context_refresh_protocol.md",
     "docs/architecture.md",
     "docs/claude_to_codex_mapping.md",
+    "docs/codex_system_prompt.md",
+    "docs/claude_vibecoding_assessment.md",
     "adapters/reyesoft/README.md",
     "skills/README.md",
     "skills/project-bootstrap/skill.md",
@@ -68,6 +74,7 @@ REQUIRED_ROOT_FILES = (
     "workflows/orchestrator_routing.md",
     "tools/atlas_orchestrator.py",
     "tests/test_atlas_orchestrator.py",
+    "tests/test_certify_project.py",
     "tests/test_skill_execution.py",
     "tests/test_skill_governance.py",
     "templates/project_bootstrap_profiles.md",
@@ -206,6 +213,10 @@ BOOTSTRAP_TEMPLATE_PLACEHOLDER_RE = re.compile(
     r"(?P<dollar>\$\{(?P<dollar_name>[a-zA-Z0-9_]+)\})|"
     r"(?P<single>\{(?P<single_name>[a-zA-Z0-9_]+)\})"
 )
+FORBIDDEN_CANONICAL_ROOT_ARTIFACTS = (
+    ".claude",
+    "CLAUDE.md",
+)
 
 
 def _primary_registry_path(root: Path) -> Path:
@@ -254,6 +265,15 @@ def _load_project_state(root: Path) -> Dict[str, object]:
 
 def _load_model_profiles(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "model_profiles.json").read_text(encoding="utf-8"))
+
+
+def _find_forbidden_canonical_root_artifacts(root: Path) -> List[str]:
+    findings: List[str] = []
+    for rel in FORBIDDEN_CANONICAL_ROOT_ARTIFACTS:
+        path = root / rel
+        if path.exists():
+            findings.append(f"forbidden_canonical_artifact:{rel}")
+    return findings
 
 
 def _load_skill_behavior_specs(root: Path) -> Dict[str, Dict[str, Any]]:
@@ -880,6 +900,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
                 findings.append(f"missing_dir:{rel}")
             elif not path.is_dir():
                 findings.append(f"not_a_directory:{rel}")
+        findings.extend(_find_forbidden_canonical_root_artifacts(root))
     else:
         registry_path, mcp_policy_path, context_protocol_path = _resolve_adapter_surface(root)
         for path, label in (

@@ -16,7 +16,8 @@
   "executable_components": [
     "tools/atlas_governance_check.py",
     "tools/atlas_dispatcher.py",
-    "tools/atlas_orchestrator.py"
+    "tools/atlas_orchestrator.py",
+    "tools/atlas_dispatcher.py --project <path> certify-project"
   ],
   "documentary_components": [
     "AGENTS.md",

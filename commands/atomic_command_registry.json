@@ -132,6 +132,36 @@
         "report"
       ],
       "rollback": "No aplica: read_only."
+    },
+    {
+      "id": "certify-project",
+      "alias": "atlas certify-project",
+      "purpose": "Certificar read-only que un proyecto derivado conserva el contrato Atlas, la estructura minima y la separacion segura del core.",
+      "fit": "high",
+      "execution_mode": "read_only",
+      "allowed_paths": [
+        ".atlas-project.json",
+        "README.md",
+        "AGENTS.md",
+        "docs",
+        "memory",
+        "workflows",
+        "policies",
+        "tools"
+      ],
+      "guards": [
+        "No modificar el proyecto derivado durante la certificacion.",
+        "No ejecutar deploy, hooks, MCPs ni runtime del derivado.",
+        "Reportar blockers, warnings y recomendaciones con evidencia estructural."
+      ],
+      "outputs": [
+        "score",
+        "hallazgos",
+        "blockers",
+        "warnings",
+        "recomendaciones"
+      ],
+      "rollback": "No aplica: read_only."
     }
   ]
 }

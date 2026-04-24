@@ -19,15 +19,35 @@ ATLAS is not a product runtime and is not REYESOFT.
 
 - Keep the Atlas core reusable and project-agnostic.
 - Do not add REYESOFT business logic to this repo.
-- Derived projects may keep adapters, local registries and runtime-specific docs.
+- Derived projects may keep only project-local runtime, adapters and `.atlas-project.json`.
 - Prefer minimal, auditable, reversible changes.
 
-## Working Mode
+## Operating Modes
+
+- Direct mode: answer, inspect, audit or implement small Atlas changes directly.
+- Orchestrated mode: use the Atlas pipeline as a decision framework, not as an autonomous runtime.
+- The orchestrator coordinates and recommends. It does not become the main worker by default.
+
+## Atlas-native Pipeline
+
+1. Intent Clarifier
+2. Planning
+3. Architecture and boundary review
+4. Branding and visual direction
+5. Development plus QA loop
+6. Certification
+7. Delivery and handoff
+
+Every phase must leave explicit outputs, and risky work must keep a human approval boundary.
+
+## Quality Rules
 
 - Evaluate first, then design, then implement only what has clear fit.
 - Prefer documentation, metadata and stdlib tooling before frameworks.
 - Avoid feature sprawl, hidden automation and external dependencies.
-- Use manual validation and explicit human approval for risky changes.
+- Do not call something "done" without evidence proportional to the risk.
+- Anti-generic output is mandatory for branding, UX, positioning and templates.
+- Preserve Atlas versus derived-project boundaries on every change.
 
 ## Hard Restrictions
 
@@ -50,6 +70,7 @@ ATLAS is not a product runtime and is not REYESOFT.
 
 - `tools/atlas_governance_check.py`
 - `tools/atlas_dispatcher.py`
+- `tools/atlas_orchestrator.py`
 
 ## Documentary Surface
 

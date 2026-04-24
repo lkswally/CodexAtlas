@@ -111,3 +111,17 @@
 - Impact: governance findings now identify the affected template, profile, raw placeholder and a direct correction recommendation
 - Risk: template validation is stricter and may surface legacy formatting mistakes immediately
 - Rollback: narrow placeholder detection back to the previous `{{x}}`-only behavior
+
+## 2026-04-24
+- Decision: add `certify-project` as a read-only Atlas-native certification command for derived projects
+- Reason: Atlas needed a Codex-native adaptation of the certification phase that validates derivative integrity without copying Claude-only infrastructure or touching runtime
+- Impact: the dispatcher can now certify derived projects by checking metadata, minimum directories, profile-specific structure and absence of embedded Atlas core
+- Risk: the certification checklist can drift if future bootstrap profiles evolve without updating the command
+- Rollback: remove `certify-project` from the registry and treat certification as documentary only again
+
+## 2026-04-24
+- Decision: capture the deep `claude-vibecoding` assessment as Codex-native docs and policies instead of importing Claude runtime files
+- Reason: Atlas needed to preserve the useful patterns from the reference repo without turning them into `.claude`, `CLAUDE.md`, hook or MCP dependencies
+- Impact: Atlas now has an explicit `docs/codex_system_prompt.md`, a canonical reference assessment, stronger quality-gate policies and a clearer seven-phase pipeline
+- Risk: the documentary layer can drift if future Atlas changes update workflows or policies without updating the assessment
+- Rollback: remove the new docs and policies and fall back to the previous lighter guidance surface

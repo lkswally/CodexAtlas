@@ -31,19 +31,25 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep external bootstrap templates aligned with contract variables so rendering stays predictable
 - Keep the allowed bootstrap placeholder set intentionally small so templates stay governable and readable
 - Keep template authors on the canonical placeholder syntax even though governance now checks several common formats for drift
+- Keep `certify-project` aligned with the bootstrap contract so certification reflects the real factory output instead of drifting into a separate checklist
+- Keep `docs/codex_system_prompt.md` and `AGENTS.md` aligned so Atlas does not grow two competing instruction surfaces
+- Keep the Claude-vibecoding assessment current if Atlas adopts or rejects new reference patterns
+- Keep manual quality-gate policies stronger than the repo narrative, not weaker
 
 ## Possible future improvements
 
 - Atlas-native skill set for audit, planning and factory governance
 - Reusable project templates with adapter placeholders
 - Documentary pipeline for intent, planning, architecture, implementation review and certification
+- Read-only quality-gate helpers for evidence, boundary and template checks if they prove reusable beyond current governance
+- Stronger certification summaries that can be consumed by future handoff or reporting layers without adding autonomy
 - Manual validator bundle for architecture drift and boundary checks
 - Stronger docs for derived-project extraction and adapter contracts
 - A second-level orchestrator that can consume structured task metadata instead of only free text
 - Skill-aware routing with richer signals than keyword matching
 - Optional skill manifest validation inside governance check if the catalog grows
 - Controlled retirement plan for `00_SISTEMA/_meta/atlas/` once no consumers need it
-- A git repository for `C:\Proyectos\Codex-Atlas` to strengthen canonical traceability
+- Better release hygiene around commit cadence, ignored local research clones and validation reports
 
 ## Watchlist
 
@@ -51,6 +57,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Double source of truth risk if derived repos start copying Atlas docs again
 - Pressure to add MCP or hooks too early
 - Pressure to turn Atlas into a product runtime instead of a factory layer
+- Claude-inspired patterns re-entering as hidden runtime assumptions instead of explicit Codex-native policies
 - Deprecated flat skill files lingering too long beside canonical `skill.md` and `skill.json`
 - Locked bootstrap residue under `tests/` becoming a persistent cleanliness issue
 - Drift between root-first canonical files and the legacy mirror
@@ -62,6 +69,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - type-aware templates becoming generic again as more project profiles are added
 - external templates diverging from supported render variables or from per-profile contract metadata
 - template quality checks becoming weaker than the actual bootstrap output as profiles evolve
+- certification rules drifting away from the real bootstrap contract or from derived-project metadata
 - Too many low-value skills diluting Atlas-native guidance
 
 ## Do not touch yet
@@ -88,3 +96,5 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - If bootstrap profiles grow further, consider moving rendered text blocks into dedicated template files while keeping the contract as the source of truth
 - If templates become significantly richer, consider a tiny dedicated renderer helper or template validator to catch unresolved placeholders early
 - If template complexity keeps growing, consider moving repeated static sections into shared partials without expanding the placeholder surface
+- If certification grows further, consider extracting its checks into a shared validator helper while keeping `atlas_dispatcher.py` small
+- Keep the GitHub repo clean of `_reference/`, test residue and personal local artifacts
