@@ -1,0 +1,39 @@
+# {{project_name}}
+
+Atlas-derived Internal Tool scaffold.
+
+## Purpose
+{{project_goal}}
+
+## Project Profile
+- Profile: `{{project_type}}`
+- Bootstrap source: `{{generated_from_skill}}`
+- Atlas root: `{{atlas_root}}`
+
+## Initial Scope
+{{scope}}
+
+## Suggested Structure
+- `docs/`
+- `memory/`
+- `workflows/`
+- `policies/`
+- `tools/`
+- `automation/`
+- `reports/`
+- `ops/`
+
+## Example Usage
+1. Document the operator workflow in `docs/` and `reports/` before automating anything.
+2. Keep repeatable procedures in `workflows/` and decisions in `memory/`.
+
+## Safety Boundaries
+- Keep Atlas core outside this derived project.
+- Do not add MCP, deploy automation or dependency installers during bootstrap.
+- Use this scaffold to document workflow ownership and rollout boundaries before building utilities.
+
+## Next Steps
+- Clarify the operational problem being solved.
+- Document users and owners.
+- Define the workflow boundary.
+- Keep rollout safety explicit before building utilities.

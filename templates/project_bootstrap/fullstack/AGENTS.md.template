@@ -1,0 +1,20 @@
+# AGENTS for {{project_name}}
+
+## Project Context
+- This is an Atlas-derived `{{project_type}}` scaffold.
+- Runtime-specific frontend/backend code must stay local to this derived project.
+
+## Working Boundaries
+- Keep Atlas governance and mother configuration outside this repo.
+- Clarify the split between frontend, backend and shared contracts before implementation.
+- Do not enable deploy automation, MCPs or hidden hooks during bootstrap.
+
+## Recommended Roles
+- `planner` for phase ordering.
+- `architect` for frontend/backend separation.
+- `reviewer` for integration drift.
+
+## First Workflow
+- Capture the initial system boundary in README.md and docs/.
+- Use shared/ for explicit contracts, not implicit coupling.
+- Keep implementation phased so integration risk stays visible.

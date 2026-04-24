@@ -1,0 +1,39 @@
+# {{project_name}}
+
+Atlas-derived Frontend App scaffold.
+
+## Purpose
+{{project_goal}}
+
+## Project Profile
+- Profile: `{{project_type}}`
+- Bootstrap source: `{{generated_from_skill}}`
+- Atlas root: `{{atlas_root}}`
+
+## Initial Scope
+{{scope}}
+
+## Suggested Structure
+- `docs/`
+- `memory/`
+- `workflows/`
+- `policies/`
+- `tools/`
+- `app/`
+- `ui/`
+- `assets/`
+
+## Example Usage
+1. Define the audience and visual direction in `docs/` before building screens.
+2. Keep shared UI rules in `policies/` and runtime-specific components in `app/` and `ui/`.
+
+## Safety Boundaries
+- Keep Atlas core outside this derived project.
+- Do not add MCP, deploy automation or dependency installers during bootstrap.
+- Use this scaffold to define audience, UX direction and module boundaries before building screens.
+
+## Next Steps
+- Clarify the user-facing purpose.
+- Document the visual direction and tone.
+- Keep component boundaries explicit.
+- Define content and validation flow before building screens.

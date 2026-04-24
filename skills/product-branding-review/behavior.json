@@ -1,0 +1,18 @@
+{
+  "writes_files": false,
+  "writes_code": false,
+  "uses_output_dir": false,
+  "read_only": true,
+  "execution_helper": "branding_review_checklist",
+  "side_effects": [
+    "returns a structured branding and UX checklist",
+    "does not write files or modify runtime code"
+  ],
+  "requires_project_path": false,
+  "requires_output_dir": false,
+  "can_run_without_approval": true,
+  "notes": [
+    "the helper is advisory and checklist-based",
+    "approval is still required if the task shifts from review to implementation"
+  ]
+}

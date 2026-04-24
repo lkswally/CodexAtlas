@@ -1,0 +1,49 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment and local secrets
+.env
+.env.*
+*.local
+
+# Tool caches and reports
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Logs and local databases
+*.log
+*.tmp
+*.cache
+*.sqlite
+*.db
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Test residues and blocked local artifacts
+tests/__pycache__/
+tools/__pycache__/
+tests/_tmp*/
+tests/tmp*/
+tests/_preflight_*/
+
+# Deprecated local compatibility pointers and migration residue
+skills/project-bootstrap.md
+skills/repo-audit.md
+skills/product-branding-review.md
+ATLAS_REYESOFT_MIGRATION_AUDIT_2026-04-18.md

@@ -1,0 +1,20 @@
+# AGENTS for {{project_name}}
+
+## Project Context
+- This is an Atlas-derived `{{project_type}}` scaffold.
+- Runtime-specific service logic must stay local to this derived project.
+
+## Working Boundaries
+- Keep Atlas governance and mother configuration outside this repo.
+- Clarify APIs, service contracts and operational boundaries before implementation.
+- Do not enable deploy automation, MCPs or hidden hooks during bootstrap.
+
+## Recommended Roles
+- `architect` for service boundaries and contracts.
+- `implementer` only for approved endpoint skeletons.
+- `reviewer` for regression and contract risk.
+
+## First Workflow
+- Capture the initial service boundary in README.md and docs/.
+- Keep the first API contracts explicit before adding endpoints.
+- Treat tests/ as a validation target, not as bootstrap-generated runtime code.

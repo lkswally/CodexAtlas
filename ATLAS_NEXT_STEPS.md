@@ -1,0 +1,90 @@
+# ATLAS Next Steps
+
+This document captures the next safe moves after the post-Level 3B stabilization pass.
+
+## Suggested priority
+
+1. Consolidate the documentary core and keep it current with real decisions
+2. Remove blocked deprecated flat skill pointers once filesystem access allows deletion
+3. Remove blocked test residue folders once filesystem access allows deletion
+4. Observe how the first Atlas-native skills behave under the advanced metadata governance before adding more
+5. Evolve the suggestive orchestrator carefully before adding any autonomy
+
+## Review before building
+
+- Confirm that new pieces improve Atlas as a reusable factory rather than as a product app
+- Separate what should stay global in Codex from what belongs inside Atlas
+- Check that every new workflow has a human approval boundary if it can mutate project state
+- Keep REYESOFT adapters local and do not pull REYESOFT-specific logic into Atlas core
+- Revalidate the registry and project state whenever the structure changes
+- Preserve compatibility for derived-project metadata and the legacy mirror while the retirement plan is still open
+- Keep model and MCP profile catalogs configurable instead of turning one provider choice into a permanent rule
+- Add skills only when the orchestrator can justify them clearly
+- Keep execution tests side-effect free unless a real filesystem write is the behavior under test
+- Preserve the skill metadata contract if any future skill is added
+- Keep advanced operational fields aligned with real execution behavior, not just documentation
+- Keep approval reasons and execution blockers explainable to humans, not just technically correct
+- Keep `behavior.json` synchronized with helper implementations whenever execution changes
+- Keep `bootstrap_contract.json` synchronized with the actual scaffold that `project-bootstrap` generates
+- Keep bootstrap preflight rules aligned with real target-path safety constraints as Atlas creates more derived projects
+- Keep type-specific template content useful without letting bootstrap turn into a runtime generator
+- Keep external bootstrap templates aligned with contract variables so rendering stays predictable
+- Keep the allowed bootstrap placeholder set intentionally small so templates stay governable and readable
+- Keep template authors on the canonical placeholder syntax even though governance now checks several common formats for drift
+
+## Possible future improvements
+
+- Atlas-native skill set for audit, planning and factory governance
+- Reusable project templates with adapter placeholders
+- Documentary pipeline for intent, planning, architecture, implementation review and certification
+- Manual validator bundle for architecture drift and boundary checks
+- Stronger docs for derived-project extraction and adapter contracts
+- A second-level orchestrator that can consume structured task metadata instead of only free text
+- Skill-aware routing with richer signals than keyword matching
+- Optional skill manifest validation inside governance check if the catalog grows
+- Controlled retirement plan for `00_SISTEMA/_meta/atlas/` once no consumers need it
+- A git repository for `C:\Proyectos\Codex-Atlas` to strengthen canonical traceability
+
+## Watchlist
+
+- Python version compatibility between Atlas tooling and old REYESOFT environments
+- Double source of truth risk if derived repos start copying Atlas docs again
+- Pressure to add MCP or hooks too early
+- Pressure to turn Atlas into a product runtime instead of a factory layer
+- Deprecated flat skill files lingering too long beside canonical `skill.md` and `skill.json`
+- Locked bootstrap residue under `tests/` becoming a persistent cleanliness issue
+- Drift between root-first canonical files and the legacy mirror
+- Hardcoded routing logic growing faster than the profile catalogs
+- Skill metadata drifting between `skill.md`, `skill.json` and execution behavior
+- Approval triggers and forbidden actions becoming decorative instead of actionable governance metadata
+- `behavior.json` diverging from helper implementations over time
+- `bootstrap_contract.json` drifting away from the real scaffold helper or from `skill.json`
+- type-aware templates becoming generic again as more project profiles are added
+- external templates diverging from supported render variables or from per-profile contract metadata
+- template quality checks becoming weaker than the actual bootstrap output as profiles evolve
+- Too many low-value skills diluting Atlas-native guidance
+
+## Do not touch yet
+
+- REYESOFT runtime modules
+- Automatic deployment flows
+- MCP connectors
+- Automatic hooks or self-healing loops
+- Large agent fleets copied from Claude-oriented repos
+- Design intelligence datasets without a real Atlas use case
+
+## Recommended Level 2
+
+- Introduce template skeletons for derived projects
+- Add boundary validation docs for adapters vs canonical core
+- Decide when the legacy mirror can be reduced or removed
+- If routing proves stable, consider a structured task input schema for the orchestrator
+- Consider a small skill metadata index if the skill set grows
+- Decide whether the next step is richer skill matching or validator coverage for skill metadata
+- If the filesystem is unlocked later, remove `skills/_legacy_flat/`, `tests/tmpik5_anpo`, `tests/_tmp_bootstrap_case`, `tests/_tmp_bootstrap_tests`, `tests/_tmp_template_validation` and the three deprecated flat skill `.md` files
+- If the skill catalog grows, decide whether governance should validate cross-field consistency between `execution_mode`, `allowed_paths_policy` and actual execution helpers
+- If behavior metadata grows more complex, consider a shared schema or validator helper for `behavior.json`
+- If skill execution contracts keep growing, consider a shared schema or validator helper for `bootstrap_contract.json` and similar future skill contracts
+- If bootstrap profiles grow further, consider moving rendered text blocks into dedicated template files while keeping the contract as the source of truth
+- If templates become significantly richer, consider a tiny dedicated renderer helper or template validator to catch unresolved placeholders early
+- If template complexity keeps growing, consider moving repeated static sections into shared partials without expanding the placeholder surface

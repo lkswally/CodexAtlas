@@ -1,0 +1,60 @@
+{
+  "name": "product-branding-review",
+  "intent_keywords": [
+    "branding review",
+    "brand review",
+    "ux review",
+    "visual direction",
+    "positioning",
+    "audience",
+    "landing page",
+    "generic output",
+    "value proposition",
+    "product branding"
+  ],
+  "agent": "ux_brand",
+  "workflow": "atlas_project_pipeline",
+  "model_profile": "creative_product",
+  "risk_level": "medium",
+  "requires_human_approval": false,
+  "supports_execution": true,
+  "required_inputs": [
+    "product_context",
+    "target_audience",
+    "current_positioning_or_visual_direction",
+    "references_if_available"
+  ],
+  "execution_mode": "read_only",
+  "allowed_paths_policy": "no_filesystem_writes",
+  "expected_outputs": [
+    "branding and UX review",
+    "anti-generic findings",
+    "recommendations for audience, value proposition and direction"
+  ],
+  "safety_limits": [
+    "do not write files during checklist execution",
+    "keep recommendations advisory unless implementation is explicitly requested",
+    "do not import business-specific branding into Atlas core",
+    "do not present taste as certainty without rationale"
+  ],
+  "forbidden_actions": [
+    "edit product runtime files automatically",
+    "generate generic branding defaults as final output",
+    "invent audience evidence",
+    "deploy design changes"
+  ],
+  "human_approval_triggers": [
+    "the task shifts from review to implementation",
+    "the user asks to overwrite existing branding assets",
+    "the review would require external tooling or MCP activation"
+  ],
+  "rollback_manual": [
+    "no rollback needed because the skill returns a read-only checklist"
+  ],
+  "validations": [
+    "audience is explicit",
+    "value proposition is explicit",
+    "anti-generic policy is respected",
+    "recommendations stay advisory unless implementation is requested"
+  ]
+}

@@ -1,0 +1,39 @@
+# {{project_name}}
+
+Atlas-derived Fullstack Project scaffold.
+
+## Purpose
+{{project_goal}}
+
+## Project Profile
+- Profile: `{{project_type}}`
+- Bootstrap source: `{{generated_from_skill}}`
+- Atlas root: `{{atlas_root}}`
+
+## Initial Scope
+{{scope}}
+
+## Suggested Structure
+- `docs/`
+- `memory/`
+- `workflows/`
+- `policies/`
+- `tools/`
+- `frontend/`
+- `backend/`
+- `shared/`
+
+## Example Usage
+1. Capture the first shared contracts in `shared/` before implementation starts.
+2. Use `docs/` to define how frontend and backend evolve without leaking Atlas core into runtime.
+
+## Safety Boundaries
+- Keep Atlas core outside this derived project.
+- Do not add MCP, deploy automation or dependency installers during bootstrap.
+- Use this scaffold to separate frontend, backend and shared contracts before runtime work begins.
+
+## Next Steps
+- Define the product surface and system boundary.
+- Separate frontend and backend responsibilities early.
+- Make shared contract ownership explicit.
+- Keep execution phased to reduce integration drift.

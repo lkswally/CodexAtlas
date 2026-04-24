@@ -1,0 +1,60 @@
+{
+  "name": "repo-audit",
+  "intent_keywords": [
+    "audit repo",
+    "audit repository",
+    "repo audit",
+    "workspace audit",
+    "repository audit",
+    "governance audit",
+    "boundary review",
+    "drift",
+    "workspace inspection",
+    "repo analysis"
+  ],
+  "agent": "reality_checker",
+  "workflow": "audit_project",
+  "model_profile": "deep_reasoning",
+  "risk_level": "medium",
+  "requires_human_approval": false,
+  "supports_execution": true,
+  "required_inputs": [
+    "workspace_root_or_project_path",
+    "current_constraints",
+    "known_boundary_assumptions"
+  ],
+  "execution_mode": "read_only",
+  "allowed_paths_policy": "no_filesystem_writes",
+  "expected_outputs": [
+    "diagnosis",
+    "findings",
+    "risk summary",
+    "recommended next actions"
+  ],
+  "safety_limits": [
+    "read-only execution only",
+    "do not mutate repository files",
+    "do not bypass governance validation",
+    "do not assume documentation is correct without checking the workspace"
+  ],
+  "forbidden_actions": [
+    "modify project files",
+    "run destructive cleanup commands",
+    "skip governance checks",
+    "treat assumptions as confirmed facts"
+  ],
+  "human_approval_triggers": [
+    "the requested audit expands into destructive cleanup",
+    "the user asks to fix findings automatically",
+    "the audit requires external systems or MCP activation"
+  ],
+  "rollback_manual": [
+    "no rollback needed because the skill is read-only"
+  ],
+  "validations": [
+    "findings cite real paths or commands",
+    "unknowns remain explicit",
+    "no destructive action is taken",
+    "governance and registry stay consistent"
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "writes_files": true,
+  "writes_code": false,
+  "uses_output_dir": true,
+  "read_only": false,
+  "execution_helper": "project_bootstrap_scaffold",
+  "side_effects": [
+    "creates a minimal derived-project scaffold under the explicit output_dir",
+    "writes README.md, AGENTS.md and .atlas-project.json"
+  ],
+  "requires_project_path": false,
+  "requires_output_dir": true,
+  "can_run_without_approval": true,
+  "notes": [
+    "safe path is limited to a new or empty output_dir",
+    "approval is still required when human_approval_triggers are matched"
+  ]
+}

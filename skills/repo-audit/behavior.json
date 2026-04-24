@@ -1,0 +1,18 @@
+{
+  "writes_files": false,
+  "writes_code": false,
+  "uses_output_dir": false,
+  "read_only": true,
+  "execution_helper": "dispatcher_audit_repo",
+  "side_effects": [
+    "runs governance validation",
+    "returns an audit result payload without modifying files"
+  ],
+  "requires_project_path": false,
+  "requires_output_dir": false,
+  "can_run_without_approval": true,
+  "notes": [
+    "can target Atlas root or a derived project through project metadata",
+    "approval is still required when dangerous or escalation triggers are detected"
+  ]
+}

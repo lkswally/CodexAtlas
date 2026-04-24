@@ -1,0 +1,20 @@
+# AGENTS for {{project_name}}
+
+## Project Context
+- This is an Atlas-derived `{{project_type}}` scaffold.
+- Runtime-specific agent logic must stay local to this derived project.
+
+## Working Boundaries
+- Keep Atlas governance and mother configuration outside this repo.
+- Define orchestration, skill ownership and evaluation loops before runtime implementation.
+- Do not enable deploy automation, MCPs or hidden hooks during bootstrap.
+
+## Recommended Roles
+- `orchestrator` for system direction.
+- `planner` for phased rollout.
+- `reviewer` for governance and drift.
+
+## First Workflow
+- Describe the initial orchestration and agent boundaries in README.md and docs/.
+- Use agents/, skills/, evaluations/ and prompts/ as explicit structure, not as implied runtime behavior.
+- Add implementation only after governance and evaluation paths are documented.

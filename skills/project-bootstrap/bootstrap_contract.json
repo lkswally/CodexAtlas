@@ -1,0 +1,224 @@
+{
+  "required_inputs": [
+    "project_goal",
+    "scope_and_non_scope",
+    "target_runtime_or_stack",
+    "constraints_and_approval_boundaries",
+    "output_dir"
+  ],
+  "optional_inputs": [
+    "project_name",
+    "project_type",
+    "adapter_notes",
+    "initial_docs_scope"
+  ],
+  "supported_project_types": [
+    "backend_service",
+    "frontend_app",
+    "fullstack",
+    "internal_tool",
+    "ai_agent_system"
+  ],
+  "default_project_type": "internal_tool",
+  "generated_structure": {
+    "directories": [
+      "docs",
+      "memory",
+      "workflows",
+      "policies",
+      "tools"
+    ]
+  },
+  "required_files": [
+    "README.md",
+    "AGENTS.md",
+    ".atlas-project.json"
+  ],
+  "optional_files": [],
+  "forbidden_outputs": [
+    "runtime business logic modules",
+    "automatic dependency installers",
+    "deployment manifests",
+    "MCP configuration",
+    "files written outside the explicit output_dir"
+  ],
+  "default_output_mode": "minimal_derived_project_scaffold",
+  "templates_by_type": {
+    "backend_service": {
+      "label": "Backend Service",
+      "description": "HTTP or worker-oriented backend service with explicit boundaries for APIs and operational scripts.",
+      "readme_template": "templates/project_bootstrap/backend_service/README.md.template",
+      "agents_template": "templates/project_bootstrap/backend_service/AGENTS.md.template",
+      "additional_directories": [
+        "api",
+        "services",
+        "tests"
+      ],
+      "readme_focus": [
+        "service purpose",
+        "API and operational boundaries",
+        "integration surfaces",
+        "validation-first roadmap"
+      ],
+      "agents_focus": [
+        "architect for service boundaries",
+        "implementer for endpoint skeletons only when approved",
+        "reviewer for regression and contract risk"
+      ],
+      "example_usage": [
+        "Document the initial API contract in docs/ before adding endpoints.",
+        "Use workflows/ to define release and verification steps without automating deploy."
+      ]
+    },
+    "frontend_app": {
+      "label": "Frontend App",
+      "description": "UI-first application with emphasis on UX direction, structure and non-generic visual decisions.",
+      "readme_template": "templates/project_bootstrap/frontend_app/README.md.template",
+      "agents_template": "templates/project_bootstrap/frontend_app/AGENTS.md.template",
+      "additional_directories": [
+        "app",
+        "ui",
+        "assets"
+      ],
+      "readme_focus": [
+        "user-facing purpose",
+        "visual direction",
+        "component boundaries",
+        "content and validation flow"
+      ],
+      "agents_focus": [
+        "ux_brand for direction and audience",
+        "architect for module boundaries",
+        "reviewer for usability and regression risk"
+      ],
+      "example_usage": [
+        "Define the audience and visual direction in docs/ before building screens.",
+        "Keep shared UI rules in policies/ and keep runtime-specific components in app/ and ui/."
+      ]
+    },
+    "fullstack": {
+      "label": "Fullstack Project",
+      "description": "Split frontend and backend surfaces early so adapters and shared contracts stay explicit.",
+      "readme_template": "templates/project_bootstrap/fullstack/README.md.template",
+      "agents_template": "templates/project_bootstrap/fullstack/AGENTS.md.template",
+      "additional_directories": [
+        "frontend",
+        "backend",
+        "shared"
+      ],
+      "readme_focus": [
+        "product surface and system boundary",
+        "frontend/backend split",
+        "shared contract ownership",
+        "phased execution plan"
+      ],
+      "agents_focus": [
+        "planner for phase ordering",
+        "architect for frontend/backend separation",
+        "reviewer for integration drift"
+      ],
+      "example_usage": [
+        "Capture the first shared contracts in shared/ before implementation starts.",
+        "Use docs/ to define how frontend and backend evolve without leaking Atlas core into runtime."
+      ]
+    },
+    "internal_tool": {
+      "label": "Internal Tool",
+      "description": "Operations-facing or workflow-oriented internal system with strong clarity around ownership and scope.",
+      "readme_template": "templates/project_bootstrap/internal_tool/README.md.template",
+      "agents_template": "templates/project_bootstrap/internal_tool/AGENTS.md.template",
+      "additional_directories": [
+        "automation",
+        "reports",
+        "ops"
+      ],
+      "readme_focus": [
+        "operational problem solved",
+        "users and owners",
+        "workflow boundary",
+        "safe rollout checklist"
+      ],
+      "agents_focus": [
+        "planner for workflow definition",
+        "implementer for safe utility slices",
+        "reality_checker for assumptions and evidence"
+      ],
+      "example_usage": [
+        "Document the operator workflow in docs/ and reports/ before automating anything.",
+        "Keep repeatable procedures in workflows/ and decisions in memory/."
+      ]
+    },
+    "ai_agent_system": {
+      "label": "AI Agent System",
+      "description": "Agent-oriented derived project that needs explicit orchestration, skill boundaries and evaluation paths.",
+      "readme_template": "templates/project_bootstrap/ai_agent_system/README.md.template",
+      "agents_template": "templates/project_bootstrap/ai_agent_system/AGENTS.md.template",
+      "additional_directories": [
+        "agents",
+        "skills",
+        "evaluations",
+        "prompts"
+      ],
+      "readme_focus": [
+        "agent system goal",
+        "orchestration boundaries",
+        "skill ownership",
+        "evaluation and governance loop"
+      ],
+      "agents_focus": [
+        "orchestrator for system direction",
+        "planner for phased rollout",
+        "reviewer for governance and drift"
+      ],
+      "example_usage": [
+        "Describe the agent roles in agents/ before adding runtime implementations.",
+        "Use evaluations/ and prompts/ to keep testing and prompt intent explicit from day one."
+      ]
+    }
+  },
+  "initial_content": {
+    "readme_sections": [
+      "Purpose",
+      "Project Profile",
+      "Initial Scope",
+      "Suggested Structure",
+      "Example Usage",
+      "Safety Boundaries",
+      "Next Steps"
+    ],
+    "agents_sections": [
+      "Project Context",
+      "Working Boundaries",
+      "Recommended Roles",
+      "First Workflow"
+    ],
+    "metadata_fields": [
+      "project_profile",
+      "bootstrap_template",
+      "generated_from_skill"
+    ]
+  },
+  "rollback_manual": [
+    "review the generated scaffold before using it",
+    "delete the generated output_dir manually if the scaffold is not needed",
+    "if deletion is blocked by the environment, move or clean it later with explicit filesystem access"
+  ],
+  "validation_steps": [
+    "generated directories exist",
+    "README.md exists",
+    "AGENTS.md exists",
+    ".atlas-project.json exists",
+    "metadata marks the project as atlas-derived-project"
+  ],
+  "safety_limits": [
+    "output_dir must be provided explicitly",
+    "output_dir must be missing or empty before execution",
+    "do not write inside REYESOFT or its runtime paths",
+    "generate only minimal scaffold directories and metadata files",
+    "do not install dependencies, connect MCPs or execute runtime code"
+  ],
+  "human_approval_triggers": [
+    "the task asks for automatic dependency installation or deployment",
+    "the task asks to seed runtime business logic during bootstrap"
+  ]
+}

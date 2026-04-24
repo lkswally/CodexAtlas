@@ -1,0 +1,95 @@
+{
+  "default_policy": "deny",
+  "profiles": {
+    "filesystem": {
+      "purpose": "Access additional filesystem contexts when a task truly depends on files not already available through normal repo inspection.",
+      "risk_level": "medium",
+      "default_mode": "read_only",
+      "requires_approval": true,
+      "when_to_use": [
+        "cross-workspace inspection",
+        "external project comparison",
+        "structured file inventory beyond the active workspace"
+      ],
+      "when_not_to_use": [
+        "normal repo browsing",
+        "tasks solvable with built-in local file access"
+      ]
+    },
+    "github": {
+      "purpose": "Inspect repositories, pull requests, issues or metadata when GitHub state matters.",
+      "risk_level": "medium",
+      "default_mode": "read_only",
+      "requires_approval": true,
+      "when_to_use": [
+        "pull request review",
+        "issue or branch inspection",
+        "repo metadata checks"
+      ],
+      "when_not_to_use": [
+        "local-only code tasks",
+        "changes that do not depend on GitHub state"
+      ]
+    },
+    "web_search": {
+      "purpose": "Gather current external information or verify unstable facts.",
+      "risk_level": "medium",
+      "default_mode": "read_only",
+      "requires_approval": true,
+      "when_to_use": [
+        "latest docs",
+        "current versions",
+        "externally changing facts"
+      ],
+      "when_not_to_use": [
+        "stable local architecture work",
+        "tasks answerable from the repo alone"
+      ]
+    },
+    "database_schema": {
+      "purpose": "Inspect database schema or metadata safely without touching data.",
+      "risk_level": "medium",
+      "default_mode": "read_only",
+      "requires_approval": true,
+      "when_to_use": [
+        "schema review",
+        "table and column analysis",
+        "contract validation"
+      ],
+      "when_not_to_use": [
+        "business-data operations",
+        "write or migration execution"
+      ]
+    },
+    "docs": {
+      "purpose": "Consult authoritative documentation sources when local docs are insufficient.",
+      "risk_level": "low",
+      "default_mode": "read_only",
+      "requires_approval": true,
+      "when_to_use": [
+        "API references",
+        "library or platform docs",
+        "official product guidance"
+      ],
+      "when_not_to_use": [
+        "tasks already covered by local docs",
+        "subjective brainstorming"
+      ]
+    },
+    "analytics": {
+      "purpose": "Review metrics or telemetry summaries when evidence from analytics is needed.",
+      "risk_level": "medium",
+      "default_mode": "read_only",
+      "requires_approval": true,
+      "when_to_use": [
+        "performance trends",
+        "usage analysis",
+        "product signal review"
+      ],
+      "when_not_to_use": [
+        "tasks without metrics dependency",
+        "speculative product discussion"
+      ]
+    }
+  }
+}

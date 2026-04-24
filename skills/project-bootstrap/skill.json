@@ -1,0 +1,81 @@
+{
+  "name": "project-bootstrap",
+  "intent_keywords": [
+    "bootstrap",
+    "create project",
+    "new project",
+    "bootstrap project",
+    "scaffold project",
+    "start a project",
+    "kick off project",
+    "project bootstrap",
+    "project scaffold"
+  ],
+  "agent": "orchestrator",
+  "workflow": "create_project",
+  "model_profile": "deep_reasoning",
+  "risk_level": "medium",
+  "requires_human_approval": false,
+  "supports_execution": true,
+  "required_inputs": [
+    "project_goal",
+    "scope_and_non_scope",
+    "target_runtime_or_stack",
+    "constraints_and_approval_boundaries",
+    "output_dir"
+  ],
+  "execution_mode": "write_docs",
+  "allowed_paths_policy": "explicit_output_dir_only",
+  "expected_outputs": [
+    "bootstrap plan",
+    "suggested project structure",
+    "adapter boundaries",
+    "validation checklist",
+    "minimal derived-project scaffold when execution is requested"
+  ],
+  "generated_structure": {
+    "directories": [
+      "docs",
+      "memory",
+      "workflows",
+      "policies",
+      "tools"
+    ],
+    "files": [
+      "README.md",
+      "AGENTS.md",
+      ".atlas-project.json"
+    ]
+  },
+  "safety_limits": [
+    "output_dir must be provided explicitly",
+    "output_dir must be missing or empty before execution",
+    "do not write inside REYESOFT or its runtime paths",
+    "generate only minimal scaffold directories and metadata files",
+    "do not install dependencies, connect MCPs or execute runtime code"
+  ],
+  "forbidden_actions": [
+    "write inside REYESOFT runtime paths",
+    "install dependencies automatically",
+    "connect MCPs",
+    "generate runtime business logic",
+    "run the derived runtime automatically",
+    "deploy the derived runtime automatically"
+  ],
+  "human_approval_triggers": [
+    "the task asks for automatic dependency installation or deployment",
+    "the task asks to seed runtime business logic during bootstrap"
+  ],
+  "rollback_manual": [
+    "review the generated scaffold before using it",
+    "delete the generated output_dir manually if the scaffold is not needed",
+    "if deletion is blocked by the environment, move or clean it later with explicit filesystem access"
+  ],
+  "validations": [
+    "generated directories exist",
+    "README.md exists",
+    "AGENTS.md exists",
+    ".atlas-project.json exists",
+    "metadata marks the project as atlas-derived-project"
+  ]
+}

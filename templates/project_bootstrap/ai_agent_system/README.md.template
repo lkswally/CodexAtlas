@@ -1,0 +1,40 @@
+# {{project_name}}
+
+Atlas-derived AI Agent System scaffold.
+
+## Purpose
+{{project_goal}}
+
+## Project Profile
+- Profile: `{{project_type}}`
+- Bootstrap source: `{{generated_from_skill}}`
+- Atlas root: `{{atlas_root}}`
+
+## Initial Scope
+{{scope}}
+
+## Suggested Structure
+- `docs/`
+- `memory/`
+- `workflows/`
+- `policies/`
+- `tools/`
+- `agents/`
+- `skills/`
+- `evaluations/`
+- `prompts/`
+
+## Example Usage
+1. Describe the agent roles in `agents/` before adding runtime implementations.
+2. Use `evaluations/` and `prompts/` to keep testing and prompt intent explicit from day one.
+
+## Safety Boundaries
+- Keep Atlas core outside this derived project.
+- Do not add MCP, deploy automation or dependency installers during bootstrap.
+- Use this scaffold to define orchestration, skills and evaluation paths before runtime implementations begin.
+
+## Next Steps
+- Define the agent system goal.
+- Make orchestration boundaries explicit.
+- Assign skill ownership before runtime work.
+- Build an evaluation and governance loop from day one.

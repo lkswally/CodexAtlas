@@ -1,0 +1,137 @@
+{
+  "registry_version": "0.1",
+  "status": "bootstrap",
+  "scope": "atlas-governance",
+  "commands": [
+    {
+      "id": "audit-repo",
+      "alias": "atlas audit-repo",
+      "purpose": "Auditar estructura, docs, restricciones y drift operativo de un workspace antes de proponer cambios.",
+      "fit": "high",
+      "execution_mode": "read_only",
+      "allowed_paths": [
+        ".",
+        "AGENTS.md",
+        "ATLAS_STATUS.md",
+        "ATLAS_NEXT_STEPS.md",
+        "00_SISTEMA",
+        "adapters",
+        "agents",
+        "commands",
+        "config",
+        "docs",
+        "memory",
+        "policies",
+        "skills",
+        "templates",
+        "tests",
+        "tools",
+        "validators",
+        "workflows"
+      ],
+      "guards": [
+        "No modificar archivos durante la fase de auditoria.",
+        "No asumir runtime o modulos inexistentes.",
+        "Documentar incertidumbres y gaps reales."
+      ],
+      "outputs": [
+        "diagnostico",
+        "riesgos",
+        "recomendaciones"
+      ],
+      "rollback": "No aplica: read_only."
+    },
+    {
+      "id": "review-skill",
+      "alias": "atlas review-skill",
+      "purpose": "Revisar una skill o capacidad reusable con foco en objetivo, contrato, riesgos y reutilizacion.",
+      "fit": "high",
+      "execution_mode": "write_docs",
+      "allowed_paths": [
+        "agents",
+        "skills",
+        "docs",
+        "commands"
+      ],
+      "guards": [
+        "No aprobar skills sin owner, objetivo y criterio de uso.",
+        "No mezclar skill reusable con logica de producto puntual."
+      ],
+      "outputs": [
+        "review",
+        "ajustes_de_metadata",
+        "watchlist"
+      ],
+      "rollback": "Revertir cambios documentales en metadata o review."
+    },
+    {
+      "id": "evaluate-mcp",
+      "alias": "atlas evaluate-mcp",
+      "purpose": "Evaluar si un conector externo merece entrar a la arquitectura bajo politica explicita.",
+      "fit": "high",
+      "execution_mode": "write_docs",
+      "allowed_paths": [
+        "policies",
+        "memory",
+        "docs"
+      ],
+      "guards": [
+        "No implementar el conector en la misma iteracion de evaluacion.",
+        "Exigir justificacion de negocio, alcance y riesgo.",
+        "Separar lectura de metadata de acceso operativo."
+      ],
+      "outputs": [
+        "decision",
+        "riesgos",
+        "requisitos_previos"
+      ],
+      "rollback": "Eliminar o revertir la decision documental si fue incorrecta."
+    },
+    {
+      "id": "sync-context",
+      "alias": "atlas sync-context",
+      "purpose": "Refrescar contexto operativo y registrar breadcrumbs de cambios relevantes para reducir drift.",
+      "fit": "medium",
+      "execution_mode": "write_docs",
+      "allowed_paths": [
+        "memory",
+        "docs",
+        "policies"
+      ],
+      "guards": [
+        "No duplicar memoria extensa si no hubo cambios materiales.",
+        "Nombrar decisiones, impacto y archivos afectados."
+      ],
+      "outputs": [
+        "breadcrumb",
+        "estado_actualizado"
+      ],
+      "rollback": "Revertir el ultimo breadcrumb si fue ruido o quedo mal redactado."
+    },
+    {
+      "id": "check-governance",
+      "alias": "atlas check-governance",
+      "purpose": "Validar que la metadata minima de gobernanza exista y sea consistente.",
+      "fit": "high",
+      "execution_mode": "read_only",
+      "allowed_paths": [
+        "commands",
+        "config",
+        "policies",
+        "memory",
+        "tools",
+        "tests",
+        "validators",
+        "00_SISTEMA"
+      ],
+      "guards": [
+        "No corregir automaticamente.",
+        "Reportar faltantes y estados invalidos."
+      ],
+      "outputs": [
+        "report"
+      ],
+      "rollback": "No aplica: read_only."
+    }
+  ]
+}

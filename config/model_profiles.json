@@ -1,0 +1,95 @@
+{
+  "default_profile": "cost_saver",
+  "profiles": {
+    "deep_reasoning": {
+      "description": "Use for planning, architecture and complex reasoning with broader context handling.",
+      "preferred": [
+        "gpt-5.4",
+        "gpt-5.2"
+      ],
+      "fallback": [
+        "gpt-5.4-mini"
+      ],
+      "strengths": [
+        "planning",
+        "architecture",
+        "research"
+      ]
+    },
+    "code_execution": {
+      "description": "Use for implementation tasks that need reliable code changes and focused execution.",
+      "preferred": [
+        "gpt-5.2-codex",
+        "gpt-5.4"
+      ],
+      "fallback": [
+        "gpt-5.4-mini"
+      ],
+      "strengths": [
+        "coding",
+        "editing",
+        "refactor"
+      ]
+    },
+    "reviewer": {
+      "description": "Use for code review, certification and evidence-driven quality checks.",
+      "preferred": [
+        "gpt-5.4",
+        "gpt-5.2"
+      ],
+      "fallback": [
+        "gpt-5.4-mini"
+      ],
+      "strengths": [
+        "review",
+        "risk_detection",
+        "validation"
+      ]
+    },
+    "creative_product": {
+      "description": "Use for branding, UX direction and product framing where taste matters.",
+      "preferred": [
+        "gpt-5.4",
+        "gpt-5.4-mini"
+      ],
+      "fallback": [
+        "gpt-5.2"
+      ],
+      "strengths": [
+        "branding",
+        "ux",
+        "product"
+      ]
+    },
+    "security": {
+      "description": "Use for security-sensitive tasks, secrets, access boundaries and destructive risk assessment.",
+      "preferred": [
+        "gpt-5.4",
+        "gpt-5.2"
+      ],
+      "fallback": [
+        "gpt-5.4-mini"
+      ],
+      "strengths": [
+        "security",
+        "approval",
+        "risk"
+      ]
+    },
+    "cost_saver": {
+      "description": "Use for lightweight documentation, triage and low-risk tasks where cost discipline matters.",
+      "preferred": [
+        "gpt-5.4-mini"
+      ],
+      "fallback": [
+        "gpt-5.2",
+        "gpt-5.4"
+      ],
+      "strengths": [
+        "documentation",
+        "triage",
+        "low_cost"
+      ]
+    }
+  }
+}

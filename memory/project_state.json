@@ -1,0 +1,41 @@
+{
+  "system_name": "Codex-Atlas",
+  "canonical_root": "C:\\Proyectos\\Codex-Atlas",
+  "mode": "bootstrap",
+  "status": "active",
+  "layout": "root-first",
+  "restrictions": {
+    "mcp": false,
+    "automatic_hooks": false,
+    "claude_only_files": false,
+    "engram": false,
+    "pixel_bridge": false,
+    "automatic_deploy": false,
+    "external_dependencies_added": false
+  },
+  "executable_components": [
+    "tools/atlas_governance_check.py",
+    "tools/atlas_dispatcher.py",
+    "tools/atlas_orchestrator.py"
+  ],
+  "documentary_components": [
+    "AGENTS.md",
+    "ATLAS_STATUS.md",
+    "ATLAS_NEXT_STEPS.md",
+    "adapters/",
+    "agents/",
+    "workflows/",
+    "policies/",
+    "commands/",
+    "config/",
+    "validators/",
+    "memory/",
+    "docs/",
+    "tests/"
+  ],
+  "legacy_compatibility": {
+    "enabled": true,
+    "legacy_root": "00_SISTEMA/_meta/atlas",
+    "mode": "mirror"
+  }
+}
