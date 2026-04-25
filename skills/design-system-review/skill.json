@@ -1,0 +1,54 @@
+{
+  "name": "design-system-review",
+  "intent_keywords": [
+    "design system review",
+    "design-system review",
+    "design system",
+    "typography review",
+    "spacing review",
+    "layout consistency",
+    "ui consistency",
+    "component review"
+  ],
+  "agent": "ui_designer",
+  "workflow": "design_intelligence_pipeline",
+  "model_profile": "creative_product",
+  "risk_level": "medium",
+  "requires_human_approval": false,
+  "supports_execution": true,
+  "required_inputs": [
+    "project_path"
+  ],
+  "execution_mode": "read_only",
+  "allowed_paths_policy": "atlas_root_or_derived_project_read_only",
+  "expected_outputs": [
+    "design-system review",
+    "typography and spacing findings",
+    "consistency risks",
+    "advisory recommendations"
+  ],
+  "safety_limits": [
+    "do not mutate project files",
+    "treat unsupported checks as skipped instead of false pass",
+    "keep the review evidence-based and advisory"
+  ],
+  "forbidden_actions": [
+    "edit runtime UI files automatically",
+    "declare a formal design system where none exists",
+    "replace repository evidence with taste alone"
+  ],
+  "human_approval_triggers": [
+    "the review shifts into implementation",
+    "the task asks for an external design tool integration",
+    "the user asks to rewrite the visual identity automatically"
+  ],
+  "rollback_manual": [
+    "no rollback needed because the skill returns a read-only review"
+  ],
+  "validations": [
+    "typography and spacing findings cite real files",
+    "the review distinguishes pass, warning and skipped",
+    "recommendations remain advisory",
+    "the audit stays read-only"
+  ]
+}

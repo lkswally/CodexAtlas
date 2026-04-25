@@ -1,0 +1,56 @@
+{
+  "name": "visual-direction-checkpoint",
+  "intent_keywords": [
+    "visual direction checkpoint",
+    "visual direction",
+    "design direction",
+    "creative direction",
+    "mood",
+    "vibe",
+    "originality",
+    "audience",
+    "clarify design"
+  ],
+  "agent": "ux_architect",
+  "workflow": "design_intelligence_pipeline",
+  "model_profile": "creative_product",
+  "risk_level": "low",
+  "requires_human_approval": false,
+  "supports_execution": true,
+  "required_inputs": [
+    "product_context",
+    "target_audience_or_current_audience_guess",
+    "references_if_available"
+  ],
+  "execution_mode": "read_only",
+  "allowed_paths_policy": "no_filesystem_writes",
+  "expected_outputs": [
+    "structured visual direction checkpoint",
+    "audience, mood and originality prompts",
+    "next-step recommendation before UI work"
+  ],
+  "safety_limits": [
+    "do not mutate project files",
+    "do not pretend the visual direction is approved automatically",
+    "do not generate implementation code from the checkpoint alone"
+  ],
+  "forbidden_actions": [
+    "edit runtime UI files automatically",
+    "declare design pass without explicit direction",
+    "replace user approval with inferred taste"
+  ],
+  "human_approval_triggers": [
+    "the task shifts from clarification to implementation",
+    "the user asks to lock a final visual direction without review",
+    "the task would require external asset generation"
+  ],
+  "rollback_manual": [
+    "no rollback needed because the skill returns a read-only checkpoint"
+  ],
+  "validations": [
+    "audience is explicit or clearly marked missing",
+    "mood or vibe is explicit",
+    "originality level is explicit",
+    "the next action stays advisory"
+  ]
+}

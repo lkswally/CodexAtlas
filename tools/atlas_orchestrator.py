@@ -11,6 +11,19 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+try:
+    from tools.design_intelligence_audit import (
+        anti_generic_ui_audit,
+        design_system_review,
+        visual_direction_checkpoint,
+    )
+except ModuleNotFoundError:
+    from design_intelligence_audit import (  # type: ignore
+        anti_generic_ui_audit,
+        design_system_review,
+        visual_direction_checkpoint,
+    )
+
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
 CONFIG_DIR = DEFAULT_ROOT / "config"
@@ -161,6 +174,29 @@ INTENT_KEYWORDS = {
     ),
 }
 FALLBACK_SKILL_KEYWORDS = {
+    "visual-direction-checkpoint": (
+        "visual direction",
+        "design direction",
+        "mood",
+        "vibe",
+        "audience",
+        "originality",
+    ),
+    "anti-generic-ui-audit": (
+        "visual audit",
+        "ui audit",
+        "anti-generic",
+        "anti generic",
+        "hero review",
+        "landing page audit",
+    ),
+    "design-system-review": (
+        "design system review",
+        "design system",
+        "typography review",
+        "spacing review",
+        "layout consistency",
+    ),
     "project-bootstrap": (
         "bootstrap",
         "create project",
@@ -193,6 +229,9 @@ FALLBACK_SKILL_KEYWORDS = {
 }
 
 SKILL_PRIORITY = (
+    "anti-generic-ui-audit",
+    "design-system-review",
+    "visual-direction-checkpoint",
     "project-bootstrap",
     "repo-audit",
     "product-branding-review",
@@ -259,6 +298,9 @@ DEFAULT_SKILL_BY_INTENT = {
     "branding_ux": "product-branding-review",
 }
 WORKFLOW_BY_SKILL = {
+    "visual-direction-checkpoint": "design_intelligence_pipeline",
+    "anti-generic-ui-audit": "design_intelligence_pipeline",
+    "design-system-review": "design_intelligence_pipeline",
     "project-bootstrap": "create_project",
     "repo-audit": "audit_project",
     "product-branding-review": "atlas_project_pipeline",
@@ -1348,6 +1390,56 @@ def _execute_branding_review(task: str) -> Dict[str, Any]:
     }
 
 
+def _execute_visual_direction_checkpoint(task: str) -> Dict[str, Any]:
+    checkpoint = visual_direction_checkpoint(task)
+    return {
+        "skill": "visual-direction-checkpoint",
+        "mode": "structured_checkpoint",
+        "ok": True,
+        "task": task,
+        "output": checkpoint,
+        "summary": "Returned a structured visual direction checkpoint without making changes.",
+    }
+
+
+def _execute_anti_generic_ui_audit(project: Optional[Path]) -> Dict[str, Any]:
+    if project is None:
+        return {
+            "skill": "anti-generic-ui-audit",
+            "mode": "read_only_audit",
+            "ok": False,
+            "error": "missing_project_path",
+        }
+    result = anti_generic_ui_audit(project)
+    return {
+        "skill": "anti-generic-ui-audit",
+        "mode": "read_only_audit",
+        "ok": result.get("status") != "skipped",
+        "project": str(project),
+        "output": result,
+        "summary": "Returned a read-only anti-generic UI audit with evidence and next action.",
+    }
+
+
+def _execute_design_system_review(project: Optional[Path]) -> Dict[str, Any]:
+    if project is None:
+        return {
+            "skill": "design-system-review",
+            "mode": "read_only_review",
+            "ok": False,
+            "error": "missing_project_path",
+        }
+    result = design_system_review(project)
+    return {
+        "skill": "design-system-review",
+        "mode": "read_only_review",
+        "ok": result.get("status") != "skipped",
+        "project": str(project),
+        "output": result,
+        "summary": "Returned a read-only design-system review with structured findings.",
+    }
+
+
 def execute_skill(
     skill_name: str,
     task: str,
@@ -1366,6 +1458,12 @@ def execute_skill(
         return _execute_project_bootstrap(task=task, output_dir=output_dir, root=root, project_type=project_type)
     if skill_name == "product-branding-review":
         return _execute_branding_review(task=task)
+    if skill_name == "visual-direction-checkpoint":
+        return _execute_visual_direction_checkpoint(task=task)
+    if skill_name == "anti-generic-ui-audit":
+        return _execute_anti_generic_ui_audit(project=project)
+    if skill_name == "design-system-review":
+        return _execute_design_system_review(project=project)
     return {"skill": skill_name, "ok": False, "error": "execution_not_supported"}
 
 

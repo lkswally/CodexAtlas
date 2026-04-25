@@ -1,0 +1,18 @@
+{
+  "writes_files": false,
+  "writes_code": false,
+  "uses_output_dir": false,
+  "read_only": true,
+  "execution_helper": "visual_direction_checkpoint",
+  "side_effects": [
+    "returns a structured visual direction checkpoint",
+    "does not modify the repository or derived project"
+  ],
+  "requires_project_path": false,
+  "requires_output_dir": false,
+  "can_run_without_approval": true,
+  "notes": [
+    "the skill is advisory and checkpoint-based",
+    "it should precede UI implementation when direction is vague"
+  ]
+}

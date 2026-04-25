@@ -76,8 +76,17 @@ Current skills:
 - `project-bootstrap`: start a derived project safely from Atlas
 - `repo-audit`: inspect a repo or derived project before bigger changes
 - `product-branding-review`: review product direction without generic output
+- `visual-direction-checkpoint`: turn a vague brief into explicit audience, mood and originality signals
+- `anti-generic-ui-audit`: run a read-only design audit with evidence, warnings and next action
+- `design-system-review`: review typography, spacing, hierarchy and layout coherence without changing files
 
 Execution model:
 - skills default to documentary guidance
 - only explicitly marked skills may support minimal safe execution
 - execution must remain local, reversible and non-destructive
+
+Design-intelligence conventions:
+- design skills must return `status`, `warnings`, `evidence` and `next_action`
+- if a check cannot run, prefer `status: skipped` over a false PASS
+- anti-generic checks should be warning-first unless there is clear evidence of risk
+- evidence should cite real files, styles, typography, layout structure or other observable signals

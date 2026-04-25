@@ -185,6 +185,43 @@ def test_product_branding_review_execution_returns_checklist():
     assert len(execution["checklist"]) >= 5
 
 
+def test_visual_direction_checkpoint_execution_returns_structured_checkpoint():
+    execution = execute_skill(
+        "visual-direction-checkpoint",
+        "Clarify audience, mood and originality for this internal tool landing page.",
+    )
+    assert execution["skill"] == "visual-direction-checkpoint"
+    assert execution["ok"] is True
+    assert execution["mode"] == "structured_checkpoint"
+    assert execution["output"]["status"] in {"ready", "needs_input"}
+    assert execution["output"]["next_action"]
+
+
+def test_anti_generic_ui_audit_execution_reads_project_surface():
+    execution = execute_skill(
+        "anti-generic-ui-audit",
+        "Run a visual audit for the project surface.",
+        project=Path(r"C:\Proyectos\CodexAtlas-Web"),
+    )
+    assert execution["skill"] == "anti-generic-ui-audit"
+    assert execution["ok"] is True
+    assert execution["mode"] == "read_only_audit"
+    assert execution["output"]["status"] in {"pass", "needs_attention"}
+    assert execution["output"]["prioritized_problems"]
+
+
+def test_design_system_review_execution_reads_project_surface():
+    execution = execute_skill(
+        "design-system-review",
+        "Review typography, spacing and layout consistency.",
+        project=Path(r"C:\Proyectos\CodexAtlas-Web"),
+    )
+    assert execution["skill"] == "design-system-review"
+    assert execution["ok"] is True
+    assert execution["mode"] == "read_only_review"
+    assert execution["output"]["design_system_findings"]
+
+
 def test_repo_audit_execution_is_blocked_for_dangerous_task_when_requested_through_cli_logic():
     from tools.atlas_orchestrator import orchestrate_task
 

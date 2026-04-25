@@ -43,6 +43,8 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep `config/docs_search_catalog.json` auditable and small enough that freshness maintenance stays realistic
 - Use `tools/docs_catalog_report.py` before catalog edits so freshness and topic coverage decisions stay evidence-based
 - Keep the first real project test narrowly scoped so Atlas is validating the factory, not attempting a product build in one step
+- Keep the design-intelligence layer read-only until repeated audits prove its heuristics are useful and low-noise
+- Keep design-intelligence checks evidence-first and warning-first unless a clear risk justifies stronger escalation
 
 ## Possible future improvements
 
@@ -53,6 +55,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Read-only quality-gate helpers for evidence, boundary and template checks if they prove reusable beyond current governance
 - Stronger certification summaries that can be consumed by future handoff or reporting layers without adding autonomy
 - Manual validator bundle for architecture drift and boundary checks
+- Optional richer design-evidence helpers only after the current static-file audit path proves useful
 - Small read-only observability summaries built on top of the new routing and governance logs
 - A second controlled MCP only after the first one proves useful without broadening Atlas risk
 - Stronger docs for derived-project extraction and adapter contracts
@@ -90,6 +93,9 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - The docs adapter confidence signal becoming noisy if ranking and verification dates drift from the curated catalog
 - The curated docs catalog drifting because `last_verified` stops being updated or deprecated entries remain active too long
 - The catalog report becoming disconnected from adapter semantics if freshness logic changes in one place but not the other
+- Design-intelligence checks drifting into taste-only opinions instead of evidence-backed review
+- Pressure to recreate Playwright-driven Claude QA before Atlas actually needs browser automation
+- Anti-generic heuristics becoming brittle or over-blocking for intentionally simple internal tools
 - Too many low-value skills diluting Atlas-native guidance
 
 ## Do not touch yet
@@ -99,6 +105,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - MCP connectors
 - Automatic hooks or self-healing loops
 - Large agent fleets copied from Claude-oriented repos
+- Browser-driven visual automation copied from the reference repo before Atlas has a safe local need
 - Design intelligence datasets without a real Atlas use case
 
 ## Recommended Level 2

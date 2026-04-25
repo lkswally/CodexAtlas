@@ -31,6 +31,30 @@ def test_branding_task_routes_to_creative_product():
     assert result["skill_metadata"]["supports_execution"] is True
 
 
+def test_visual_direction_task_routes_to_checkpoint_skill():
+    result = orchestrate_task("Run a visual direction checkpoint and define audience, mood and originality.")
+    assert result["intent"] == "branding_ux"
+    assert result["recommended_skill"] == "visual-direction-checkpoint"
+    assert result["recommended_agent"] == "ux_architect"
+    assert result["recommended_workflow"] == "design_intelligence_pipeline"
+
+
+def test_design_system_review_task_routes_to_design_system_skill():
+    result = orchestrate_task("Review the design system, typography and spacing consistency for this page.")
+    assert result["intent"] == "branding_ux"
+    assert result["recommended_skill"] == "design-system-review"
+    assert result["recommended_agent"] == "ui_designer"
+    assert result["recommended_workflow"] == "design_intelligence_pipeline"
+
+
+def test_visual_audit_task_routes_to_anti_generic_ui_audit_skill():
+    result = orchestrate_task("Run a visual audit and anti-generic UI review on the landing page hero.")
+    assert result["intent"] == "branding_ux"
+    assert result["recommended_skill"] == "anti-generic-ui-audit"
+    assert result["recommended_agent"] == "evidence_collector"
+    assert result["recommended_workflow"] == "design_intelligence_pipeline"
+
+
 def test_security_task_routes_to_security_profile():
     result = orchestrate_task("Review secrets exposure and auth boundary risks.")
     assert result["intent"] == "security"

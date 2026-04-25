@@ -181,3 +181,10 @@
 - Impact: the orchestrator now distinguishes negated deploy phrases from real deploy intent in both intent classification and approval reasons
 - Risk: the phrase matcher is still heuristic and should be reviewed if more multilingual safety phrases are added
 - Rollback: revert the deploy-negation matcher and return to the previous keyword-only behavior
+
+## 2026-04-25
+- Decision: adapt the design, branding and visual QA block from `claude-vibecoding` into a smaller Codex-native design intelligence layer
+- Reason: Atlas needed a faithful but safe way to improve professional design review without importing `.claude`, hooks, Playwright MCP or Claude-only runtime assumptions
+- Impact: Atlas now has dedicated design-intelligence agents, structured skills, policies, a workflow and a read-only audit helper for visual-direction checkpointing, anti-generic UI review and design-system review
+- Risk: the new audit heuristics could drift into weak taste-based feedback if they are not kept evidence-first and warning-first
+- Rollback: remove the design-intelligence skills, workflow, policies and helper, then revert orchestrator and governance requirements to the previous smaller skill catalog

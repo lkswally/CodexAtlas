@@ -18,11 +18,14 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - `project-bootstrap` now renders README and AGENTS from external templates under `templates/project_bootstrap/`
 - Governance now validates bootstrap templates for allowed placeholders, clean rendering and minimum section content
 - Governance now scans bootstrap templates for unresolved or non-whitelisted placeholders in `{x}`, `{{x}}` and `${x}` formats
+- Atlas now has a Codex-native design intelligence layer adapted from the reference repo without importing Claude-only runtime
+- Atlas now has read-only design helpers for visual-direction checkpointing, design-system review and anti-generic UI audit
 - One complete minimal workflow implemented: `audit-repo`
 - `certify-project` now validates Atlas-derived projects in read-only mode with score, blockers, warnings and recommendations
 - Codex-native system-prompt guidance now lives explicitly in `AGENTS.md` plus `docs/codex_system_prompt.md`
 - Claude-vibecoding reference analysis is now captured canonically in `docs/claude_vibecoding_assessment.md`
 - Manual quality-gate policies now cover anti-generic output, evidence, project boundaries and template quality
+- Manual design-intelligence policies now cover visual direction, anti-generic UI review and design evidence
 - Atlas now has persistent observability files for derived projects, routing decisions and governance events under `memory/`
 - Atlas now has a controlled MCP evaluation surface with one experimental read-only candidate and the rest denied or deferred by policy
 - Atlas now has a governed MCP lifecycle manager for read-only dry runs without real connector activation
@@ -44,6 +47,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Codex-native adaptation layer for Claude-style prompt and quality patterns documented without importing Claude runtime
 - First suggestive orchestration layer defined with configurable model and MCP profiles
 - Structured skill system added with metadata-first routing and safe execution boundaries
+- Design-intelligence skills added as structured Atlas-native capabilities without external runtime dependencies
 - `project-bootstrap` contract formalized in documentation, metadata and execution output
 - Skill metadata governance added for name, routing references, model profile, risk and output contract checks
 - Advanced skill contract added for required inputs, safety limits, rollback, execution mode and approval triggers
@@ -60,6 +64,9 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - `project-bootstrap`
 - `repo-audit`
 - `product-branding-review`
+- `visual-direction-checkpoint`
+- `anti-generic-ui-audit`
+- `design-system-review`
 - The orchestrator now prioritizes `skill.json` metadata and can recommend these skills with structured output
 
 ## Role vs REYESOFT
@@ -103,6 +110,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - `audit-repo`: documented and executable
 - `certify-project`: documented and executable for Atlas-derived projects through `--project`
 - `atlas_project_pipeline`: documented and aligned with the seven-phase Codex-native flow adapted from the reference repo
+- `design_intelligence_pipeline`: documented and executable through structured skill routing
 - `create_project`: documented with minimal scaffold execution through `project-bootstrap`
 - `audit_project`: documented with minimal execution through `repo-audit`
 - `certify_output`: documented only
@@ -119,6 +127,9 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Successful `project-bootstrap` executions now append a derived-project entry to the Atlas observability catalog
 - `certify-project` now validates metadata, minimum structure, profile directories and Atlas-core separation for derived projects
 - `product-branding-review` can return a structured checklist without touching files
+- `visual-direction-checkpoint` can return a structured direction brief without touching files
+- `anti-generic-ui-audit` can return an evidence-backed visual audit for a derived project or static site surface
+- `design-system-review` can return a structured typography, spacing and layout review
 - No skill introduces automatic execution, hooks or MCP activation
 - Skill execution now has dedicated tests without creating new filesystem residue
 - Skill governance now verifies `expected_outputs` and `validations` for every structured skill
@@ -146,6 +157,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Product-specific context must stay in derived repos such as REYESOFT
 - Atlas currently holds generic operating context, not business-domain runtime logic
 - Atlas now captures Claude-inspired guidance as split Codex-native docs and policies rather than as a monolithic Claude runtime file
+- Atlas now captures the design/branding/visual-QA portion of the reference repo as split Codex-native agents, skills, policies and workflows
 
 ## Legacy status
 

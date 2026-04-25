@@ -1,0 +1,18 @@
+{
+  "writes_files": false,
+  "writes_code": false,
+  "uses_output_dir": false,
+  "read_only": true,
+  "execution_helper": "design_system_review",
+  "side_effects": [
+    "reads project files and returns a structured design-system review",
+    "does not modify the project"
+  ],
+  "requires_project_path": true,
+  "requires_output_dir": false,
+  "can_run_without_approval": true,
+  "notes": [
+    "the helper should mark unsupported checks as skipped",
+    "the review focuses on structure and consistency rather than subjective style alone"
+  ]
+}

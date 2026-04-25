@@ -1,0 +1,58 @@
+{
+  "name": "anti-generic-ui-audit",
+  "intent_keywords": [
+    "anti generic ui",
+    "anti-generic ui",
+    "visual qa",
+    "visual audit",
+    "ui audit",
+    "hero review",
+    "landing page audit",
+    "design evidence",
+    "frontend pre-return audit"
+  ],
+  "agent": "evidence_collector",
+  "workflow": "design_intelligence_pipeline",
+  "model_profile": "reviewer",
+  "risk_level": "medium",
+  "requires_human_approval": false,
+  "supports_execution": true,
+  "required_inputs": [
+    "project_path"
+  ],
+  "execution_mode": "read_only",
+  "allowed_paths_policy": "atlas_root_or_derived_project_read_only",
+  "expected_outputs": [
+    "visual diagnosis",
+    "prioritized problems",
+    "quick wins",
+    "layout and copy recommendations",
+    "evidence-backed score and next action"
+  ],
+  "safety_limits": [
+    "keep the audit read-only",
+    "warning before blocking unless the evidence indicates a clear risk",
+    "do not rely on a single fragile textual match as final proof",
+    "always return structured output"
+  ],
+  "forbidden_actions": [
+    "edit runtime UI files automatically",
+    "declare pass without evidence",
+    "pretend a screenshot-based runtime check happened when it did not",
+    "deploy changes"
+  ],
+  "human_approval_triggers": [
+    "the task shifts from review to implementation",
+    "the task requests external tooling or browser automation not available in Atlas",
+    "the task asks to overwrite design assets"
+  ],
+  "rollback_manual": [
+    "no rollback needed because the skill is read-only"
+  ],
+  "validations": [
+    "output includes status, warnings, evidence and next action",
+    "findings are tied to concrete project files or signals",
+    "anti-generic claims are backed by evidence",
+    "responsive and contrast checks are reported explicitly"
+  ]
+}
