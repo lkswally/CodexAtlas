@@ -43,9 +43,25 @@ Evaluate which MCP should be connected first in Atlas without turning the system
 The current experimental integration is deliberately narrow:
 
 - Atlas may recommend `docs_search` in the orchestrator.
-- The recommendation is advisory only.
+- The recommendation is advisory only until a governed approval exists.
+- Atlas now supports an internal `docs_search` adapter in read-only mode as the safe execution path for this stage.
+- The adapter now ranks deduplicated official references, exposes structured summaries, key points, confidence and a possible-staleness signal.
 - The integration is logged through existing observability paths.
 - No automatic connector activation happens inside Atlas.
+
+## Runtime inspection result on this machine
+
+Current evidence:
+
+- Official OpenAI docs confirm that Codex can connect to the Docs MCP through `codex mcp add ...` or `~/.codex/config.toml`.
+- The local `~/.codex/config.toml` currently has no `mcp_servers.openaiDeveloperDocs` entry.
+- The local `codex.exe` binary is present, but direct CLI invocation from this environment currently fails with `Access is denied`.
+
+Decision:
+
+- Do **not** claim a real MCP runtime integration yet.
+- Use the internal read-only adapter as the controlled execution path.
+- Keep simulated execution as fallback if the adapter fails.
 
 ## Rollback
 

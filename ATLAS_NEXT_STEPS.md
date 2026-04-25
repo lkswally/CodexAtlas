@@ -38,6 +38,8 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep observability logs append-only, lightweight and free of sensitive task payloads
 - Keep the MCP experiment limited to a single read-only profile until Atlas proves the governance model holds
 - Keep MCP lifecycle transitions explicit so approval and simulation do not turn into implicit connector activation
+- Keep the internal docs adapter clearly separated from any future real MCP runtime integration
+- Keep the docs adapter catalog fresh enough that confidence and stale signals remain meaningful
 
 ## Possible future improvements
 
@@ -79,6 +81,8 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - MCP profile sprawl diluting the default-deny rule
 - MCP approvals becoming implicit or durable without a clearer revocation policy
 - Simulated MCP execution drifting away from the declared lifecycle or being confused with a real connector
+- The docs adapter being mistaken for a verified real Codex MCP runtime on machines where `codex mcp` is not operational
+- The docs adapter confidence signal becoming noisy if ranking and verification dates drift from the curated catalog
 - Too many low-value skills diluting Atlas-native guidance
 
 ## Do not touch yet

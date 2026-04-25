@@ -81,6 +81,7 @@ REQUIRED_ROOT_FILES = (
     "workflows/orchestrator_routing.md",
     "tools/atlas_orchestrator.py",
     "tools/atlas_mcp_manager.py",
+    "tools/docs_search_adapter.py",
     "tests/test_atlas_orchestrator.py",
     "tests/test_certify_project.py",
     "tests/test_mcp_manager.py",

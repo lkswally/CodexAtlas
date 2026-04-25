@@ -146,3 +146,17 @@
 - Impact: `tools/atlas_mcp_manager.py` now manages `suggested`, `approval_required`, `approved`, `blocked` and `executed_simulated` states, and logs lifecycle events under `memory/`
 - Risk: simulation could be mistaken for real connector execution if future tooling does not keep the distinction explicit
 - Rollback: remove `tools/atlas_mcp_manager.py`, delete `memory/mcp_events.jsonl`, and revert MCP handling back to routing plus governance metadata only
+
+## 2026-04-25
+- Decision: keep real Docs MCP integration deferred on this machine and add a controlled internal `docs_search` adapter instead
+- Reason: official OpenAI docs confirm Codex MCP support, but the local `~/.codex/config.toml` is not configured for `openaiDeveloperDocs` and `codex.exe` invocation is not verifiably operational from this environment
+- Impact: Atlas can now execute approved `docs_search` requests through a read-only adapter over curated official OpenAI docs references, while preserving simulated fallback and explicit lifecycle logging
+- Risk: the adapter can be mistaken for a verified real MCP integration if the distinction is not kept explicit in docs and logs
+- Rollback: remove `tools/docs_search_adapter.py`, revert `tools/atlas_mcp_manager.py` to simulation-only behavior, and keep `docs_search` in advisory-only mode
+
+## 2026-04-25
+- Decision: improve `docs_search_adapter` output quality without expanding its trust boundary
+- Reason: Atlas needed more useful and auditable docs-search results before considering any broader MCP evolution
+- Impact: the adapter now ranks and deduplicates curated results, exposes structured summary and key points, and signals confidence plus potential staleness
+- Risk: confidence and stale signals can become misleading if the curated catalog is not maintained
+- Rollback: revert `tools/docs_search_adapter.py` to the previous minimal result format and loosen the new assertions in `tests/test_mcp_manager.py`

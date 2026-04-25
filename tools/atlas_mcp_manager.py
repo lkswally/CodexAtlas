@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
+import subprocess
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -14,6 +17,8 @@ MEMORY_DIR_NAME = "memory"
 ROUTING_LOG = "routing_log.jsonl"
 GOVERNANCE_EVENTS_LOG = "governance_events.jsonl"
 MCP_EVENTS_LOG = "mcp_events.jsonl"
+GLOBAL_CODEX_CONFIG = Path.home() / ".codex" / "config.toml"
+OFFICIAL_DOCS_MCP_URL = "https://developers.openai.com/mcp"
 
 
 def _load_json(path: Path) -> Dict[str, Any]:
@@ -53,6 +58,69 @@ def _preview(text: str, limit: int = 96) -> str:
 
 def _load_mcp_profiles(root: Path) -> Dict[str, Any]:
     return _load_json(root / "config" / "mcp_profiles.json")
+
+
+def _execute_docs_search_adapter(query: str) -> Dict[str, Any]:
+    try:
+        from tools.docs_search_adapter import execute_docs_search_adapter
+    except ModuleNotFoundError:
+        adapter_path = DEFAULT_ROOT / "tools" / "docs_search_adapter.py"
+        spec = importlib.util.spec_from_file_location("_atlas_docs_search_adapter", str(adapter_path))
+        if not spec or not spec.loader:
+            raise RuntimeError("failed_to_load_docs_search_adapter_spec")
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[spec.name] = module
+        spec.loader.exec_module(module)
+        execute_docs_search_adapter = module.execute_docs_search_adapter
+
+    return execute_docs_search_adapter(query)
+
+
+def _load_global_codex_config_text() -> str:
+    if not GLOBAL_CODEX_CONFIG.exists():
+        return ""
+    return GLOBAL_CODEX_CONFIG.read_text(encoding="utf-8")
+
+
+def inspect_docs_search_runtime_support() -> Dict[str, Any]:
+    config_text = _load_global_codex_config_text()
+    has_docs_mcp_entry = "[mcp_servers.openaiDeveloperDocs]" in config_text
+    has_docs_mcp_url = OFFICIAL_DOCS_MCP_URL in config_text
+    codex_cli_invocable = False
+    cli_error: Optional[str] = None
+
+    try:
+        completed = subprocess.run(
+            ["codex", "--version"],
+            capture_output=True,
+            text=True,
+            timeout=10,
+            check=False,
+        )
+        codex_cli_invocable = completed.returncode == 0
+        if not codex_cli_invocable:
+            cli_error = (completed.stderr or completed.stdout or "").strip() or f"exit_code:{completed.returncode}"
+    except Exception as exc:
+        cli_error = str(exc)
+
+    runtime_verified = has_docs_mcp_entry and has_docs_mcp_url and codex_cli_invocable
+    blockers: List[str] = []
+    if not has_docs_mcp_entry:
+        blockers.append("codex_docs_mcp_not_configured")
+    if has_docs_mcp_entry and not has_docs_mcp_url:
+        blockers.append("codex_docs_mcp_url_missing_or_unexpected")
+    if not codex_cli_invocable:
+        blockers.append("codex_cli_not_invocable")
+
+    return {
+        "real_mcp_supported": runtime_verified,
+        "configured_in_global_codex": has_docs_mcp_entry and has_docs_mcp_url,
+        "codex_cli_invocable": codex_cli_invocable,
+        "config_path": str(GLOBAL_CODEX_CONFIG),
+        "expected_server_url": OFFICIAL_DOCS_MCP_URL,
+        "blockers": blockers,
+        "cli_error": cli_error,
+    }
 
 
 def _profile_lifecycle_state(profile: Dict[str, Any]) -> str:
@@ -292,12 +360,106 @@ def simulate_mcp_execution(
     return simulated
 
 
+def execute_mcp_request(
+    profile: str,
+    query: str,
+    root: Optional[Path] = None,
+    approval: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    resolved_root = (root or DEFAULT_ROOT).resolve()
+    config = _load_mcp_profiles(resolved_root)
+    profiles = config.get("profiles", {})
+    profile_data = profiles.get(profile) if isinstance(profiles, dict) else None
+
+    if not isinstance(profile_data, dict):
+        result = {
+            "profile": profile,
+            "state": "blocked",
+            "ok": False,
+            "query_fingerprint": _text_fingerprint(query),
+            "query_preview": _preview(query),
+            "blockers": [f"unknown_mcp_profile:{profile}"],
+        }
+        _record_mcp_event(resolved_root, {"event_type": "execute", **result})
+        return result
+
+    blockers: List[str] = []
+    if not _profile_is_eligible(profile_data):
+        blockers.append(f"mcp_profile_not_executable_in_current_stage:{profile}")
+    if bool(profile_data.get("requires_approval")):
+        if not isinstance(approval, dict) or approval.get("state") != "approved" or approval.get("profile") != profile:
+            blockers.append(f"mcp_approval_missing_or_invalid:{profile}")
+
+    if blockers:
+        result = {
+            "profile": profile,
+            "state": "blocked",
+            "ok": False,
+            "query_fingerprint": _text_fingerprint(query),
+            "query_preview": _preview(query),
+            "blockers": blockers,
+        }
+        _record_mcp_event(resolved_root, {"event_type": "execute", **result})
+        return result
+
+    runtime_support = inspect_docs_search_runtime_support() if profile == "docs_search" else {
+        "real_mcp_supported": False,
+        "configured_in_global_codex": False,
+        "codex_cli_invocable": False,
+        "config_path": str(GLOBAL_CODEX_CONFIG),
+        "expected_server_url": OFFICIAL_DOCS_MCP_URL,
+        "blockers": [f"no_runtime_path_for_profile:{profile}"],
+        "cli_error": None,
+    }
+
+    if profile == "docs_search":
+        try:
+            adapter_result = _execute_docs_search_adapter(query)
+            if adapter_result.get("ok"):
+                executed = {
+                    "profile": profile,
+                    "state": "executed_adapter",
+                    "ok": True,
+                    "query_fingerprint": _text_fingerprint(query),
+                    "query_preview": _preview(query),
+                    "execution_mode": "adapter_read_only",
+                    "runtime_support": runtime_support,
+                    "adapter": adapter_result,
+                    "blockers": [],
+                }
+                _record_mcp_event(resolved_root, {"event_type": "execute", **executed})
+                return executed
+        except Exception as exc:
+            runtime_support = dict(runtime_support)
+            runtime_support["adapter_error"] = str(exc)
+
+    fallback = simulate_mcp_execution(profile, query, root=resolved_root, approval=approval)
+    fallback["fallback_reason"] = "adapter_unavailable_or_failed"
+    fallback["runtime_support"] = runtime_support
+    _record_mcp_event(
+        resolved_root,
+        {
+            "event_type": "execute_fallback",
+            "profile": profile,
+            "state": fallback.get("state"),
+            "ok": bool(fallback.get("ok")),
+            "query_fingerprint": fallback.get("query_fingerprint"),
+            "query_preview": fallback.get("query_preview"),
+            "execution_mode": fallback.get("mode"),
+            "blockers": list(fallback.get("blockers", [])),
+            "fallback_reason": fallback["fallback_reason"],
+        },
+    )
+    return fallback
+
+
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(add_help=True)
     parser.add_argument("--root", default=None, help="Atlas root to use.")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     subparsers.add_parser("list", help="List current MCP profiles.")
+    subparsers.add_parser("inspect-runtime", help="Inspect whether docs_search could use a real Codex MCP runtime on this machine.")
 
     evaluate_parser = subparsers.add_parser("evaluate", help="Evaluate MCP lifecycle for a task.")
     evaluate_parser.add_argument("task", nargs="+", help="Task to evaluate.")
@@ -311,18 +473,28 @@ def main(argv: Optional[List[str]] = None) -> int:
     simulate_parser.add_argument("query", nargs="+", help="Read-only query to simulate.")
     simulate_parser.add_argument("--reason", default=None, help="Approval reason to attach before simulation.")
 
+    execute_parser = subparsers.add_parser("execute", help="Execute a real-or-adapter MCP request if supported, otherwise fall back safely.")
+    execute_parser.add_argument("profile", help="Profile id.")
+    execute_parser.add_argument("query", nargs="+", help="Read-only query to execute.")
+    execute_parser.add_argument("--reason", default=None, help="Approval reason to attach before execution.")
+
     args = parser.parse_args(argv)
     root = Path(args.root).resolve() if args.root else DEFAULT_ROOT
 
     if args.command == "list":
         result = list_mcp_profiles(root=root)
+    elif args.command == "inspect-runtime":
+        result = inspect_docs_search_runtime_support()
     elif args.command == "evaluate":
         result = evaluate_mcp_request(" ".join(args.task), root=root)
     elif args.command == "approve":
         result = approve_mcp(args.profile, args.reason, root=root)
-    else:
+    elif args.command == "simulate":
         approval = approve_mcp(args.profile, args.reason, root=root) if args.reason else None
         result = simulate_mcp_execution(args.profile, " ".join(args.query), root=root, approval=approval)
+    else:
+        approval = approve_mcp(args.profile, args.reason, root=root) if args.reason else None
+        result = execute_mcp_request(args.profile, " ".join(args.query), root=root, approval=approval)
 
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0

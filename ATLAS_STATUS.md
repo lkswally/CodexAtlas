@@ -26,6 +26,8 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Atlas now has persistent observability files for derived projects, routing decisions and governance events under `memory/`
 - Atlas now has a controlled MCP evaluation surface with one experimental read-only candidate and the rest denied or deferred by policy
 - Atlas now has a governed MCP lifecycle manager for read-only dry runs without real connector activation
+- Atlas now has a read-only `docs_search` adapter as the safe execution path while real Codex MCP runtime support remains unverified locally
+- The `docs_search` adapter now returns ranked, deduplicated results plus structured summary, key points, confidence and possible-staleness signals
 - Dedicated execution tests now cover `repo-audit`, `project-bootstrap` and `product-branding-review`
 - Dedicated certification tests now cover clean and contaminated derived-project cases
 - Codex-native documentary base for agents, workflows, policies, commands, validators, memory and adapters
@@ -74,7 +76,9 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Evidence-required, project-boundary and template-quality policies are now documented as Atlas-native quality gates
 - `docs_search` is now the only experimental read-only MCP approved in Atlas metadata
 - `github`, `filesystem` and `engram` remain non-experimental until their risk and surface fit improve
-- `tools/atlas_mcp_manager.py` now manages the MCP lifecycle states `suggested`, `approval_required`, `approved`, `blocked` and `executed_simulated`
+- `tools/atlas_mcp_manager.py` now manages the MCP lifecycle states `suggested`, `approval_required`, `approved`, `blocked`, `executed_adapter` and `executed_simulated`
+- `tools/docs_search_adapter.py` now provides the current controlled execution path for `docs_search` without claiming a real external MCP connection
+- The docs adapter remains read-only and does not fetch external data directly; it improves quality through better ranking and reporting over curated official references
 - Decision log, breadcrumbs and session summaries exist for continuity
 - `memory/derived_projects.json` now records projects created by Atlas bootstrap
 - `memory/routing_log.jsonl` now captures structured orchestrator decisions without storing full task text
@@ -127,7 +131,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - `C:\Proyectos\Codex-Atlas` now exists as its own git repository and canonical GitHub remote
 - No deploy automation or external connector has been introduced
 - No write-capable MCP or external connector is active inside Atlas workflows
-- The current MCP experiment is advisory only, uses simulated execution only and does not auto-connect
+- The current MCP experiment is advisory by default, can execute through the internal docs adapter after approval, and still does not auto-connect a real external MCP
 
 ## Product context status
 
