@@ -792,6 +792,14 @@ def _build_mcp_reason(suggested_ids: List[str], mcp_profiles: Dict[str, Any]) ->
     )
 
 
+def _mcp_lifecycle_state(profile: Dict[str, Any]) -> str:
+    if not bool(profile.get("experimental_enabled")):
+        return "blocked"
+    if bool(profile.get("requires_approval")):
+        return "approval_required"
+    return "suggested"
+
+
 def _global_approval_reasons(task: str) -> List[str]:
     normalized = _normalize(task)
     reasons: List[str] = []
@@ -1019,6 +1027,7 @@ def _record_routing_decision(root: Path, payload: Dict[str, Any]) -> None:
                 "id": item.get("id"),
                 "atlas_decision": item.get("atlas_decision"),
                 "experimental_enabled": item.get("experimental_enabled"),
+                "lifecycle_state": item.get("lifecycle_state"),
             }
             for item in payload.get("suggested_mcps", [])
             if isinstance(item, dict)
@@ -1358,6 +1367,7 @@ def orchestrate_task(
             "atlas_decision": mcp_profiles["profiles"][mcp_id].get("atlas_decision"),
             "experimental_enabled": bool(mcp_profiles["profiles"][mcp_id].get("experimental_enabled")),
             "read_only_scope": mcp_profiles["profiles"][mcp_id].get("read_only_scope"),
+            "lifecycle_state": _mcp_lifecycle_state(mcp_profiles["profiles"][mcp_id]),
         }
         for mcp_id in suggested_mcp_ids
     ]

@@ -139,3 +139,10 @@
 - Impact: MCP metadata, routing and governance now expose a single experimental read-only profile, and governance logs which experimental MCPs are active
 - Risk: the experimental profile could expand informally if future edits ignore the one-experiment-at-a-time rule
 - Rollback: set `experimental_enabled` to `false` for `docs_search`, keep all MCPs advisory-only, and re-run governance
+
+## 2026-04-24
+- Decision: add a governed MCP lifecycle manager before enabling any real connector
+- Reason: Atlas needed explicit states and auditable transitions for MCP suggestions, approvals and dry-run execution before moving from policy to real integration
+- Impact: `tools/atlas_mcp_manager.py` now manages `suggested`, `approval_required`, `approved`, `blocked` and `executed_simulated` states, and logs lifecycle events under `memory/`
+- Risk: simulation could be mistaken for real connector execution if future tooling does not keep the distinction explicit
+- Rollback: remove `tools/atlas_mcp_manager.py`, delete `memory/mcp_events.jsonl`, and revert MCP handling back to routing plus governance metadata only

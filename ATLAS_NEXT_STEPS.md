@@ -37,6 +37,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep manual quality-gate policies stronger than the repo narrative, not weaker
 - Keep observability logs append-only, lightweight and free of sensitive task payloads
 - Keep the MCP experiment limited to a single read-only profile until Atlas proves the governance model holds
+- Keep MCP lifecycle transitions explicit so approval and simulation do not turn into implicit connector activation
 
 ## Possible future improvements
 
@@ -76,6 +77,8 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - certification rules drifting away from the real bootstrap contract or from derived-project metadata
 - observability logs growing without retention or summary rules
 - MCP profile sprawl diluting the default-deny rule
+- MCP approvals becoming implicit or durable without a clearer revocation policy
+- Simulated MCP execution drifting away from the declared lifecycle or being confused with a real connector
 - Too many low-value skills diluting Atlas-native guidance
 
 ## Do not touch yet

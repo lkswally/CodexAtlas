@@ -25,6 +25,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Manual quality-gate policies now cover anti-generic output, evidence, project boundaries and template quality
 - Atlas now has persistent observability files for derived projects, routing decisions and governance events under `memory/`
 - Atlas now has a controlled MCP evaluation surface with one experimental read-only candidate and the rest denied or deferred by policy
+- Atlas now has a governed MCP lifecycle manager for read-only dry runs without real connector activation
 - Dedicated execution tests now cover `repo-audit`, `project-bootstrap` and `product-branding-review`
 - Dedicated certification tests now cover clean and contaminated derived-project cases
 - Codex-native documentary base for agents, workflows, policies, commands, validators, memory and adapters
@@ -73,10 +74,12 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Evidence-required, project-boundary and template-quality policies are now documented as Atlas-native quality gates
 - `docs_search` is now the only experimental read-only MCP approved in Atlas metadata
 - `github`, `filesystem` and `engram` remain non-experimental until their risk and surface fit improve
+- `tools/atlas_mcp_manager.py` now manages the MCP lifecycle states `suggested`, `approval_required`, `approved`, `blocked` and `executed_simulated`
 - Decision log, breadcrumbs and session summaries exist for continuity
 - `memory/derived_projects.json` now records projects created by Atlas bootstrap
 - `memory/routing_log.jsonl` now captures structured orchestrator decisions without storing full task text
 - `memory/governance_events.jsonl` now captures append-only governance validation events
+- `memory/mcp_events.jsonl` now captures append-only MCP evaluation, approval and simulation events
 - Governance check validates the root-first canonical structure, legacy compatibility mirrors and skill metadata contract
 - Governance check validates advanced skill metadata including operational limits and approval escalation triggers
 - Governance check also validates consistency between declared execution behavior and the helper behavior spec
@@ -124,7 +127,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - `C:\Proyectos\Codex-Atlas` now exists as its own git repository and canonical GitHub remote
 - No deploy automation or external connector has been introduced
 - No write-capable MCP or external connector is active inside Atlas workflows
-- The current MCP experiment is advisory only and does not auto-connect
+- The current MCP experiment is advisory only, uses simulated execution only and does not auto-connect
 
 ## Product context status
 

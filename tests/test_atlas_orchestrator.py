@@ -63,6 +63,7 @@ def test_docs_search_is_the_only_experimental_read_only_mcp():
     assert docs_search["default_mode"] == "read_only"
     assert docs_search["experimental_enabled"] is True
     assert docs_search["atlas_decision"] == "experimental_read_only"
+    assert docs_search["lifecycle_state"] == "approval_required"
 
 
 def test_github_task_stays_watchlist_and_requires_approval():
@@ -71,6 +72,7 @@ def test_github_task_stays_watchlist_and_requires_approval():
     github_mcp = next(item for item in result["suggested_mcps"] if item["id"] == "github")
     assert github_mcp["experimental_enabled"] is False
     assert github_mcp["atlas_decision"] == "watchlist"
+    assert github_mcp["lifecycle_state"] == "blocked"
     assert result["requires_human_approval"] is True
 
 
@@ -265,4 +267,5 @@ def test_orchestrator_appends_structured_routing_log():
     assert record["recommended_agent"] == "planner"
     assert record["recommended_workflow"] == "orchestrator_routing"
     assert record["task_fingerprint"]
+    assert record["suggested_mcp_details"] == []
     assert "task" not in record
