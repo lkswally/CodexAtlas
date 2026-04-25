@@ -41,8 +41,15 @@ INTENT_KEYWORDS = {
     "deployment_or_destructive_action": (
         "deploy",
         "deployment",
+        "hacer deploy",
+        "desplegar",
+        "desplegar a producción",
+        "deploy production",
+        "publicar en producción",
+        "release production",
         "release",
         "production",
+        "producción",
         "push to prod",
         "delete",
         "drop ",
@@ -260,7 +267,15 @@ WORKFLOW_BY_SKILL = {
 DANGEROUS_APPROVAL_KEYWORDS = (
     "delete",
     "deploy",
+    "hacer deploy",
+    "desplegar",
+    "desplegar a producción",
+    "deploy production",
+    "publicar en producción",
+    "release production",
     "production",
+    "producción",
+    "deployment",
     "secret",
     "secrets",
     "credential",
@@ -270,6 +285,31 @@ DANGEROUS_APPROVAL_KEYWORDS = (
     "drop",
     "wipe",
 )
+NEGATED_DANGEROUS_KEYWORD_PATTERNS = {
+    "deploy": (
+        "sin deploy",
+        "no deploy",
+        "no hacer deploy",
+        "without deploy",
+    ),
+    "deployment": (
+        "no deployment",
+        "without deployment",
+    ),
+    "desplegar": (
+        "no desplegar",
+    ),
+    "desplegar a producción": (
+        "no desplegar a producción",
+    ),
+    "publicar en producción": (
+        "no publicar en producción",
+    ),
+    "release production": (
+        "no release production",
+        "without release production",
+    ),
+}
 
 POLICY_MATCH_STOPWORDS = {
     "the",
@@ -375,6 +415,13 @@ def _contains_any(text: str, keywords: List[str]) -> bool:
 def _keyword_matches(text: str, keyword: str) -> bool:
     pattern = r"\b" + re.escape(keyword).replace(r"\ ", r"\s+") + r"\b"
     return re.search(pattern, text) is not None
+
+
+def _dangerous_keyword_matches(text: str, keyword: str) -> bool:
+    if not _keyword_matches(text, keyword):
+        return False
+    negated_patterns = NEGATED_DANGEROUS_KEYWORD_PATTERNS.get(keyword, ())
+    return not any(_keyword_matches(text, pattern) for pattern in negated_patterns)
 
 
 def _load_behavior_catalog(root: Path) -> Dict[str, Dict[str, Any]]:
@@ -696,7 +743,10 @@ def classify_intent(task: str) -> str:
     normalized = _normalize(task)
     scores: Dict[str, int] = {}
     for intent, keywords in INTENT_KEYWORDS.items():
-        score = sum(1 for keyword in keywords if _keyword_matches(normalized, keyword))
+        if intent == "deployment_or_destructive_action":
+            score = sum(1 for keyword in keywords if _dangerous_keyword_matches(normalized, keyword))
+        else:
+            score = sum(1 for keyword in keywords if _keyword_matches(normalized, keyword))
         if score:
             scores[intent] = score
 
@@ -804,7 +854,7 @@ def _global_approval_reasons(task: str) -> List[str]:
     normalized = _normalize(task)
     reasons: List[str] = []
     for keyword in DANGEROUS_APPROVAL_KEYWORDS:
-        if _keyword_matches(normalized, keyword):
+        if _dangerous_keyword_matches(normalized, keyword):
             reasons.append(f"dangerous_task_keyword:{keyword}")
     return reasons
 

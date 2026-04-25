@@ -129,6 +129,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Skill governance now validates rendered README and AGENTS template quality for every bootstrap profile
 - Orchestrator output now reflects approval reasons and execution blockers derived from skill metadata and task wording
 - Orchestrator output now includes bootstrap preflight status and `safe_to_execute` based on the real target path
+- Orchestrator now distinguishes explicit no-deploy restrictions from actual deploy intent when routing and approval checks run
 - Orchestrator decisions are now logged append-only for later review
 
 ## GitHub block status

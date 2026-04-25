@@ -249,6 +249,28 @@ def test_bootstrap_project_text_does_not_trigger_false_deploy_or_delete_blockers
     assert not any(blocker.startswith("skill_forbidden_action:deploy") for blocker in result["execution_blockers"])
 
 
+def test_no_deploy_restriction_does_not_trigger_deploy_intent_or_approval():
+    target = Path(r"C:\Temp\atlas_bootstrap_no_deploy")
+    result = orchestrate_task(
+        "Bootstrap a static site with no backend, no deploy, no deployment and no tocar REYESOFT.",
+        output_dir=target,
+        project_type="internal_tool",
+    )
+    assert result["intent"] == "project_creation"
+    assert result["recommended_skill"] == "project-bootstrap"
+    assert "intent_requires_human_approval" not in result["approval_reasons"]
+    assert not any(reason.startswith("dangerous_task_keyword:deploy") for reason in result["approval_reasons"])
+    assert not any(reason.startswith("dangerous_task_keyword:deployment") for reason in result["approval_reasons"])
+
+
+def test_positive_deploy_phrases_still_require_human_approval():
+    result = orchestrate_task("Desplegar a producción y hacer deploy production cuando cierre el release production.")
+    assert result["intent"] == "deployment_or_destructive_action"
+    assert result["requires_human_approval"] is True
+    assert any(reason == "dangerous_task_keyword:desplegar a producción" for reason in result["approval_reasons"])
+    assert any(reason == "dangerous_task_keyword:deploy production" for reason in result["approval_reasons"])
+
+
 def test_orchestrator_appends_structured_routing_log():
     captured = []
 

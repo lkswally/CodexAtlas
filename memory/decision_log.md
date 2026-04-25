@@ -174,3 +174,10 @@
 - Impact: `tools/docs_catalog_report.py` now summarizes entry counts, expiry windows, top topics and maintenance recommendations over `config/docs_search_catalog.json`
 - Risk: report logic can drift from adapter freshness semantics if both evolve independently
 - Rollback: remove `tools/docs_catalog_report.py`, drop its test/governance requirements, and rely on direct catalog inspection again
+
+## 2026-04-25
+- Decision: treat explicit no-deploy wording as a safety restriction, not as deploy intent
+- Reason: the first real bootstrap for `CodexAtlas-Web` exposed a false positive where `no deploy` escalated approval and blocked a legitimate safe bootstrap
+- Impact: the orchestrator now distinguishes negated deploy phrases from real deploy intent in both intent classification and approval reasons
+- Risk: the phrase matcher is still heuristic and should be reviewed if more multilingual safety phrases are added
+- Rollback: revert the deploy-negation matcher and return to the previous keyword-only behavior

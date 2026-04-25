@@ -75,6 +75,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Hardcoded routing logic growing faster than the profile catalogs
 - Skill metadata drifting between `skill.md`, `skill.json` and execution behavior
 - Approval triggers and forbidden actions becoming decorative instead of actionable governance metadata
+- Negated safety constraints like `no deploy` drifting back into false-positive approval or intent matches
 - `behavior.json` diverging from helper implementations over time
 - `bootstrap_contract.json` drifting away from the real scaffold helper or from `skill.json`
 - type-aware templates becoming generic again as more project profiles are added
