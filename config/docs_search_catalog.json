@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "id": "openai_docs_mcp",
+      "title": "Docs MCP",
+      "url": "https://developers.openai.com/learn/docs-mcp",
+      "source_type": "official_openai_docs",
+      "topics": [
+        "docs",
+        "mcp",
+        "codex",
+        "developer docs",
+        "read-only"
+      ],
+      "description": "Configure Codex to use the official OpenAI developer documentation MCP server in read-only mode.",
+      "last_verified": "2026-04-24",
+      "freshness_window_days": 120,
+      "status": "active"
+    },
+    {
+      "id": "openai_mcp_connectors",
+      "title": "MCP and Connectors",
+      "url": "https://developers.openai.com/api/docs/guides/tools-connectors-mcp",
+      "source_type": "official_openai_docs",
+      "topics": [
+        "mcp",
+        "connectors",
+        "approval",
+        "read-only",
+        "tools"
+      ],
+      "description": "Guide to remote MCP servers and connectors, including approval policies and read-only tool usage.",
+      "last_verified": "2026-04-24",
+      "freshness_window_days": 120,
+      "status": "active"
+    }
+  ]
+}

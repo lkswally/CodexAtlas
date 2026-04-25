@@ -27,6 +27,7 @@ REQUIRED_ROOT_FILES = (
     "README.md",
     "config/model_profiles.json",
     "config/mcp_profiles.json",
+    "config/docs_search_catalog.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -82,8 +83,10 @@ REQUIRED_ROOT_FILES = (
     "tools/atlas_orchestrator.py",
     "tools/atlas_mcp_manager.py",
     "tools/docs_search_adapter.py",
+    "tools/docs_catalog_report.py",
     "tests/test_atlas_orchestrator.py",
     "tests/test_certify_project.py",
+    "tests/test_docs_catalog_report.py",
     "tests/test_mcp_manager.py",
     "tests/test_skill_execution.py",
     "tests/test_skill_governance.py",
@@ -248,6 +251,7 @@ VALID_MCP_ATLAS_DECISIONS = {
     "discard",
     "supporting_profile",
 }
+VALID_DOCS_SEARCH_CATALOG_STATUSES = {"active", "watchlist", "deprecated"}
 
 
 def _primary_registry_path(root: Path) -> Path:
@@ -300,6 +304,10 @@ def _load_model_profiles(root: Path) -> Dict[str, Any]:
 
 def _load_mcp_profiles(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "mcp_profiles.json").read_text(encoding="utf-8"))
+
+
+def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "docs_search_catalog.json").read_text(encoding="utf-8"))
 
 
 def _utc_now_iso() -> str:
@@ -415,6 +423,79 @@ def _validate_mcp_profiles(root: Path, findings: List[str]) -> None:
 
     if len(experimental_profiles) > 1:
         findings.append(f"mcp_profiles_multiple_experimental:{','.join(sorted(experimental_profiles))}")
+
+
+def _validate_docs_search_catalog(root: Path, findings: List[str]) -> None:
+    try:
+        catalog = _load_docs_search_catalog(root)
+    except Exception as exc:
+        findings.append(f"invalid_docs_search_catalog_json:{exc}")
+        return
+
+    if not isinstance(catalog, dict):
+        findings.append("docs_search_catalog_not_object")
+        return
+
+    entries = catalog.get("entries")
+    if not isinstance(entries, list) or not entries:
+        findings.append("docs_search_catalog_missing_entries")
+        return
+
+    seen_ids: Set[str] = set()
+    seen_urls: Set[str] = set()
+
+    for idx, entry in enumerate(entries, start=1):
+        label = f"docs_search_catalog_entry_{idx}"
+        if not isinstance(entry, dict):
+            findings.append(f"{label}:not_object")
+            continue
+
+        entry_id = str(entry.get("id", "")).strip()
+        title = str(entry.get("title", "")).strip()
+        url = str(entry.get("url", "")).strip()
+        source_type = str(entry.get("source_type", "")).strip()
+        description = str(entry.get("description", "")).strip()
+        topics = entry.get("topics")
+        last_verified = str(entry.get("last_verified", "")).strip()
+        freshness_window_days = entry.get("freshness_window_days")
+        status = str(entry.get("status", "")).strip()
+
+        if not entry_id:
+            findings.append(f"{label}:missing_id")
+        elif entry_id in seen_ids:
+            findings.append(f"docs_search_catalog_duplicate_id:{entry_id}")
+        else:
+            seen_ids.add(entry_id)
+
+        if not title:
+            findings.append(f"{label}:missing_title")
+
+        if not url:
+            findings.append(f"{label}:missing_url")
+        elif url in seen_urls:
+            findings.append(f"docs_search_catalog_duplicate_url:{url}")
+        else:
+            seen_urls.add(url)
+
+        if not source_type:
+            findings.append(f"{label}:missing_source_type")
+
+        if not isinstance(topics, list) or not topics or not all(isinstance(item, str) and item.strip() for item in topics):
+            findings.append(f"{label}:invalid_topics")
+
+        if not description:
+            findings.append(f"{label}:missing_description")
+
+        try:
+            datetime.strptime(last_verified, "%Y-%m-%d")
+        except ValueError:
+            findings.append(f"{label}:invalid_last_verified:{last_verified or 'empty'}")
+
+        if not isinstance(freshness_window_days, int) or freshness_window_days <= 0:
+            findings.append(f"{label}:invalid_freshness_window_days:{freshness_window_days}")
+
+        if status not in VALID_DOCS_SEARCH_CATALOG_STATUSES:
+            findings.append(f"{label}:invalid_status:{status}")
 
 
 def _load_skill_behavior_specs(root: Path) -> Dict[str, Dict[str, Any]]:
@@ -1160,6 +1241,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
             findings.append("project_state_invalid_legacy_compatibility")
 
         _validate_mcp_profiles(root, findings)
+        _validate_docs_search_catalog(root, findings)
         _validate_skill_catalog(root, findings)
         _check_legacy_mirror(_primary_registry_path(root), _legacy_registry_path(root), "atomic_command_registry", findings)
         _check_legacy_mirror(_primary_mcp_policy_path(root), _legacy_mcp_policy_path(root), "mcp_connector_policy", findings)

@@ -1,44 +1,14 @@
 from __future__ import annotations
 
+import json
 import re
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Any, Dict, List
 
-
-OFFICIAL_DOCS_CATALOG: List[Dict[str, Any]] = [
-    {
-        "id": "openai_docs_mcp",
-        "title": "Docs MCP",
-        "url": "https://developers.openai.com/learn/docs-mcp",
-        "summary": "Configure Codex to use the official OpenAI developer documentation MCP server in read-only mode.",
-        "tags": ["docs", "mcp", "codex", "developer docs", "read-only"],
-        "last_verified": "2026-04-24",
-        "time_sensitive": True,
-        "canonical_topic": "openai_docs_mcp",
-    },
-    {
-        "id": "openai_mcp_connectors",
-        "title": "MCP and Connectors",
-        "url": "https://developers.openai.com/api/docs/guides/tools-connectors-mcp",
-        "summary": "Guide to remote MCP servers and connectors, including approval policies and read-only tool usage.",
-        "tags": ["mcp", "connectors", "approval", "read-only", "tools"],
-        "last_verified": "2026-04-24",
-        "time_sensitive": True,
-        "canonical_topic": "openai_connectors_mcp",
-    },
-    {
-        "id": "openai_codex_config_mcp",
-        "title": "Codex Configuration and MCP",
-        "url": "https://developers.openai.com/learn/docs-mcp",
-        "summary": "Shows how Codex can reference MCP servers from ~/.codex/config.toml and use the shared configuration in CLI or IDE.",
-        "tags": ["codex", "config", "mcp", "config.toml", "cli"],
-        "last_verified": "2026-04-24",
-        "time_sensitive": True,
-        "canonical_topic": "openai_docs_mcp",
-    },
-]
-
-STALE_AFTER_DAYS = 120
+DEFAULT_ROOT = Path(__file__).resolve().parents[1]
+DOCS_SEARCH_CATALOG_PATH = DEFAULT_ROOT / "config" / "docs_search_catalog.json"
+VALID_CATALOG_STATUSES = {"active", "watchlist", "deprecated"}
 
 
 def _normalize(text: str) -> str:
@@ -53,35 +23,54 @@ def _today_date() -> datetime.date:
     return datetime.now(timezone.utc).date()
 
 
-def _days_since(date_text: str) -> int:
+def _days_since(date_text: str, fallback_days: int) -> int:
     try:
         verified_date = datetime.strptime(date_text, "%Y-%m-%d").date()
     except ValueError:
-        return STALE_AFTER_DAYS + 1
+        return fallback_days + 1
     return (_today_date() - verified_date).days
+
+
+def _catalog_path(root: Path | None = None) -> Path:
+    resolved_root = (root or DEFAULT_ROOT).resolve()
+    return resolved_root / "config" / "docs_search_catalog.json"
+
+
+def load_docs_search_catalog(root: Path | None = None) -> List[Dict[str, Any]]:
+    catalog_path = _catalog_path(root)
+    payload = json.loads(catalog_path.read_text(encoding="utf-8-sig"))
+    entries = payload.get("entries", [])
+    if not isinstance(entries, list):
+        return []
+    return [entry for entry in entries if isinstance(entry, dict)]
 
 
 def _entry_staleness(entry: Dict[str, Any]) -> Dict[str, Any]:
     last_verified = str(entry.get("last_verified", "")).strip()
-    days_old = _days_since(last_verified) if last_verified else STALE_AFTER_DAYS + 1
-    possibly_outdated = days_old > STALE_AFTER_DAYS
+    freshness_window_days = int(entry.get("freshness_window_days", 0) or 0)
+    if freshness_window_days <= 0:
+        freshness_window_days = 1
+    days_old = _days_since(last_verified, freshness_window_days) if last_verified else freshness_window_days + 1
+    possibly_outdated = days_old > freshness_window_days
     return {
         "last_verified": last_verified or None,
+        "freshness_window_days": freshness_window_days,
         "days_since_verification": days_old,
         "possibly_outdated": possibly_outdated,
         "reason": (
-            "catalog_entry_is_older_than_staleness_threshold"
+            "catalog_entry_is_older_than_freshness_window"
             if possibly_outdated
-            else "catalog_entry_recently_verified"
+            else "catalog_entry_within_freshness_window"
         ),
     }
 
 
 def _score_entry(normalized_query: str, query_tokens: set[str], entry: Dict[str, Any]) -> int:
     title = str(entry.get("title", ""))
-    summary = str(entry.get("summary", ""))
-    tags = [str(tag) for tag in entry.get("tags", [])]
-    haystack = " ".join([title, summary, " ".join(tags)])
+    description = str(entry.get("description", ""))
+    topics = [str(topic) for topic in entry.get("topics", [])]
+    status = str(entry.get("status", "active")).strip()
+    haystack = " ".join([title, description, " ".join(topics)])
     haystack_normalized = _normalize(haystack)
     haystack_tokens = set(_tokens(haystack))
 
@@ -93,12 +82,14 @@ def _score_entry(normalized_query: str, query_tokens: set[str], entry: Dict[str,
         score += 3
     if any(token in title_normalized for token in query_tokens):
         score += 2
-    if any(token in _normalize(" ".join(tags)) for token in query_tokens):
+    if any(token in _normalize(" ".join(topics)) for token in query_tokens):
         score += 1
 
     staleness = _entry_staleness(entry)
     if not staleness["possibly_outdated"]:
         score += 1
+    if status == "watchlist":
+        score -= 1
     return score
 
 
@@ -122,12 +113,18 @@ def _entry_confidence(score: int, staleness: Dict[str, Any]) -> str:
     return "low"
 
 
-def search_official_docs_catalog(query: str, limit: int = 3) -> List[Dict[str, Any]]:
+def search_official_docs_catalog(query: str, limit: int = 3, catalog: List[Dict[str, Any]] | None = None) -> List[Dict[str, Any]]:
     normalized_query = _normalize(query)
     query_tokens = set(_tokens(query))
     scored: List[Dict[str, Any]] = []
+    catalog_entries = catalog if catalog is not None else load_docs_search_catalog()
 
-    for entry in OFFICIAL_DOCS_CATALOG:
+    for entry in catalog_entries:
+        status = str(entry.get("status", "")).strip()
+        if status not in VALID_CATALOG_STATUSES:
+            continue
+        if status == "deprecated":
+            continue
         score = _score_entry(normalized_query, query_tokens, entry)
         if score <= 0:
             continue
@@ -138,11 +135,13 @@ def search_official_docs_catalog(query: str, limit: int = 3) -> List[Dict[str, A
                 "id": entry["id"],
                 "title": entry["title"],
                 "url": entry["url"],
-                "summary": entry["summary"],
-                "tags": entry["tags"],
+                "source_type": entry.get("source_type"),
+                "summary": entry["description"],
+                "tags": entry["topics"],
+                "status": status,
                 "score": score,
                 "source": "official_openai_docs_catalog",
-                "canonical_topic": entry.get("canonical_topic"),
+                "canonical_topic": entry.get("id"),
                 "confidence_level": _entry_confidence(score, staleness),
                 "staleness": staleness,
             }
@@ -221,6 +220,7 @@ def execute_docs_search_adapter(query: str) -> Dict[str, Any]:
         "ok": True,
         "mode": "adapter_read_only",
         "source": "official_openai_docs_catalog",
+        "catalog_path": str(DOCS_SEARCH_CATALOG_PATH),
         "query": normalized_query,
         "results": results,
         "result_count": len(results),

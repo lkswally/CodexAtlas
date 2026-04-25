@@ -10,6 +10,7 @@ from tools.atlas_governance_check import (
     _record_governance_event,
     _read_text,
     _validate_mcp_profiles,
+    _validate_docs_search_catalog,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
@@ -334,3 +335,43 @@ def test_mcp_profiles_reject_multiple_experimental_profiles():
         _validate_mcp_profiles(ROOT, findings)
 
     assert any(finding.startswith("mcp_profiles_multiple_experimental:") for finding in findings)
+
+
+def test_docs_search_catalog_rejects_duplicate_or_invalid_entries():
+    findings = []
+    invalid_catalog = {
+        "schema_version": 1,
+        "entries": [
+            {
+                "id": "docs_a",
+                "title": "Docs A",
+                "url": "https://example.com/docs",
+                "source_type": "official_openai_docs",
+                "topics": ["docs"],
+                "description": "First entry.",
+                "last_verified": "2026-04-24",
+                "freshness_window_days": 120,
+                "status": "active",
+            },
+            {
+                "id": "docs_a",
+                "title": "Docs B",
+                "url": "https://example.com/docs",
+                "source_type": "official_openai_docs",
+                "topics": ["docs"],
+                "description": "Second entry.",
+                "last_verified": "invalid-date",
+                "freshness_window_days": 0,
+                "status": "unsupported",
+            },
+        ],
+    }
+
+    with patch("tools.atlas_governance_check._load_docs_search_catalog", return_value=invalid_catalog):
+        _validate_docs_search_catalog(ROOT, findings)
+
+    assert "docs_search_catalog_duplicate_id:docs_a" in findings
+    assert "docs_search_catalog_duplicate_url:https://example.com/docs" in findings
+    assert "docs_search_catalog_entry_2:invalid_last_verified:invalid-date" in findings
+    assert "docs_search_catalog_entry_2:invalid_freshness_window_days:0" in findings
+    assert "docs_search_catalog_entry_2:invalid_status:unsupported" in findings

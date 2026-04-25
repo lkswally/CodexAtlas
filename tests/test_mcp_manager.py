@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
-from tools.docs_search_adapter import execute_docs_search_adapter, search_official_docs_catalog
+from tools.docs_search_adapter import execute_docs_search_adapter, load_docs_search_catalog, search_official_docs_catalog
 from tools.atlas_mcp_manager import (
     approve_mcp,
     execute_mcp_request,
@@ -151,3 +151,69 @@ def test_docs_search_adapter_returns_structured_summary_and_staleness_signal():
     assert isinstance(result["summary"]["possible_outdated_results"], bool)
     assert len(result["key_points"]) >= 3
     assert all("staleness" in item for item in result["results"])
+
+
+def test_docs_search_catalog_loads_from_external_config():
+    catalog = load_docs_search_catalog()
+
+    assert len(catalog) >= 2
+    assert all(item["id"] for item in catalog)
+    assert all(item["url"] for item in catalog)
+    assert all(item["status"] in {"active", "watchlist", "deprecated"} for item in catalog)
+
+
+def test_docs_search_adapter_marks_stale_entries_as_possible_outdated():
+    stale_catalog = [
+        {
+            "id": "stale_docs",
+            "title": "Stale Docs",
+            "url": "https://example.com/stale-docs",
+            "source_type": "official_openai_docs",
+            "topics": ["sdk", "docs", "connectors"],
+            "description": "Old reference that still matches the query strongly.",
+            "last_verified": "2025-01-01",
+            "freshness_window_days": 30,
+            "status": "active",
+        }
+    ]
+
+    with patch("tools.docs_search_adapter.load_docs_search_catalog", return_value=stale_catalog):
+        result = execute_docs_search_adapter("sdk docs connectors")
+
+    assert result["ok"] is True
+    assert result["result_count"] == 1
+    assert result["possible_outdated_results"] is True
+    assert result["results"][0]["staleness"]["possibly_outdated"] is True
+
+
+def test_docs_search_adapter_does_not_rank_deprecated_entries_as_active_results():
+    catalog = [
+        {
+            "id": "deprecated_docs",
+            "title": "Deprecated Docs",
+            "url": "https://example.com/deprecated-docs",
+            "source_type": "official_openai_docs",
+            "topics": ["sdk", "docs"],
+            "description": "Deprecated entry that should not surface as an active result.",
+            "last_verified": "2026-04-24",
+            "freshness_window_days": 120,
+            "status": "deprecated",
+        },
+        {
+            "id": "active_docs",
+            "title": "Active Docs",
+            "url": "https://example.com/active-docs",
+            "source_type": "official_openai_docs",
+            "topics": ["sdk", "docs"],
+            "description": "Active entry that should be ranked.",
+            "last_verified": "2026-04-24",
+            "freshness_window_days": 120,
+            "status": "active",
+        },
+    ]
+
+    results = search_official_docs_catalog("sdk docs", catalog=catalog)
+
+    assert len(results) == 1
+    assert results[0]["id"] == "active_docs"
+    assert results[0]["status"] == "active"

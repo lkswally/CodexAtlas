@@ -160,3 +160,17 @@
 - Impact: the adapter now ranks and deduplicates curated results, exposes structured summary and key points, and signals confidence plus potential staleness
 - Risk: confidence and stale signals can become misleading if the curated catalog is not maintained
 - Rollback: revert `tools/docs_search_adapter.py` to the previous minimal result format and loosen the new assertions in `tests/test_mcp_manager.py`
+
+## 2026-04-25
+- Decision: externalize the `docs_search` curated catalog into `config/docs_search_catalog.json` and govern freshness metadata centrally
+- Reason: Atlas needed the official-doc references to be maintainable, auditable and validated outside the adapter code before expanding the experiment
+- Impact: the adapter now reads a canonical external catalog, governance rejects duplicate or malformed entries, and freshness policy is explicit per entry
+- Risk: the catalog becomes another file-backed source of truth that can drift if updates skip governance or review
+- Rollback: move the small catalog back into `tools/docs_search_adapter.py` and remove the new governance checks for catalog structure and freshness
+
+## 2026-04-25
+- Decision: add a read-only docs catalog health report instead of relying on manual inspection for freshness maintenance
+- Reason: Atlas needed a lightweight way to see catalog status, upcoming expiry and topic coverage without scraping the web or mutating the catalog
+- Impact: `tools/docs_catalog_report.py` now summarizes entry counts, expiry windows, top topics and maintenance recommendations over `config/docs_search_catalog.json`
+- Risk: report logic can drift from adapter freshness semantics if both evolve independently
+- Rollback: remove `tools/docs_catalog_report.py`, drop its test/governance requirements, and rely on direct catalog inspection again

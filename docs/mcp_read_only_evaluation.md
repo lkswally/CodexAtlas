@@ -46,8 +46,20 @@ The current experimental integration is deliberately narrow:
 - The recommendation is advisory only until a governed approval exists.
 - Atlas now supports an internal `docs_search` adapter in read-only mode as the safe execution path for this stage.
 - The adapter now ranks deduplicated official references, exposes structured summaries, key points, confidence and a possible-staleness signal.
+- The curated docs catalog now lives in `config/docs_search_catalog.json` instead of inside the adapter code.
+- Each catalog entry now carries explicit freshness metadata (`last_verified`, `freshness_window_days`) plus lifecycle status (`active`, `watchlist`, `deprecated`).
+- Governance now validates catalog structure, duplicate protection and freshness metadata before Atlas can claim the adapter surface is healthy.
 - The integration is logged through existing observability paths.
 - No automatic connector activation happens inside Atlas.
+
+## Catalog freshness policy
+
+- `active`: eligible for ranking as a normal result.
+- `watchlist`: still searchable, but ranked below equally relevant active entries.
+- `deprecated`: kept only for auditability and excluded from active ranking.
+- `possible_outdated_results` becomes `true` when a returned entry is older than its own `freshness_window_days`.
+- Atlas does not scrape the web automatically; freshness depends on deliberate catalog maintenance.
+- `tools/docs_catalog_report.py` now provides a read-only health report over the curated catalog, including counts by status, expired entries, near-expiry entries, top topics and maintenance recommendations.
 
 ## Runtime inspection result on this machine
 

@@ -4,10 +4,10 @@ This document captures the next safe moves after the post-Level 3B stabilization
 
 ## Suggested priority
 
-1. Consolidate the documentary core and keep it current with real decisions
-2. Remove blocked deprecated flat skill pointers once filesystem access allows deletion
-3. Remove blocked test residue folders once filesystem access allows deletion
-4. Observe how the first Atlas-native skills behave under the advanced metadata governance before adding more
+1. Use the current baseline for the first real project bootstrap test
+2. Consolidate the documentary core and keep it current with real decisions
+3. Remove blocked deprecated flat skill pointers once filesystem access allows deletion
+4. Remove blocked test residue folders once filesystem access allows deletion
 5. Evolve the suggestive orchestrator carefully before adding any autonomy
 
 ## Review before building
@@ -40,9 +40,13 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep MCP lifecycle transitions explicit so approval and simulation do not turn into implicit connector activation
 - Keep the internal docs adapter clearly separated from any future real MCP runtime integration
 - Keep the docs adapter catalog fresh enough that confidence and stale signals remain meaningful
+- Keep `config/docs_search_catalog.json` auditable and small enough that freshness maintenance stays realistic
+- Use `tools/docs_catalog_report.py` before catalog edits so freshness and topic coverage decisions stay evidence-based
+- Keep the first real project test narrowly scoped so Atlas is validating the factory, not attempting a product build in one step
 
 ## Possible future improvements
 
+- A first real derived project created from Atlas and immediately audited/certified
 - Atlas-native skill set for audit, planning and factory governance
 - Reusable project templates with adapter placeholders
 - Documentary pipeline for intent, planning, architecture, implementation review and certification
@@ -83,6 +87,8 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Simulated MCP execution drifting away from the declared lifecycle or being confused with a real connector
 - The docs adapter being mistaken for a verified real Codex MCP runtime on machines where `codex mcp` is not operational
 - The docs adapter confidence signal becoming noisy if ranking and verification dates drift from the curated catalog
+- The curated docs catalog drifting because `last_verified` stops being updated or deprecated entries remain active too long
+- The catalog report becoming disconnected from adapter semantics if freshness logic changes in one place but not the other
 - Too many low-value skills diluting Atlas-native guidance
 
 ## Do not touch yet

@@ -19,6 +19,7 @@
     "tools/atlas_orchestrator.py",
     "tools/atlas_mcp_manager.py",
     "tools/docs_search_adapter.py",
+    "tools/docs_catalog_report.py",
     "tools/atlas_dispatcher.py --project <path> certify-project"
   ],
   "documentary_components": [
@@ -31,12 +32,14 @@
     "policies/",
     "commands/",
     "config/",
+    "config/docs_search_catalog.json",
     "validators/",
     "memory/",
     "memory/derived_projects.json",
     "memory/routing_log.jsonl",
     "memory/governance_events.jsonl",
     "memory/mcp_events.jsonl",
+    "config/docs_search_catalog.json",
     "docs/",
     "tests/"
   ],
