@@ -51,6 +51,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep `quality_gate_report` as an aggregator over existing validators so readiness decisions do not fork into a second logic layer
 - Keep landing-quality checks evidence-first and warning-first so Atlas catches README-like public pages without over-blocking intentionally simple derived sites
 - Fix known public placeholder links in derived landings before treating design readiness as anything stronger than `needs_improvement`
+- Keep `design_evidence_policy.md` aligned with landing-readiness heuristics so public-facing PASS states always have traceable proof
 
 ## Possible future improvements
 

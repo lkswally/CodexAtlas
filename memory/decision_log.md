@@ -165,6 +165,13 @@
 - Impact: `design_intelligence_audit` now emits `landing_score`, `public_readiness`, CTA-integrity and documentation-density signals, and `quality_gate_report` exposes that readiness in one aggregated view
 - Risk: static heuristics can still drift into noisy taste checks if future changes weaken the evidence threshold
 - Rollback: remove the landing-specific checks and public-readiness aggregation, and fall back to the previous narrower design-intelligence surface
+
+## 2026-04-30
+- Decision: make landing-readiness claims explicit in `design_evidence_policy.md`
+- Reason: the new landing checks needed a policy-level reminder that public-readiness is an evidence question, not a copywriting opinion
+- Impact: Atlas now documents that README-like density, broken CTA paths and weak above-the-fold clarity must stay in `needs_improvement` until evidence changes
+- Risk: none beyond keeping the policy synchronized with future design-audit heuristics
+- Rollback: remove the landing-specific clauses from `design_evidence_policy.md`
 - Risk: confidence and stale signals can become misleading if the curated catalog is not maintained
 - Rollback: revert `tools/docs_search_adapter.py` to the previous minimal result format and loosen the new assertions in `tests/test_mcp_manager.py`
 

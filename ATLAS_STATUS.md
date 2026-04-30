@@ -39,6 +39,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Atlas now has a read-only `surface-audit` command to detect drift between the canonical README and the real public factory surface
 - Atlas now has a read-only `quality_gate_report` helper that aggregates `audit-repo`, `certify-project`, `surface-audit` and `design_intelligence_audit` into one readiness view
 - Landing quality gates now catch README-like density, CTA integrity and public-readiness drift before Atlas treats a derived landing as presentation-ready
+- Design evidence policy now explicitly treats landing-readiness claims as evidence-bound outputs, not narrative assumptions
 - Dedicated execution tests now cover `repo-audit`, `project-bootstrap` and `product-branding-review`
 - Dedicated certification tests now cover clean and contaminated derived-project cases
 - Codex-native documentary base for agents, workflows, policies, commands, validators, memory and adapters
