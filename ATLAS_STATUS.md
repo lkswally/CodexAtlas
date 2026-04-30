@@ -36,6 +36,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - The `docs_search` adapter now reads a governed external catalog from `config/docs_search_catalog.json` instead of keeping the curated references hardcoded in the adapter
 - Atlas now has a read-only docs catalog health report via `tools/docs_catalog_report.py`
 - Atlas now has a read-only `surface-audit` command to detect drift between the canonical README and the real public factory surface
+- Atlas now has a read-only `quality_gate_report` helper that aggregates `audit-repo`, `certify-project`, `surface-audit` and `design_intelligence_audit` into one readiness view
 - Dedicated execution tests now cover `repo-audit`, `project-bootstrap` and `product-branding-review`
 - Dedicated certification tests now cover clean and contaminated derived-project cases
 - Codex-native documentary base for agents, workflows, policies, commands, validators, memory and adapters

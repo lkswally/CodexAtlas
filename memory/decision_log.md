@@ -209,3 +209,10 @@
 - Impact: `design_intelligence_audit` now exposes `recommendation_sources`, removes corrective recommendations from PASS checks, and marks unverifiable checks as `skipped` with a reason
 - Risk: stricter evidence coupling may make the audit feel less suggestive when only weak signals are available
 - Rollback: revert the recommendation-source logic and return to the previous generic summary generation
+
+## 2026-04-30
+- Decision: add a read-only aggregated quality gate report on top of existing Atlas validators
+- Reason: the reference repo treats readiness as a gated phase, and Atlas already had the underlying audits but not a single human-facing readiness summary
+- Impact: `quality_gate_report` now consolidates `audit-repo`, `certify-project`, `surface-audit` and `design_intelligence_audit` into one readiness view without duplicating their logic
+- Risk: the aggregator could become a shadow policy layer if it starts inventing rules instead of relaying existing outputs
+- Rollback: remove `tools/quality_gate_report.py`, drop its test/governance requirement, and return to reviewing each validator independently

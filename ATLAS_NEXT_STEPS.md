@@ -48,6 +48,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep the design-intelligence layer read-only until repeated audits prove its heuristics are useful and low-noise
 - Keep design-intelligence checks evidence-first and warning-first unless a clear risk justifies stronger escalation
 - Keep design-intelligence recommendation generation tied to the originating checks so `next_action` and `quick_wins` do not drift into generic advice
+- Keep `quality_gate_report` as an aggregator over existing validators so readiness decisions do not fork into a second logic layer
 
 ## Possible future improvements
 
