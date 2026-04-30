@@ -21,6 +21,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Atlas now has a Codex-native design intelligence layer adapted from the reference repo without importing Claude-only runtime
 - Atlas now has read-only design helpers for visual-direction checkpointing, design-system review and anti-generic UI audit
 - Design-intelligence audits now keep `next_action`, `quick_wins` and recommendation provenance aligned with real warning or skipped evidence instead of generic post-processing
+- Design-intelligence audits now derive `landing_score`, `public_readiness` and landing-specific warnings from evidence-backed checks instead of generic taste heuristics
 - One complete minimal workflow implemented: `audit-repo`
 - `certify-project` now validates Atlas-derived projects in read-only mode with score, blockers, warnings and recommendations
 - Codex-native system-prompt guidance now lives explicitly in `AGENTS.md` plus `docs/codex_system_prompt.md`
@@ -37,6 +38,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Atlas now has a read-only docs catalog health report via `tools/docs_catalog_report.py`
 - Atlas now has a read-only `surface-audit` command to detect drift between the canonical README and the real public factory surface
 - Atlas now has a read-only `quality_gate_report` helper that aggregates `audit-repo`, `certify-project`, `surface-audit` and `design_intelligence_audit` into one readiness view
+- Landing quality gates now catch README-like density, CTA integrity and public-readiness drift before Atlas treats a derived landing as presentation-ready
 - Dedicated execution tests now cover `repo-audit`, `project-bootstrap` and `product-branding-review`
 - Dedicated certification tests now cover clean and contaminated derived-project cases
 - Codex-native documentary base for agents, workflows, policies, commands, validators, memory and adapters

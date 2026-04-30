@@ -86,6 +86,43 @@ CTA_TERMS = (
     "view",
     "contact",
 )
+VALUE_PROPOSITION_TERMS = (
+    "factory",
+    "configuration",
+    "bootstrap",
+    "audit",
+    "certify",
+    "governed",
+    "structured",
+    "reduce",
+    "chaos",
+    "quality",
+    "boundaries",
+)
+DOCUMENTATION_SECTION_TERMS = (
+    "installation",
+    "configure",
+    "prompt",
+    "example prompts",
+    "common mistakes",
+    "first project",
+    "how atlas works",
+)
+LANDING_SECTION_TERMS = (
+    "what is",
+    "why",
+    "benefits",
+    "real examples",
+    "contact",
+    "results",
+)
+PLACEHOLDER_LINK_TERMS = (
+    "pegar_aca",
+    "tu-usuario",
+    "example.com",
+    "todo",
+    "placeholder",
+)
 
 
 def _utc_now_iso() -> str:
@@ -133,6 +170,54 @@ def _extract_cta_elements(html_text: str) -> List[str]:
             if cleaned:
                 ctas.append(cleaned)
     return ctas
+
+
+def _strip_html(text: str) -> str:
+    text = re.sub(r"<[^>]+>", " ", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _extract_link_targets(html_text: str) -> List[Dict[str, str]]:
+    targets: List[Dict[str, str]] = []
+    for match in re.finditer(
+        r"<a\b([^>]*)href=\"([^\"]*)\"([^>]*)>(.*?)</a>",
+        html_text,
+        flags=re.IGNORECASE | re.DOTALL,
+    ):
+        href = match.group(2).strip()
+        label = _strip_html(match.group(4))
+        attrs = f"{match.group(1)} {match.group(3)}"
+        class_match = re.search(r'class=\"([^\"]+)\"', attrs, flags=re.IGNORECASE)
+        targets.append(
+            {
+                "href": href,
+                "label": label,
+                "classes": class_match.group(1) if class_match else "",
+            }
+        )
+    return targets
+
+
+def _extract_section_blocks(html_text: str) -> List[Dict[str, Any]]:
+    blocks: List[Dict[str, Any]] = []
+    for match in re.finditer(r"<section\b([^>]*)>(.*?)</section>", html_text, flags=re.IGNORECASE | re.DOTALL):
+        attrs = match.group(1)
+        inner = match.group(2)
+        heading_match = re.search(r"<h2\b[^>]*>(.*?)</h2>", inner, flags=re.IGNORECASE | re.DOTALL)
+        heading = _strip_html(heading_match.group(1)) if heading_match else ""
+        text = _strip_html(inner)
+        blocks.append(
+            {
+                "heading": heading,
+                "text": text,
+                "word_count": len(re.findall(r"\b[\w-]+\b", text)),
+                "list_items": len(re.findall(r"<li\b", inner, flags=re.IGNORECASE)),
+                "code_tokens": len(re.findall(r"<code\b", inner, flags=re.IGNORECASE)),
+                "has_cta": bool(re.search(r"<a\b", inner, flags=re.IGNORECASE)),
+                "classes": attrs,
+            }
+        )
+    return blocks
 
 
 def _hex_to_rgb(hex_color: str) -> Tuple[float, float, float]:
@@ -220,6 +305,25 @@ def _make_recommendation_source(check: Dict[str, Any]) -> Optional[Dict[str, Any
         "severity": check["severity"],
         "status": check["status"],
     }
+
+
+def _derive_public_readiness(checks: List[Dict[str, Any]], landing_score: int) -> Tuple[str, List[Dict[str, Any]]]:
+    blockers = [
+        {
+            "check": check["id"],
+            "title": check["title"],
+            "severity": check["severity"],
+            "evidence": check["evidence"][:3],
+            "recommendation": check.get("recommendation"),
+        }
+        for check in checks
+        if check["status"] == "fail"
+    ]
+    if blockers or landing_score < 60:
+        return "not_ready", blockers
+    if any(check["status"] in {"warning", "skipped"} for check in checks) or landing_score < 90:
+        return "needs_improvement", blockers
+    return "ready", blockers
 
 
 def _build_next_action(recommendation_sources: List[Dict[str, Any]], skipped_checks: List[Dict[str, Any]]) -> str:
@@ -321,8 +425,12 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
     css_vars = _extract_css_vars(css_text)
     fonts = _extract_css_font_families(css_text)
     ctas = _extract_cta_elements(html_text)
+    links = _extract_link_targets(html_text)
+    section_blocks = _extract_section_blocks(html_text)
     hero_match = re.search(r"<header\b[^>]*class=\"[^\"]*hero[^\"]*\"[^>]*>(.*?)</header>", html_text, flags=re.IGNORECASE | re.DOTALL)
     hero_text = hero_match.group(1) if hero_match else html_text
+    hero_plain = _strip_html(hero_text)
+    hero_normalized = _normalize(hero_plain)
     heading_count = _extract_heading_count(hero_text)
     heading_font = fonts[0] if fonts else None
     body_font = fonts[1] if len(fonts) > 1 else fonts[0] if fonts else None
@@ -356,6 +464,25 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
             "medium" if not originality_hits else "low",
             [f"matched originality terms: {', '.join(originality_hits[:3])}" if originality_hits else "No explicit originality signal found in the current project surface."],
             None if originality_hits else "Say whether the site aims for conservative, balanced or distinctive visual output.",
+        )
+    )
+
+    hero_identity = "codex-atlas" in hero_normalized or ("atlas" in hero_normalized and "codex" in hero_normalized)
+    hero_value_hits = _has_any(hero_normalized, VALUE_PROPOSITION_TERMS)
+    hero_audience_hits = _has_any(hero_normalized, AUDIENCE_TERMS)
+    above_fold_clarity_ok = hero_identity and bool(hero_value_hits) and bool(hero_audience_hits or audience_hits)
+    checks.append(
+        _build_check(
+            "above_the_fold_clarity",
+            "Above-the-fold clarity",
+            "pass" if above_fold_clarity_ok else "warning",
+            "high" if not above_fold_clarity_ok else "low",
+            [
+                f"hero_identity={str(hero_identity).lower()}",
+                f"hero_value_terms={hero_value_hits or ['none']}",
+                f"hero_audience_terms={hero_audience_hits or audience_hits or ['none']}",
+            ],
+            None if above_fold_clarity_ok else "Make the hero explain in one glance what Atlas is, who it is for and what problem it solves.",
         )
     )
 
@@ -432,6 +559,42 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
         )
     )
 
+    broken_ctas: List[str] = []
+    placeholder_ctas: List[str] = []
+    next_step_ctas = 0
+    for link in links:
+        href = link["href"].strip()
+        label_normalized = _normalize(link["label"])
+        href_normalized = _normalize(href)
+        if any(term in label_normalized for term in CTA_TERMS):
+            next_step_ctas += 1
+        if href in {"", "#"} or href.lower().startswith("javascript:"):
+            broken_ctas.append(f"{link['label']} -> {href or 'empty'}")
+        elif any(term in href_normalized for term in PLACEHOLDER_LINK_TERMS):
+            placeholder_ctas.append(f"{link['label']} -> {href}")
+    cta_integrity_status = "pass"
+    cta_integrity_recommendation: Optional[str] = None
+    if next_step_ctas == 0:
+        cta_integrity_status = "fail"
+        cta_integrity_recommendation = "Add at least one working next-step CTA that moves the visitor from reading to action."
+    elif broken_ctas or placeholder_ctas:
+        cta_integrity_status = "warning"
+        cta_integrity_recommendation = "Fix placeholder or broken CTA targets before calling the landing publicly ready."
+    checks.append(
+        _build_check(
+            "cta_integrity",
+            "CTA integrity",
+            cta_integrity_status,
+            "high" if cta_integrity_status != "pass" else "low",
+            [
+                f"next_step_ctas={next_step_ctas}",
+                f"broken_ctas={broken_ctas or ['none']}",
+                f"placeholder_ctas={placeholder_ctas or ['none']}",
+            ],
+            cta_integrity_recommendation,
+        )
+    )
+
     responsive_ok = bool(re.search(r"<meta[^>]+name=\"viewport\"", html_text, flags=re.IGNORECASE)) and bool(re.search(r"@media\s*\(", css_text, flags=re.IGNORECASE))
     checks.append(
         _build_check(
@@ -486,6 +649,70 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
         )
     )
 
+    documentation_sections = [
+        block for block in section_blocks if any(term in _normalize(block["heading"]) for term in DOCUMENTATION_SECTION_TERMS)
+    ]
+    landing_sections = [
+        block for block in section_blocks if any(term in _normalize(block["heading"]) for term in LANDING_SECTION_TERMS)
+    ]
+    total_list_items = sum(block["list_items"] for block in section_blocks)
+    total_code_tokens = sum(block["code_tokens"] for block in section_blocks)
+    landing_balance_warning = len(documentation_sections) > len(landing_sections) and (total_list_items >= 18 or total_code_tokens >= 8)
+    checks.append(
+        _build_check(
+            "landing_vs_documentation_balance",
+            "Landing versus documentation balance",
+            "warning" if landing_balance_warning else "pass",
+            "medium",
+            [
+                f"documentation_sections={len(documentation_sections)}",
+                f"landing_sections={len(landing_sections)}",
+                f"list_items={total_list_items}",
+                f"code_tokens={total_code_tokens}",
+            ],
+            None if not landing_balance_warning else "Reduce the README-like density above the fold and keep the public page anchored in narrative, proof and conversion.",
+        )
+    )
+
+    long_sections = [block for block in section_blocks if block["word_count"] >= 120]
+    dense_sections = [
+        block for block in section_blocks
+        if block["list_items"] >= 5 or block["code_tokens"] >= 3
+    ]
+    content_density_warning = len(long_sections) >= 3 or len(dense_sections) >= 4
+    checks.append(
+        _build_check(
+            "content_density",
+            "Content density stays readable for a landing",
+            "warning" if content_density_warning else "pass",
+            "medium",
+            [
+                f"long_sections={len(long_sections)}",
+                f"dense_sections={len(dense_sections)}",
+                f"total_sections={len(section_blocks)}",
+            ],
+            None if not content_density_warning else "Trim or split the densest sections so the landing reads like a guided page instead of a static document dump.",
+        )
+    )
+
+    repetitive_panel_sections = sum(1 for block in section_blocks if "panel" in block["classes"])
+    repeated_two_up_groups = len(re.findall(r'class=\"[^\"]*grid[^\"]*two-up[^\"]*\"', html_text, flags=re.IGNORECASE))
+    rhythm_warning = repetitive_panel_sections >= 8 and repeated_two_up_groups >= 3 and not has_media
+    checks.append(
+        _build_check(
+            "section_rhythm",
+            "Section rhythm and pacing",
+            "warning" if rhythm_warning else "pass",
+            "low" if not rhythm_warning else "medium",
+            [
+                f"panel_sections={repetitive_panel_sections}",
+                f"two_up_groups={repeated_two_up_groups}",
+                f"hero_has_media={str(has_media).lower()}",
+            ],
+            None if not rhythm_warning else "Introduce more visual pacing between sections so the page feels less like a stack of equally weighted documentation cards.",
+        )
+    )
+
     warnings = [f"{check['id']}:{check['status']}" for check in checks if check["status"] in {"warning", "skipped"}]
     evidence = [f"{check['id']}::{item}" for check in checks for item in check["evidence"][:2]]
     recommendation_sources = [
@@ -503,9 +730,9 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
             "recommendation": check.get("recommendation"),
         }
         for check in checks
-        if check["status"] == "warning"
+        if check["status"] in {"warning", "fail"}
     ][:5]
-    score = _score_from_checks(checks)
+    landing_score = _score_from_checks(checks)
     quick_wins = [
         source["recommendation"]
         for source in recommendation_sources
@@ -521,15 +748,30 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
         for source in recommendation_sources
         if source["status"] in {"warning", "fail"} and source["originating_check"] in {"audience_explicit", "visual_direction_explicit", "originality_level", "cta_clarity"}
     ][:3]
+    public_readiness, blockers = _derive_public_readiness(checks, landing_score)
+    top_priorities = [
+        {
+            "check": source["originating_check"],
+            "severity": source["severity"],
+            "message": source["recommendation"],
+            "evidence": source["evidence"],
+        }
+        for source in recommendation_sources
+        if source["status"] in {"warning", "fail"}
+    ][:3]
     return {
         "status": "needs_attention" if prioritized_problems else "pass" if not skipped_checks else "skipped",
+        "landing_score": landing_score,
+        "public_readiness": public_readiness,
+        "blockers": blockers,
         "warnings": warnings,
         "evidence": evidence[:12],
         "next_action": _build_next_action(recommendation_sources, skipped_checks),
-        "score": score,
+        "score": landing_score,
         "checks": checks,
         "recommendation_sources": recommendation_sources,
         "prioritized_problems": prioritized_problems,
+        "top_priorities": top_priorities,
         "quick_wins": quick_wins,
         "layout_recommendations": layout_recommendations,
         "copy_recommendations": copy_recommendations,

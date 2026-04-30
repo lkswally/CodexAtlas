@@ -17,6 +17,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["project_path"] == str(WEB_ROOT)
     assert result["overall_status"] == "needs_improvement"
     assert result["confidence_level"] in {"medium", "high"}
+    assert result["public_readiness"] == "needs_improvement"
+    assert isinstance(result["landing_score"], int)
     assert isinstance(result["blockers"], list)
     assert isinstance(result["warnings"], list)
     assert isinstance(result["top_priorities"], list)
@@ -48,6 +50,8 @@ def test_quality_gate_report_uses_existing_outputs_to_mark_not_ready():
     fake_surface = {"ok": True, "result": {"status": "ok", "warnings": [], "recommendations": []}}
     fake_design = {
         "status": "pass",
+        "public_readiness": "ready",
+        "landing_score": 96,
         "warnings": [],
         "quick_wins": [],
         "checks": [],
@@ -83,6 +87,8 @@ def test_quality_gate_report_priorities_come_from_existing_design_recommendation
     fake_surface = {"ok": True, "result": {"status": "ok", "warnings": [], "recommendations": []}}
     fake_design = {
         "status": "needs_attention",
+        "public_readiness": "needs_improvement",
+        "landing_score": 82,
         "warnings": ["typography_coherence:warning"],
         "quick_wins": ["Replace the generic body sans with a more intentional family."],
         "checks": [],
@@ -114,5 +120,6 @@ def test_quality_gate_report_priorities_come_from_existing_design_recommendation
             result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
 
     assert result["overall_status"] == "needs_improvement"
+    assert result["public_readiness"] == "needs_improvement"
     assert result["top_priorities"][0]["check"] == "typography_coherence"
     assert result["quick_wins"][0] == "Replace the generic body sans with a more intentional family."

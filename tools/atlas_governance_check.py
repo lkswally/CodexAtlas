@@ -49,6 +49,7 @@ REQUIRED_ROOT_FILES = (
     "workflows/audit_repo.md",
     "policies/anti_generic_output_policy.md",
     "policies/anti_generic_ui_policy.md",
+    "policies/landing_quality_policy.md",
     "policies/visual_direction_policy.md",
     "policies/design_evidence_policy.md",
     "policies/evidence_required_policy.md",

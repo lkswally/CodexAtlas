@@ -34,11 +34,15 @@ def test_visual_direction_checkpoint_detects_explicit_direction():
 def test_anti_generic_ui_audit_returns_structured_output_for_codexatlas_web():
     result = anti_generic_ui_audit(WEB_ROOT)
     assert result["status"] in {"pass", "needs_attention"}
+    assert result["public_readiness"] in {"ready", "needs_improvement", "not_ready"}
+    assert isinstance(result["landing_score"], int)
+    assert isinstance(result["blockers"], list)
     assert isinstance(result["warnings"], list)
     assert isinstance(result["evidence"], list)
     assert result["next_action"]
     assert isinstance(result["recommendation_sources"], list)
     assert result["prioritized_problems"]
+    assert len(result["top_priorities"]) <= 3
     assert any(check["id"] == "cta_clarity" for check in result["checks"])
 
 
@@ -55,7 +59,7 @@ def test_anti_generic_ui_audit_does_not_emit_cta_fix_when_cta_check_passes():
     assert cta_check["status"] == "pass"
     assert "recommendation" not in cta_check
     assert all(source["originating_check"] != "cta_clarity" for source in result["recommendation_sources"])
-    assert "CTA" not in result["next_action"]
+    assert "Add one clear primary CTA" not in result["next_action"]
 
 
 def test_skipped_typography_check_includes_reason_without_failing_entire_audit():
@@ -85,3 +89,55 @@ def test_quick_wins_are_backed_by_recommendation_sources():
     source_recommendations = {source["recommendation"] for source in result["recommendation_sources"]}
     for quick_win in result["quick_wins"]:
         assert quick_win in source_recommendations
+
+
+def test_docs_heavy_surface_triggers_landing_balance_and_density_warnings():
+    mocked_surface = {
+        "index.html": """<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+        <body>
+        <header class="hero"><h1>Codex-Atlas</h1><p>Codex-Atlas helps teams bootstrap and audit internal tools.</p><a href="#setup">Start setup</a></header>
+        <main>
+          <section class="panel"><h2>Installation guide</h2><ol><li>Step one</li><li>Step two</li><li>Step three</li><li>Step four</li><li>Step five</li></ol><p><code>python tools\\atlas_governance_check.py</code></p></section>
+          <section class="panel"><h2>Configure</h2><ol><li>Alpha</li><li>Beta</li><li>Gamma</li><li>Delta</li><li>Epsilon</li></ol><p><code>python tools\\atlas_dispatcher.py audit-repo</code></p></section>
+          <section class="panel"><h2>First project</h2><ol><li>Brief</li><li>Bootstrap</li><li>Audit</li><li>Certify</li><li>Repeat</li></ol><p><code>python tools\\atlas_dispatcher.py certify-project</code></p></section>
+          <section class="panel"><h2>Example prompts</h2><ul><li>Prompt one</li><li>Prompt two</li><li>Prompt three</li><li>Prompt four</li><li>Prompt five</li></ul><p><code>prompt</code></p></section>
+        </main></body></html>""",
+        "styles.css": """:root { --bg: #f3ede2; --ink: #182126; --accent: #1f5a52; --accent-soft: #d7e7e2; --max: 1080px; --line: #d8cdbd; }
+        body { font-family: 'Aptos', sans-serif; color: var(--ink); background: var(--bg); }
+        h1, h2 { font-family: Georgia, serif; }
+        p, li { font-family: 'Segoe UI', sans-serif; }
+        @media (max-width: 760px) { body { padding: 1rem; } }""",
+        "README.md": "",
+        "AGENTS.md": "",
+        "docs/architecture.md": "",
+    }
+    with patch("tools.design_intelligence_audit._load_project_surface", return_value=mocked_surface):
+        result = _run_project_visual_analysis(Path("C:/fake-project"))
+    by_id = {check["id"]: check for check in result["checks"]}
+    assert by_id["landing_vs_documentation_balance"]["status"] == "warning"
+    assert by_id["content_density"]["status"] == "warning"
+
+
+def test_placeholder_cta_is_reported_as_evidence_based_integrity_warning():
+    mocked_surface = {
+        "index.html": """<!doctype html><html><head><meta name="viewport" content="width=device-width, initial-scale=1"></head>
+        <body>
+        <header class="hero"><h1>Codex-Atlas for teams</h1><p>Codex-Atlas is a factory that helps teams bootstrap structured projects.</p>
+        <a href="#setup">Start setup</a><a href="PEGAR_ACA_MI_LINKEDIN_REAL">Contact Lucas</a></header>
+        <section><h2>What is Codex-Atlas?</h2><p>Factory layer for auditable projects.</p></section>
+        </body></html>""",
+        "styles.css": """:root { --bg: #ffffff; --ink: #111111; --accent: #1f5a52; --accent-soft: #d7e7e2; --max: 1080px; --line: #d8cdbd; }
+        body { font-family: 'Aptos', sans-serif; color: var(--ink); background: var(--bg); }
+        h1, h2 { font-family: Georgia, serif; }
+        p, li { font-family: 'Segoe UI', sans-serif; }
+        @media (max-width: 760px) { body { padding: 1rem; } }""",
+        "README.md": "",
+        "AGENTS.md": "",
+        "docs/architecture.md": "",
+    }
+    with patch("tools.design_intelligence_audit._load_project_surface", return_value=mocked_surface):
+        result = _run_project_visual_analysis(Path("C:/fake-project"))
+    cta_integrity = next(check for check in result["checks"] if check["id"] == "cta_integrity")
+    assert cta_integrity["status"] == "warning"
+    source = next(source for source in result["recommendation_sources"] if source["originating_check"] == "cta_integrity")
+    assert any("PEGAR_ACA_MI_LINKEDIN_REAL" in item for item in source["evidence"])

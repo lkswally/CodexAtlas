@@ -158,6 +158,13 @@
 - Decision: improve `docs_search_adapter` output quality without expanding its trust boundary
 - Reason: Atlas needed more useful and auditable docs-search results before considering any broader MCP evolution
 - Impact: the adapter now ranks and deduplicates curated results, exposes structured summary and key points, and signals confidence plus potential staleness
+
+## 2026-04-30
+- Decision: strengthen landing quality gates using evidence-backed public-readiness checks adapted from the reference repo's visual-direction, anti-generic and readiness discipline
+- Reason: Atlas needed to catch derived landings that work technically but still read like README or PDF exports, without inventing recommendations beyond verified evidence
+- Impact: `design_intelligence_audit` now emits `landing_score`, `public_readiness`, CTA-integrity and documentation-density signals, and `quality_gate_report` exposes that readiness in one aggregated view
+- Risk: static heuristics can still drift into noisy taste checks if future changes weaken the evidence threshold
+- Rollback: remove the landing-specific checks and public-readiness aggregation, and fall back to the previous narrower design-intelligence surface
 - Risk: confidence and stale signals can become misleading if the curated catalog is not maintained
 - Rollback: revert `tools/docs_search_adapter.py` to the previous minimal result format and loosen the new assertions in `tests/test_mcp_manager.py`
 

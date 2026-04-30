@@ -49,6 +49,8 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep design-intelligence checks evidence-first and warning-first unless a clear risk justifies stronger escalation
 - Keep design-intelligence recommendation generation tied to the originating checks so `next_action` and `quick_wins` do not drift into generic advice
 - Keep `quality_gate_report` as an aggregator over existing validators so readiness decisions do not fork into a second logic layer
+- Keep landing-quality checks evidence-first and warning-first so Atlas catches README-like public pages without over-blocking intentionally simple derived sites
+- Fix known public placeholder links in derived landings before treating design readiness as anything stronger than `needs_improvement`
 
 ## Possible future improvements
 
@@ -102,6 +104,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Design-intelligence checks drifting into taste-only opinions instead of evidence-backed review
 - Pressure to recreate Playwright-driven Claude QA before Atlas actually needs browser automation
 - Anti-generic heuristics becoming brittle or over-blocking for intentionally simple internal tools
+- Landing-readiness heuristics drifting into copy taste instead of verifiable public-facing quality signals
 - Too many low-value skills diluting Atlas-native guidance
 
 ## Do not touch yet

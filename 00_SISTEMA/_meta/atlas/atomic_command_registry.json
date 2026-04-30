@@ -214,6 +214,8 @@
       "outputs": [
         "overall_status",
         "confidence_level",
+        "public_readiness",
+        "landing_score",
         "blockers",
         "warnings",
         "top_priorities",

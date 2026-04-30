@@ -157,9 +157,13 @@ def _derive_overall_status(source_reports: Dict[str, Dict[str, Any]]) -> str:
         return "not_ready"
     if certify_report.get("result", {}).get("blockers"):
         return "not_ready"
+    if design_report.get("public_readiness") == "not_ready":
+        return "not_ready"
     if audit_report.get("result", {}).get("status") != "ok":
         return "needs_improvement"
     if surface_report.get("result", {}).get("warnings"):
+        return "needs_improvement"
+    if design_report.get("public_readiness") == "needs_improvement":
         return "needs_improvement"
     if design_report.get("status") in {"needs_attention", "skipped"}:
         return "needs_improvement"
@@ -199,6 +203,8 @@ def _build_evidence_summary(source_reports: Dict[str, Dict[str, Any]], blockers:
         "audit_status": audit_report.get("result", {}).get("status"),
         "certify_score": certify_report.get("result", {}).get("summary", {}).get("score"),
         "design_score": design_report.get("score"),
+        "landing_score": design_report.get("landing_score"),
+        "public_readiness": design_report.get("public_readiness"),
         "surface_warnings": len(surface_report.get("result", {}).get("warnings", [])),
         "blocker_count": len(blockers),
         "warning_count": len(warnings),
@@ -294,12 +300,16 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     evidence_summary = _build_evidence_summary(source_reports, blockers, warnings)
     summary_for_human = _build_summary_for_human(overall_status, confidence_level, blockers, top_priorities)
     recommended_next_action = _build_recommended_next_action(overall_status, blockers, top_priorities)
+    landing_score = design_report.get("landing_score")
+    public_readiness = design_report.get("public_readiness", "needs_improvement")
 
     return {
         "status": "ok",
         "project_path": str(project),
         "overall_status": overall_status,
         "confidence_level": confidence_level,
+        "landing_score": landing_score,
+        "public_readiness": public_readiness,
         "blockers": blockers,
         "warnings": warnings,
         "top_priorities": top_priorities,
