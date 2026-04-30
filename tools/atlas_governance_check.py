@@ -101,6 +101,7 @@ REQUIRED_ROOT_FILES = (
     "tools/atlas_orchestrator.py",
     "tools/design_intelligence_audit.py",
     "tools/atlas_mcp_manager.py",
+    "tools/atlas_surface_audit.py",
     "tools/docs_search_adapter.py",
     "tools/docs_catalog_report.py",
     "tests/test_atlas_orchestrator.py",
@@ -110,6 +111,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_mcp_manager.py",
     "tests/test_skill_execution.py",
     "tests/test_skill_governance.py",
+    "tests/test_surface_audit.py",
     "templates/project_bootstrap_profiles.md",
 )
 REQUIRED_DIRS = (

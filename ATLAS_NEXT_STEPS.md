@@ -34,11 +34,13 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep `certify-project` aligned with the bootstrap contract so certification reflects the real factory output instead of drifting into a separate checklist
 - Keep `docs/codex_system_prompt.md` and `AGENTS.md` aligned so Atlas does not grow two competing instruction surfaces
 - Keep the Claude-vibecoding assessment current if Atlas adopts or rejects new reference patterns
+- Keep `surface-audit` aligned with the real public Atlas surface so README drift is caught early, not after release
 - Keep manual quality-gate policies stronger than the repo narrative, not weaker
 - Keep observability logs append-only, lightweight and free of sensitive task payloads
 - Keep the MCP experiment limited to a single read-only profile until Atlas proves the governance model holds
 - Keep MCP lifecycle transitions explicit so approval and simulation do not turn into implicit connector activation
 - Keep the internal docs adapter clearly separated from any future real MCP runtime integration
+- Do not introduce a project-scoped `.codex/config.toml` for OpenAI Docs MCP until a working Codex CLI path proves that this local build can execute and verify MCP configuration
 - Keep the docs adapter catalog fresh enough that confidence and stale signals remain meaningful
 - Keep `config/docs_search_catalog.json` auditable and small enough that freshness maintenance stays realistic
 - Use `tools/docs_catalog_report.py` before catalog edits so freshness and topic coverage decisions stay evidence-based
@@ -90,6 +92,8 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - MCP approvals becoming implicit or durable without a clearer revocation policy
 - Simulated MCP execution drifting away from the declared lifecycle or being confused with a real connector
 - The docs adapter being mistaken for a verified real Codex MCP runtime on machines where `codex mcp` is not operational
+- README and public-facing docs drifting behind the real Atlas command, skill and workflow surface as the factory evolves
+- The Windows Store Codex package continuing to expose `codex.exe` while denying CLI execution, creating false confidence that MCP setup is available locally
 - The docs adapter confidence signal becoming noisy if ranking and verification dates drift from the curated catalog
 - The curated docs catalog drifting because `last_verified` stops being updated or deprecated entries remain active too long
 - The catalog report becoming disconnected from adapter semantics if freshness logic changes in one place but not the other

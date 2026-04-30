@@ -142,3 +142,27 @@ This assessment documents what Atlas should adapt, what should remain inspiratio
 - Engram as a mandatory backend
 - Pixel Bridge
 - automatic deploy flow
+
+## 2026-04-30 continuous improvement note
+
+After re-reviewing the reference repo, the highest-fit low-risk adaptation for Atlas was:
+
+- **Distribution Integrity + README Coherence** from `UPGRADE_LOG.md`
+
+Why it made sense now:
+
+- Atlas is already a public-facing factory and can drift between its executable surface and its README.
+- The reference repo explicitly added audit phases to catch that exact kind of drift.
+- Atlas already had a real mismatch: the canonical README lagged behind the current skill catalog.
+
+Codex-native adaptation chosen:
+
+- `surface-audit` as a read-only dispatcher command
+- `tools/atlas_surface_audit.py` as the small coherence helper
+- README alignment with the real skill and command surface
+
+Why not more in the same iteration:
+
+- Hook automation remains too Claude-specific.
+- Engram remains out of scope.
+- Playwright-style visual QA still adds too much runtime and dependency surface for Atlas right now.

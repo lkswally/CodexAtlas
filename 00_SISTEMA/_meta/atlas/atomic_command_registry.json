@@ -162,6 +162,34 @@
         "recomendaciones"
       ],
       "rollback": "No aplica: read_only."
+    },
+    {
+      "id": "surface-audit",
+      "alias": "atlas surface-audit",
+      "purpose": "Verificar en modo read-only que la documentacion publica de Atlas siga alineada con la superficie canonica real.",
+      "fit": "high",
+      "execution_mode": "read_only",
+      "allowed_paths": [
+        "README.md",
+        "commands",
+        "agents",
+        "skills",
+        "workflows",
+        "tools",
+        "docs"
+      ],
+      "guards": [
+        "No corregir automaticamente el README.",
+        "Reportar drift documental con evidencia concreta antes de proponer cambios.",
+        "Mantener el chequeo enfocado en coherencia de superficie, no en opinion editorial."
+      ],
+      "outputs": [
+        "status",
+        "warnings",
+        "evidence",
+        "recommendations"
+      ],
+      "rollback": "No aplica: read_only."
     }
   ]
 }

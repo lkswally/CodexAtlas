@@ -188,3 +188,17 @@
 - Impact: Atlas now has dedicated design-intelligence agents, structured skills, policies, a workflow and a read-only audit helper for visual-direction checkpointing, anti-generic UI review and design-system review
 - Risk: the new audit heuristics could drift into weak taste-based feedback if they are not kept evidence-first and warning-first
 - Rollback: remove the design-intelligence skills, workflow, policies and helper, then revert orchestrator and governance requirements to the previous smaller skill catalog
+
+## 2026-04-30
+- Decision: keep the official OpenAI Developer Docs MCP unconfigured locally and retain `docs_search_adapter` as the active read-only path
+- Reason: official OpenAI docs confirm the MCP exists and document `codex mcp add openaiDeveloperDocs --url https://developers.openai.com/mcp`, but this Windows Codex installation still fails with `Access is denied` for `codex --version`, `codex mcp --help` and `codex mcp list`, even when invoked directly and outside the sandbox
+- Impact: Atlas now documents the official MCP path clearly, but continues to rely on adapter-backed execution plus approval and lifecycle logging instead of claiming a real MCP connection
+- Risk: users may assume MCP can be turned on immediately because the package is installed, even though the CLI path is currently not operational on this machine
+- Rollback: if Codex CLI becomes operational later, the rollback is conceptual rather than destructive: add the official MCP through the documented Codex command, verify it with `codex mcp list`, and then re-evaluate whether the adapter should remain only as fallback
+
+## 2026-04-30
+- Decision: adapt `Distribution Integrity + README Coherence` from the reference repo as a small Atlas-native read-only check
+- Reason: Atlas already had drift between the canonical README and the real skill surface, and the reference repo's `UPGRADE_LOG.md` correctly treats README coherence as an audit phase, not as an afterthought
+- Impact: Atlas now exposes `surface-audit`, the README lists the current skill surface correctly, and future drift can be detected through the dispatcher before public sharing
+- Risk: if the checker becomes too strict, it could turn low-value phrasing drift into noisy warnings
+- Rollback: remove `surface-audit`, drop its registry/test/governance requirements, and fall back to manual README review only

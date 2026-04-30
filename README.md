@@ -57,6 +57,9 @@ Capas principales:
 - `project-bootstrap`
 - `repo-audit`
 - `product-branding-review`
+- `visual-direction-checkpoint`
+- `anti-generic-ui-audit`
+- `design-system-review`
 
 ## Workflows disponibles
 
@@ -66,6 +69,7 @@ Capas principales:
 - `audit_repo`
 - `certify_project`
 - `certify_output`
+- `design_intelligence_pipeline`
 - `orchestrator_routing`
 
 ## Cómo crear un proyecto derivado
@@ -100,6 +104,7 @@ Auditar Atlas:
 ```powershell
 python C:\Proyectos\Codex-Atlas\tools\atlas_governance_check.py
 python C:\Proyectos\Codex-Atlas\tools\atlas_dispatcher.py audit-repo
+python C:\Proyectos\Codex-Atlas\tools\atlas_dispatcher.py surface-audit
 ```
 
 Auditar un derivado:

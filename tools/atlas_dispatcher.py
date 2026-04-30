@@ -9,6 +9,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from tools.atlas_surface_audit import run_surface_audit
+except ModuleNotFoundError:
+    from atlas_surface_audit import run_surface_audit
+
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
 CANONICAL_TOOLS_DIR = Path(__file__).resolve().parent
@@ -408,6 +413,8 @@ def _run_workflow(
         return _audit_repo_stub(target_root, cmd, project_metadata=project_metadata)
     if command_id == "certify-project":
         return _certify_project_stub(root, target_root, cmd, project_metadata=project_metadata)
+    if command_id == "surface-audit":
+        return run_surface_audit(root)
     return {"status": "error", "summary": {}, "findings": ["workflow_not_implemented_in_minimal_mode"]}
 
 
@@ -480,7 +487,7 @@ def dispatch(command_id: str, root: Optional[Path] = None, project: Optional[Pat
             },
         )
 
-    if command_id not in {"audit-repo", "certify-project"}:
+    if command_id not in {"audit-repo", "certify-project", "surface-audit"}:
         return DispatchResult(
             ok=False,
             exit_code=2,

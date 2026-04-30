@@ -75,6 +75,56 @@ Decision:
 - Use the internal read-only adapter as the controlled execution path.
 - Keep simulated execution as fallback if the adapter fails.
 
+## Official OpenAI Developer Docs MCP check (2026-04-30)
+
+OpenAI's Docs MCP guide says the official Codex setup path is:
+
+- `codex mcp add openaiDeveloperDocs --url https://developers.openai.com/mcp`
+- `codex mcp list`
+- or a direct entry in `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.openaiDeveloperDocs]
+url = "https://developers.openai.com/mcp"
+```
+
+Source:
+
+- [Docs MCP | OpenAI Developers](https://developers.openai.com/learn/docs-mcp)
+
+Local findings on this machine:
+
+- `codex.exe` resolves to the installed Windows Store package under `C:\Program Files\WindowsApps\OpenAI.Codex_26.406.3494.0_x64__2p2nqsd0c76g0\app\resources\codex.exe`
+- `codex --version` fails with `Access is denied`
+- `codex mcp --help` fails with `Access is denied`
+- `codex mcp list` fails with `Access is denied`
+- direct execution of the full binary path also fails with `Access is denied`
+- `C:\Users\Lucas\.codex\config.toml` exists, but it has no `mcp_servers.openaiDeveloperDocs` entry
+- `C:\Proyectos\Codex-Atlas\.codex\config.toml` does not exist today
+
+Interpretation:
+
+- the official MCP server is real and the official configuration path is valid
+- this machine does **not** currently offer a working Codex CLI path for MCP setup or verification
+- the failure is not limited to the workspace sandbox, because the same denial occurs when the binary is invoked directly and with elevated execution
+- the most likely blocker is the current Windows Store packaging / execution surface for `codex.exe`, not Atlas policy
+
+Atlas decision for now:
+
+- do **not** write `~/.codex/config.toml` automatically
+- do **not** create a project-scoped `.codex/config.toml` without explicit evidence that this Codex build will honor it for MCP
+- keep `docs_search_adapter` as the active read-only path
+- keep lifecycle logging and approval gating in place
+
+If Codex CLI becomes operational later, the next safe test is:
+
+```powershell
+codex mcp add openaiDeveloperDocs --url https://developers.openai.com/mcp
+codex mcp list
+```
+
+Only after those commands work should Atlas consider moving `docs_search` from adapter-backed execution to a verified real MCP path.
+
 ## Rollback
 
 1. Set `experimental_enabled` to `false` for `docs_search` in `config/mcp_profiles.json`.
