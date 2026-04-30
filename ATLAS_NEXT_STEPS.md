@@ -47,6 +47,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep the first real project test narrowly scoped so Atlas is validating the factory, not attempting a product build in one step
 - Keep the design-intelligence layer read-only until repeated audits prove its heuristics are useful and low-noise
 - Keep design-intelligence checks evidence-first and warning-first unless a clear risk justifies stronger escalation
+- Keep design-intelligence recommendation generation tied to the originating checks so `next_action` and `quick_wins` do not drift into generic advice
 
 ## Possible future improvements
 

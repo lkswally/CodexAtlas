@@ -192,16 +192,46 @@ def _build_check(
     status: str,
     severity: str,
     evidence: List[str],
-    recommendation: str,
+    recommendation: Optional[str],
+    reason: Optional[str] = None,
 ) -> Dict[str, Any]:
-    return {
+    result = {
         "id": check_id,
         "title": title,
         "status": status,
         "severity": severity,
         "evidence": evidence,
-        "recommendation": recommendation,
     }
+    if recommendation:
+        result["recommendation"] = recommendation
+    if reason:
+        result["reason"] = reason
+    return result
+
+
+def _make_recommendation_source(check: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    recommendation = check.get("recommendation")
+    if check["status"] == "pass" or not recommendation:
+        return None
+    return {
+        "recommendation": recommendation,
+        "originating_check": check["id"],
+        "evidence": check["evidence"][:3],
+        "severity": check["severity"],
+        "status": check["status"],
+    }
+
+
+def _build_next_action(recommendation_sources: List[Dict[str, Any]], skipped_checks: List[Dict[str, Any]]) -> str:
+    actionable_sources = [source for source in recommendation_sources if source["status"] in {"warning", "fail"}]
+    if actionable_sources:
+        top_sources = actionable_sources[:2]
+        actions = [source["recommendation"] for source in top_sources]
+        return f"Prioritize these fixes, then re-run the audit: {'; '.join(actions)}"
+    if skipped_checks:
+        skipped_ids = ", ".join(check["id"] for check in skipped_checks[:3])
+        return f"Re-run the audit after making the skipped checks verifiable: {skipped_ids}."
+    return "The current static surface is coherent enough for the next iteration."
 
 
 def _score_from_checks(checks: List[Dict[str, Any]]) -> int:
@@ -273,6 +303,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
             "evidence": [f"missing_files={missing}"],
             "next_action": "Provide a static HTML/CSS surface or extend the audit helper for the current stack.",
             "checks": [],
+            "recommendation_sources": [],
             "score": 0,
             "project": str(project.resolve()),
             "timestamp": _utc_now_iso(),
@@ -304,7 +335,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
             "pass" if audience_hits else "warning",
             "medium" if not audience_hits else "low",
             [f"matched audience terms: {', '.join(audience_hits[:3])}" if audience_hits else "No explicit audience wording found in README, AGENTS or index.html."],
-            "State who the project is for near the hero and supporting sections.",
+            None if audience_hits else "State who the project is for near the hero and supporting sections.",
         )
     )
     checks.append(
@@ -314,7 +345,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
             "pass" if mood_hits else "warning",
             "medium" if not mood_hits else "low",
             [f"matched direction terms: {', '.join(mood_hits[:3])}" if mood_hits else "No explicit visual direction or mood language detected in project-facing content."],
-            "Add a short visual-direction statement so the site explains its intended aesthetic clearly.",
+            None if mood_hits else "Add a short visual-direction statement so the site explains its intended aesthetic clearly.",
         )
     )
     checks.append(
@@ -324,7 +355,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
             "pass" if originality_hits else "warning",
             "medium" if not originality_hits else "low",
             [f"matched originality terms: {', '.join(originality_hits[:3])}" if originality_hits else "No explicit originality signal found in the current project surface."],
-            "Say whether the site aims for conservative, balanced or distinctive visual output.",
+            None if originality_hits else "Say whether the site aims for conservative, balanced or distinctive visual output.",
         )
     )
 
@@ -341,7 +372,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
                     f"body_font={body_font}",
                     f"generic_body_font={str(generic_body).lower()}",
                 ],
-                "Keep a clear rationale for the serif/sans pairing and consider replacing the generic body sans with a more intentional family.",
+                None if heading_font.lower() != body_font.lower() and not generic_body else "Keep a clear rationale for the serif/sans pairing and consider replacing the generic body sans with a more intentional family.",
             )
         )
     else:
@@ -353,6 +384,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
                 "low",
                 ["Could not extract enough font-family declarations from styles.css."],
                 "Make typography tokens explicit if the site grows into a richer design system.",
+                reason="Not enough font-family declarations were available to compare heading and body typography.",
             )
         )
 
@@ -367,7 +399,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
                 f"css_tokens_detected={sorted(list(css_vars.keys()))[:6]}",
                 f"responsive_breakpoint={str(bool(re.search(r'@media\s*\(max-width:\s*760px\)', css_text))).lower()}",
             ],
-            "Promote layout and spacing decisions into clearer reusable tokens if the site grows.",
+            None if layout_status == "pass" else "Promote layout and spacing decisions into clearer reusable tokens if the site grows.",
         )
     )
 
@@ -386,7 +418,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
                 f"hero_has_media={str(has_media).lower()}",
                 f"hero_has_cta={str(has_cta).lower()}",
             ],
-            "Introduce a clearer action, proof point or visual anchor so the hero feels more intentional.",
+            None if not hero_generic else "Introduce a clearer action, proof point or visual anchor so the hero feels more intentional.",
         )
     )
     checks.append(
@@ -396,7 +428,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
             "pass" if has_cta else "warning",
             "high" if not has_cta else "low",
             [f"detected_ctas={ctas[:3] if ctas else ['none']}"],
-            "Add one clear primary CTA that tells the visitor what to do next.",
+            None if has_cta else "Add one clear primary CTA that tells the visitor what to do next.",
         )
     )
 
@@ -411,7 +443,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
                 f"viewport_meta={str(bool(re.search(r'<meta[^>]+name=\"viewport\"', html_text, flags=re.IGNORECASE))).lower()}",
                 f"media_queries={str(bool(re.search(r'@media\s*\(', css_text, flags=re.IGNORECASE))).lower()}",
             ],
-            "Keep at least one explicit mobile breakpoint and verify live behavior in a browser.",
+            None if responsive_ok else "Keep at least one explicit mobile breakpoint and verify live behavior in a browser.",
         )
     )
 
@@ -432,7 +464,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
                 f"body_bg={body_bg}",
                 f"accent={accent}",
             ],
-            "Increase contrast before claiming stronger accessibility quality.",
+            None if contrast_score >= 4.5 and accent_contrast >= 3.0 else "Increase contrast before claiming stronger accessibility quality.",
         )
     )
 
@@ -450,46 +482,57 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
                 f"accent_saturation={accent_saturation:.2f}",
                 f"body_font={body_font or 'none'}",
             ],
-            "The palette and body type lean toward a familiar generic pattern; add a clearer visual rationale or a stronger distinctive move.",
+            None if not (teal_like and generic_body) else "The palette and body type lean toward a familiar generic pattern; add a clearer visual rationale or a stronger distinctive move.",
         )
     )
 
     warnings = [f"{check['id']}:{check['status']}" for check in checks if check["status"] in {"warning", "skipped"}]
     evidence = [f"{check['id']}::{item}" for check in checks for item in check["evidence"][:2]]
+    recommendation_sources = [
+        source
+        for source in (_make_recommendation_source(check) for check in checks)
+        if source is not None
+    ]
+    skipped_checks = [check for check in checks if check["status"] == "skipped"]
     prioritized_problems = [
         {
             "title": check["title"],
+            "id": check["id"],
             "severity": check["severity"],
             "evidence": check["evidence"],
-            "recommendation": check["recommendation"],
+            "recommendation": check.get("recommendation"),
         }
         for check in checks
         if check["status"] == "warning"
     ][:5]
     score = _score_from_checks(checks)
+    quick_wins = [
+        source["recommendation"]
+        for source in recommendation_sources
+        if source["status"] in {"warning", "fail"} and source["severity"] in {"high", "medium"}
+    ][:3]
+    layout_recommendations = [
+        source["recommendation"]
+        for source in recommendation_sources
+        if source["status"] in {"warning", "fail"} and source["originating_check"] in {"hero_structure", "spacing_layout_coherence", "responsive_baseline"}
+    ][:3]
+    copy_recommendations = [
+        source["recommendation"]
+        for source in recommendation_sources
+        if source["status"] in {"warning", "fail"} and source["originating_check"] in {"audience_explicit", "visual_direction_explicit", "originality_level", "cta_clarity"}
+    ][:3]
     return {
-        "status": "needs_attention" if prioritized_problems else "pass",
+        "status": "needs_attention" if prioritized_problems else "pass" if not skipped_checks else "skipped",
         "warnings": warnings,
         "evidence": evidence[:12],
-        "next_action": "Address the missing CTA and explicit audience/visual-direction signals, then re-run the audit." if prioritized_problems else "The current static surface is coherent enough for the next iteration.",
+        "next_action": _build_next_action(recommendation_sources, skipped_checks),
         "score": score,
         "checks": checks,
+        "recommendation_sources": recommendation_sources,
         "prioritized_problems": prioritized_problems,
-        "quick_wins": [
-            "Add one clear primary CTA in the hero.",
-            "State the intended audience explicitly near the top of the page.",
-            "Write one short visual-direction sentence so the site explains its own aesthetic intent.",
-        ],
-        "layout_recommendations": [
-            "Introduce a stronger hero anchor such as a diagram, architecture block or proof strip.",
-            "Break the repeating panel rhythm once so the page has a more memorable visual hierarchy.",
-            "Keep the current spacing tokens, but make one section compositionally distinct from the others.",
-        ],
-        "copy_recommendations": [
-            "Clarify who Codex-Atlas is for, not only what it is.",
-            "Turn the current status message into a concrete action-oriented promise.",
-            "Add a CTA tied to the next safe action, such as reading docs or exploring a derived-project flow.",
-        ],
+        "quick_wins": quick_wins,
+        "layout_recommendations": layout_recommendations,
+        "copy_recommendations": copy_recommendations,
         "project": str(project.resolve()),
         "timestamp": _utc_now_iso(),
     }
@@ -509,12 +552,18 @@ def design_system_review(project: Path) -> Dict[str, Any]:
         "evidence": analysis["evidence"],
         "next_action": analysis["next_action"],
         "score": analysis["score"],
+        "recommendation_sources": [
+            source
+            for source in analysis["recommendation_sources"]
+            if source["originating_check"] in {"typography_coherence", "spacing_layout_coherence", "contrast_accessibility", "hero_structure"}
+        ],
         "design_system_findings": [
             {
                 "id": check["id"],
                 "status": check["status"],
                 "evidence": check["evidence"],
-                "recommendation": check["recommendation"],
+                "recommendation": check.get("recommendation"),
+                "reason": check.get("reason"),
             }
             for check in analysis["checks"]
             if check["id"] in {"typography_coherence", "spacing_layout_coherence", "contrast_accessibility", "hero_structure"}
@@ -544,6 +593,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             "warnings": ["missing_project_path"],
             "evidence": ["A project path is required for project-surface review modes."],
             "next_action": "Provide --project for anti-generic or design-system review.",
+            "recommendation_sources": [],
         }
     else:
         project = Path(args.project).resolve()

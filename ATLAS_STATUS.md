@@ -20,6 +20,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Governance now scans bootstrap templates for unresolved or non-whitelisted placeholders in `{x}`, `{{x}}` and `${x}` formats
 - Atlas now has a Codex-native design intelligence layer adapted from the reference repo without importing Claude-only runtime
 - Atlas now has read-only design helpers for visual-direction checkpointing, design-system review and anti-generic UI audit
+- Design-intelligence audits now keep `next_action`, `quick_wins` and recommendation provenance aligned with real warning or skipped evidence instead of generic post-processing
 - One complete minimal workflow implemented: `audit-repo`
 - `certify-project` now validates Atlas-derived projects in read-only mode with score, blockers, warnings and recommendations
 - Codex-native system-prompt guidance now lives explicitly in `AGENTS.md` plus `docs/codex_system_prompt.md`

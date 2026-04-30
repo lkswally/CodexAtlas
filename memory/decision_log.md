@@ -202,3 +202,10 @@
 - Impact: Atlas now exposes `surface-audit`, the README lists the current skill surface correctly, and future drift can be detected through the dispatcher before public sharing
 - Risk: if the checker becomes too strict, it could turn low-value phrasing drift into noisy warnings
 - Rollback: remove `surface-audit`, drop its registry/test/governance requirements, and fall back to manual README review only
+
+## 2026-04-30
+- Decision: make design-intelligence recommendations derive strictly from warning or skipped evidence instead of generic summary text
+- Reason: a real audit on `CodexAtlas-Web` showed that `next_action` could still mention a missing CTA even when the CTA check was already passing
+- Impact: `design_intelligence_audit` now exposes `recommendation_sources`, removes corrective recommendations from PASS checks, and marks unverifiable checks as `skipped` with a reason
+- Risk: stricter evidence coupling may make the audit feel less suggestive when only weak signals are available
+- Rollback: revert the recommendation-source logic and return to the previous generic summary generation
