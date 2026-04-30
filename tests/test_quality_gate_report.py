@@ -14,15 +14,18 @@ WEB_ROOT = Path(r"C:\Proyectos\CodexAtlas-Web")
 def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web():
     result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
     assert result["status"] == "ok"
+    assert result["project_path"] == str(WEB_ROOT)
     assert result["overall_status"] == "needs_improvement"
     assert result["confidence_level"] in {"medium", "high"}
-    assert isinstance(result["blocking_issues"], list)
+    assert isinstance(result["blockers"], list)
+    assert isinstance(result["warnings"], list)
     assert isinstance(result["top_priorities"], list)
     assert len(result["top_priorities"]) <= 3
     assert result["summary_for_human"]
-    assert result["component_results"]["audit_repo"]["ok"] is True
-    assert result["component_results"]["certify_project"]["ok"] is True
-    assert result["component_results"]["surface_audit"]["ok"] is True
+    assert result["source_reports"]["audit-repo"]["status"] == "ok"
+    assert result["source_reports"]["certify-project"]["status"] == "ok"
+    assert result["source_reports"]["surface-audit"]["status"] == "ok"
+    assert result["recommended_next_action"]
 
 
 def test_quality_gate_report_uses_existing_outputs_to_mark_not_ready():
@@ -63,13 +66,13 @@ def test_quality_gate_report_uses_existing_outputs_to_mark_not_ready():
         }
         return _Res(mapping[command_id])
 
-    with patch("tools.quality_gate_report.dispatch", side_effect=fake_dispatch):
+    with patch("tools.quality_gate_report._dispatch_output", side_effect=lambda command_id, root=None, project=None: fake_dispatch(command_id, root=root, project=project).output):
         with patch("tools.quality_gate_report.anti_generic_ui_audit", return_value=fake_design):
             result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
 
     assert result["overall_status"] == "not_ready"
     assert result["confidence_level"] == "high"
-    assert result["blocking_issues"]
+    assert result["blockers"]
     assert result["top_priorities"][0]["source"] == "certify-project"
     assert "not ready" in result["summary_for_human"].lower()
 
@@ -106,7 +109,7 @@ def test_quality_gate_report_priorities_come_from_existing_design_recommendation
         }
         return _Res(mapping[command_id])
 
-    with patch("tools.quality_gate_report.dispatch", side_effect=fake_dispatch):
+    with patch("tools.quality_gate_report._dispatch_output", side_effect=lambda command_id, root=None, project=None: fake_dispatch(command_id, root=root, project=project).output):
         with patch("tools.quality_gate_report.anti_generic_ui_audit", return_value=fake_design):
             result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
 

@@ -88,4 +88,4 @@ def test_certify_project_requires_project_path():
     result = dispatch("certify-project", root=ROOT)
     assert result.ok is False
     assert result.exit_code == 2
-    assert result.output["error"] == "certify_project_requires_project"
+    assert result.output["error"] == "project_argument_required"

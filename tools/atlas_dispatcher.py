@@ -14,7 +14,6 @@ try:
 except ModuleNotFoundError:
     from atlas_surface_audit import run_surface_audit
 
-
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
 CANONICAL_TOOLS_DIR = Path(__file__).resolve().parent
 
@@ -415,6 +414,12 @@ def _run_workflow(
         return _certify_project_stub(root, target_root, cmd, project_metadata=project_metadata)
     if command_id == "surface-audit":
         return run_surface_audit(root)
+    if command_id == "quality-gate-report":
+        try:
+            from tools.quality_gate_report import build_quality_gate_report
+        except ModuleNotFoundError:
+            from quality_gate_report import build_quality_gate_report
+        return build_quality_gate_report(root, target_root)
     return {"status": "error", "summary": {}, "findings": ["workflow_not_implemented_in_minimal_mode"]}
 
 
@@ -487,14 +492,14 @@ def dispatch(command_id: str, root: Optional[Path] = None, project: Optional[Pat
             },
         )
 
-    if command_id not in {"audit-repo", "certify-project", "surface-audit"}:
+    if command_id not in {"audit-repo", "certify-project", "surface-audit", "quality-gate-report"}:
         return DispatchResult(
             ok=False,
             exit_code=2,
             output={"ok": False, "command": command_id, "alias": cmd.get("alias"), "started_at": started_at, "error": "workflow_not_implemented_in_minimal_mode"},
         )
 
-    if command_id == "certify-project" and project is None:
+    if command_id in {"certify-project", "quality-gate-report"} and project is None:
         return DispatchResult(
             ok=False,
             exit_code=2,
@@ -503,7 +508,7 @@ def dispatch(command_id: str, root: Optional[Path] = None, project: Optional[Pat
                 "command": command_id,
                 "alias": cmd.get("alias"),
                 "started_at": started_at,
-                "error": "certify_project_requires_project",
+                "error": "project_argument_required",
             },
         )
 
@@ -539,7 +544,7 @@ def dispatch(command_id: str, root: Optional[Path] = None, project: Optional[Pat
     elapsed_ms = int((time.time() - t0) * 1000)
     finished_at = _utc_now_iso()
     ok = isinstance(result, dict) and result.get("status") in {"ok", "partial"}
-    if command_id != "certify-project":
+    if command_id not in {"certify-project", "quality-gate-report"}:
         ok = ok and bool(governance_after.get("ok", False))
 
     return DispatchResult(

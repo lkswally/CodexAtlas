@@ -190,6 +190,37 @@
         "recommendations"
       ],
       "rollback": "No aplica: read_only."
+    },
+    {
+      "id": "quality-gate-report",
+      "alias": "atlas quality-gate-report",
+      "purpose": "Consolidar en modo read-only el readiness de un proyecto derivado usando audit, certification, design intelligence y surface coherence.",
+      "fit": "high",
+      "execution_mode": "read_only",
+      "allowed_paths": [
+        "README.md",
+        "commands",
+        "docs",
+        "policies",
+        "skills",
+        "tools",
+        "workflows"
+      ],
+      "guards": [
+        "No duplicar logica de los audits subyacentes.",
+        "No modificar el proyecto derivado ni la superficie Atlas durante el reporte.",
+        "Si un subreporte falla, marcarlo como failed o skipped con reason en vez de quedar colgado."
+      ],
+      "outputs": [
+        "overall_status",
+        "confidence_level",
+        "blockers",
+        "warnings",
+        "top_priorities",
+        "quick_wins",
+        "summary_for_human"
+      ],
+      "rollback": "No aplica: read_only."
     }
   ]
 }
