@@ -192,15 +192,14 @@ def _derive_cost_sensitivity(task: str) -> Tuple[str, List[str], bool]:
 def _derive_task_type(*, task: str, intent: Optional[str], recommended_skill: Optional[str], current_phase: Optional[str]) -> Dict[str, Any]:
     evidence: List[str] = []
     normalized = _normalize(task)
-    if any(normalized.startswith(prefix.strip()) for prefix in LOW_RISK_INFORMATIONAL_PREFIXES):
-        return {"task_type": "documentation", "confidence": "medium", "ambiguous": False, "candidates": ["documentation"], "evidence": ["low_risk_informational_action"]}
-
     if recommended_skill and recommended_skill in TASK_TYPE_BY_SKILL:
         task_type = TASK_TYPE_BY_SKILL[recommended_skill]
         return {"task_type": task_type, "confidence": "high", "ambiguous": False, "candidates": [task_type], "evidence": [f"skill={recommended_skill}->{task_type}"]}
     if intent and intent in TASK_TYPE_BY_INTENT:
         task_type = TASK_TYPE_BY_INTENT[intent]
         return {"task_type": task_type, "confidence": "high", "ambiguous": False, "candidates": [task_type], "evidence": [f"intent={intent}->{task_type}"]}
+    if any(normalized.startswith(prefix.strip()) for prefix in LOW_RISK_INFORMATIONAL_PREFIXES):
+        return {"task_type": "documentation", "confidence": "medium", "ambiguous": False, "candidates": ["documentation"], "evidence": ["low_risk_informational_action"]}
 
     candidates: List[str] = []
     for task_type, keywords in TASK_TYPE_KEYWORDS.items():
@@ -389,8 +388,12 @@ def recommend_model_profile(*, root: Path, task: str = "", intent: Optional[str]
         "missing_information": missing_information,
         "requires_user_confirmation": requires_confirmation,
         "question_for_user": question_for_user,
+        "active_runtime_model": "manual_or_unknown",
+        "model_switch_mode": "manual_required",
+        "recommended_model_is_advisory": True,
+        "user_action_required": "Select the recommended model manually in Codex Desktop before running this task.",
         "can_auto_switch": False,
-        "auto_switch_method": "not_available" if not bool(switch_support.get("can_auto_switch")) else str(switch_support.get("auto_switch_method", "unknown")).strip() or "unknown",
+        "auto_switch_method": "not_available",
         "cost_saver_model": cost_saver_model,
         "cheaper_alternative_model": cost_saver_model,
         "use_stronger_model_when": use_stronger_model_when,

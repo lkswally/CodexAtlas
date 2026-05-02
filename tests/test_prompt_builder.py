@@ -19,6 +19,16 @@ def test_prompt_builder_uses_phase_and_intent_for_existing_project():
     assert "no tocar REYESOFT" in result["prompt"]
     assert "Fase actual: `certified`." in result["prompt"]
     assert isinstance(result["model_profile_recommendation"], dict)
+    assert result["active_runtime_model"] == "manual_or_unknown"
+    assert result["model_switch_mode"] == "manual_required"
+    assert result["recommended_model_is_advisory"] is True
+    assert (
+        result["user_action_required"]
+        == "Select the recommended model manually in Codex Desktop before running this task."
+    )
+    assert result["can_auto_switch"] is False
+    assert result["auto_switch_method"] == "not_available"
+    assert "Model routing is advisory only in this environment" in result["prompt"]
     assert result["why_this_prompt"]
     assert isinstance(result["risks"], list)
     assert isinstance(result["validation_after_prompt"], list)

@@ -38,6 +38,15 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["source_reports"]["error_pattern_analyzer"]["status"] == "ok"
     assert isinstance(result["intent_analysis"], dict)
     assert isinstance(result["model_routing"], dict)
+    assert result["model_routing"]["active_runtime_model"] == "manual_or_unknown"
+    assert result["model_routing"]["model_switch_mode"] == "manual_required"
+    assert result["model_routing"]["recommended_model_is_advisory"] is True
+    assert (
+        result["model_routing"]["user_action_required"]
+        == "Select the recommended model manually in Codex Desktop before running this task."
+    )
+    assert result["model_routing"]["can_auto_switch"] is False
+    assert result["model_routing"]["auto_switch_method"] == "not_available"
     assert isinstance(result["external_tool_posture"], dict)
     assert result["external_tool_posture"]["source_sufficiency"] in {
         "local_only",
@@ -57,6 +66,15 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
         assert "recommended_model" in first_step
         assert "fallback_model" in first_step
         assert "cheaper_alternative_model" in first_step
+        assert first_step["active_runtime_model"] == "manual_or_unknown"
+        assert first_step["model_switch_mode"] == "manual_required"
+        assert first_step["recommended_model_is_advisory"] is True
+        assert (
+            first_step["user_action_required"]
+            == "Select the recommended model manually in Codex Desktop before running this task."
+        )
+        assert first_step["can_auto_switch"] is False
+        assert first_step["auto_switch_method"] == "not_available"
         assert "requires_user_confirmation" in first_step
         assert first_step["why_model"]
         avoid_steps = [step for step in result["execution_plan"] if str(step.get("action", "")).lower().startswith("avoid ")]
@@ -286,6 +304,11 @@ def test_quality_gate_report_enriches_execution_plan_with_per_action_model_recom
     assert first_step["recommended_model"]
     assert first_step["fallback_model"]
     assert first_step["cheaper_alternative_model"]
+    assert first_step["active_runtime_model"] == "manual_or_unknown"
+    assert first_step["model_switch_mode"] == "manual_required"
+    assert first_step["recommended_model_is_advisory"] is True
+    assert first_step["can_auto_switch"] is False
+    assert first_step["auto_switch_method"] == "not_available"
     assert isinstance(first_step["requires_user_confirmation"], bool)
     assert first_step["why_model"]
 

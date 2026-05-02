@@ -55,6 +55,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep `project_intent_analyzer` aligned with explicit brief and metadata signals so it does not reintroduce the kind of false positives Atlas already removed from deploy intent detection
 - Keep `model_router` alias-driven and configurable so Atlas can change provider strategy without rewriting routing logic
 - Keep `model_router` tied to the visible Codex Desktop model list and ask before deciding when planning-vs-execution, cost-vs-quality or safe model switching are not explicit
+- Keep model-routing outputs explicit about runtime limits: recommendations are advisory/manual until Codex model switching is verifiably available in this environment
 - Keep `prompt_builder` phase-aware and explicit so it teaches the flow without becoming hidden automation
 - Keep `prompt_builder` tied to real priority, feedback and validation signals instead of drifting back toward generic task templates
 - Keep `skill_evaluator` conservative; it should block capability sprawl more often than it approves new reusable skills

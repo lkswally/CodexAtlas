@@ -156,6 +156,21 @@ def _prompt_lines(
         f"(perfil `{model_route.get('recommended_model_profile')}`, "
         f"reasoning `{model_route.get('reasoning_required')}`, cost `{model_route.get('cost_sensitivity')}`)."
     )
+    lines.append(
+        "Model routing is advisory only in this environment: keep manual model selection in Codex Desktop."
+    )
+    lines.append(
+        f"Active runtime model: `{model_route.get('active_runtime_model', 'manual_or_unknown')}`; "
+        f"switch mode: `{model_route.get('model_switch_mode', 'manual_required')}`."
+    )
+    lines.append(
+        str(
+            model_route.get(
+                "user_action_required",
+                "Select the recommended model manually in Codex Desktop before running this task.",
+            )
+        )
+    )
     cheaper_alternative = str(
         model_route.get("cost_saver_model", "") or model_route.get("cheaper_alternative_model", "")
     ).strip()
@@ -325,6 +340,15 @@ def build_prompt(
         "missing_definition": intent.get("missing_definition", []),
         "prompt": prompt,
         "model_profile_recommendation": model_route,
+        "active_runtime_model": model_route.get("active_runtime_model", "manual_or_unknown"),
+        "model_switch_mode": model_route.get("model_switch_mode", "manual_required"),
+        "recommended_model_is_advisory": bool(model_route.get("recommended_model_is_advisory", True)),
+        "user_action_required": model_route.get(
+            "user_action_required",
+            "Select the recommended model manually in Codex Desktop before running this task.",
+        ),
+        "can_auto_switch": False,
+        "auto_switch_method": "not_available",
         "why_this_prompt": (
             f"Built from phase `{current_phase}`, project type `{intent.get('project_type')}` "
             f"and model `{model_route.get('recommended_model')}`."

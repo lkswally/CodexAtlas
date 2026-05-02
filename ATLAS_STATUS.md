@@ -180,6 +180,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Atlas can now read decision feedback back into its ranking layer to reduce repeated ignored recommendations and reinforce consistently accepted ones
 - Atlas can now combine phase, intent, model routing, feedback history and error-pattern evidence without activating hidden runtime or touching derived projects
 - Atlas now treats Codex model switching as recommendation-only unless CLI or config mutation can be verified safely, and it asks for user confirmation whenever routing stays ambiguous or auto-switch remains unverified
+- Model-router outputs now expose `active_runtime_model=manual_or_unknown`, `model_switch_mode=manual_required`, `recommended_model_is_advisory=true`, explicit manual user action, and `can_auto_switch=false` with `auto_switch_method=not_available` across router, prompt guidance and quality-gate execution steps
 
 ## Product context status
 

@@ -176,9 +176,13 @@ LOW_RISK_INFORMATIONAL_PREFIXES = (
 )
 
 
-def _step_intent_hint(source: str, action: str) -> Optional[str]:
+def _is_low_risk_informational_action(action: str) -> bool:
     normalized_action = str(action or "").strip().lower()
-    if any(normalized_action.startswith(prefix) for prefix in LOW_RISK_INFORMATIONAL_PREFIXES):
+    return any(normalized_action.startswith(prefix) for prefix in LOW_RISK_INFORMATIONAL_PREFIXES)
+
+
+def _step_intent_hint(source: str, action: str) -> Optional[str]:
+    if _is_low_risk_informational_action(action):
         return "documentation"
 
     normalized = str(source or "").strip().lower()
@@ -207,14 +211,19 @@ def _enrich_execution_plan_with_models(
         step_copy = dict(step)
         action = str(step.get("action", "")).strip()
         source = str(step.get("source", "")).strip()
+        step_risk = risk_level
+        step_complexity = complexity
+        if _is_low_risk_informational_action(action):
+            step_risk = "low"
+            step_complexity = "low"
         try:
             route = recommend_model_profile(
                 root=root,
                 task=action,
                 intent=_step_intent_hint(source, action),
                 current_phase=str(current_phase or "").strip() or None,
-                risk_level=risk_level,
-                complexity=complexity,
+                risk_level=step_risk,
+                complexity=step_complexity,
                 project_type=project_type,
             )
         except Exception as exc:
@@ -236,6 +245,15 @@ def _enrich_execution_plan_with_models(
                 "fallback_model": route.get("fallback_model"),
                 "cheaper_alternative_model": route.get("cost_saver_model")
                 or route.get("cheaper_alternative_model"),
+                "active_runtime_model": route.get("active_runtime_model", "manual_or_unknown"),
+                "model_switch_mode": route.get("model_switch_mode", "manual_required"),
+                "recommended_model_is_advisory": bool(route.get("recommended_model_is_advisory", True)),
+                "user_action_required": route.get(
+                    "user_action_required",
+                    "Select the recommended model manually in Codex Desktop before running this task.",
+                ),
+                "can_auto_switch": False,
+                "auto_switch_method": "not_available",
                 "requires_user_confirmation": bool(route.get("requires_user_confirmation")),
                 "why_model": route.get("why"),
             }

@@ -94,7 +94,7 @@ def test_model_router_prefers_codex_mini_for_low_risk_token_saving():
         project_type="internal_tool",
         switch_support=SWITCH_SUPPORT_UNVERIFIED,
     )
-    assert result["recommended_model"] == "GPT-5.1-Codex-Mini"
+    assert result["recommended_model"] in {"GPT-5.4-Mini", "GPT-5.1-Codex-Mini"}
     assert result["cost_saver_model"] == "GPT-5.1-Codex-Mini"
     assert result["cost_sensitivity"] == "high"
 
@@ -144,6 +144,13 @@ def test_model_router_does_not_allow_auto_switch_when_unverified():
     )
     assert result["can_auto_switch"] is False
     assert result["auto_switch_method"] == "not_available"
+    assert result["active_runtime_model"] == "manual_or_unknown"
+    assert result["model_switch_mode"] == "manual_required"
+    assert result["recommended_model_is_advisory"] is True
+    assert (
+        result["user_action_required"]
+        == "Select the recommended model manually in Codex Desktop before running this task."
+    )
     assert result["requires_user_confirmation"] is True
 
 

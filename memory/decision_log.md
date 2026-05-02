@@ -301,3 +301,10 @@
 - Risk: if these layers start inventing conclusions beyond the available evidence, Atlas could become noisier instead of smarter
 - Rollback: remove `tools/model_router.py`, `tools/error_pattern_analyzer.py`, `tools/repo_improvement_scout.py`, `tools/mcp_readiness_check.py` and the quality-gate sections that consume them
 - Added advisory-only external tool posture guidance so Atlas can explain when local repo context, internal policies, curated adapters or official docs are sufficient before any external escalation.
+
+## 2026-05-02
+- Decision: make model-routing outputs explicitly advisory/manual across router, quality gate and prompt guidance
+- Reason: recommendations could be confused with the active Codex Desktop runtime model even though local auto-switch is still unavailable and unverified
+- Impact: outputs now include `active_runtime_model=manual_or_unknown`, `model_switch_mode=manual_required`, `recommended_model_is_advisory=true`, explicit manual user action, and forced `can_auto_switch=false` with `auto_switch_method=not_available`
+- Risk: users may still skip manual model selection and assume the runtime switched automatically
+- Rollback: revert the advisory-output fields and return to the previous routing output contract
