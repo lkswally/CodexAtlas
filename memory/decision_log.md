@@ -259,6 +259,13 @@
 - Risk: the ranking layer could become opinionated drift if it starts inventing priorities outside the existing evidence sources
 - Rollback: remove `tools/priority_engine.py`, delete the extra planning fields from `quality_gate_report`, and keep the gate as a pure aggregation surface
 
+## 2026-05-02
+- Decision: route Atlas recommendations against the real Codex models available locally, but keep switching recommendation-only until the Codex CLI can be verified safely
+- Reason: Atlas needed model guidance that matches the actual Codex catalog on this machine, while the zero-assumption rule forbids guessing whether CLI switching or config mutation is safe
+- Impact: `config/model_routing_rules.json` now maps Atlas task signals to the real local model set, `tools/model_router_core.py` reports missing information and confirmation requirements explicitly, and `quality_gate_report` plus `prompt_builder` now surface model recommendations without pretending they can auto-switch
+- Risk: the router will intentionally ask for confirmation more often until planning-vs-execution intent and cost-vs-quality priorities are explicit
+- Rollback: revert the routing catalog and `model_router` changes, and fall back to the previous profile-only recommendation layer
+
 ## 2026-05-01
 - Decision: add an append-only decision feedback log for Atlas recommendations instead of writing project state back into derived repos
 - Reason: Priority outputs are only useful over time if Atlas can remember whether a recommendation was accepted, ignored, deferred or replaced without mutating the derived project itself

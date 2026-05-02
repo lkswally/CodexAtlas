@@ -42,6 +42,18 @@ def _phase_prompt_kind(current_phase: str) -> str:
     return mapping.get(current_phase, "generic_guidance")
 
 
+def _phase_intent_hint(current_phase: str) -> str:
+    mapping = {
+        "idea": "planning",
+        "planning": "planning",
+        "bootstrap": "code_execution",
+        "build": "code_execution",
+        "audit": "code_review",
+        "certified": "planning",
+    }
+    return mapping.get(current_phase, "planning")
+
+
 def _prompt_lines(
     *,
     project: Optional[Path],
@@ -127,10 +139,19 @@ def _prompt_lines(
                     lines.append(f"- Ajuste sugerido: {recommendation}")
 
     lines.append(
-        "Perfil de modelo recomendado: "
-        f"`{model_route.get('recommended_model_profile')}` "
-        f"(reasoning `{model_route.get('reasoning_required')}`, cost `{model_route.get('cost_sensitivity')}`)."
+        "Modelo recomendado por Atlas: "
+        f"`{model_route.get('recommended_model')}` "
+        f"(perfil `{model_route.get('recommended_model_profile')}`, "
+        f"reasoning `{model_route.get('reasoning_required')}`, cost `{model_route.get('cost_sensitivity')}`)."
     )
+    cheaper_alternative = str(model_route.get("cheaper_alternative_model", "")).strip()
+    if cheaper_alternative:
+        lines.append(f"Alternativa mÃ¡s barata: `{cheaper_alternative}`.")
+    stronger_hint = str(model_route.get("use_stronger_model_when", "")).strip()
+    if stronger_hint:
+        lines.append(f"CuÃ¡ndo usar el modelo fuerte: {stronger_hint}")
+    if bool(model_route.get("requires_user_confirmation")):
+        lines.append(f"ConfirmaciÃ³n pendiente: {model_route.get('question_for_user')}")
     if recommended_command:
         lines.append(f"Comando Atlas más alineado ahora: `{recommended_command}`.")
     lines.append("Quiero un informe final breve con lo hecho, lo validado y los riesgos residuales.")
@@ -225,6 +246,7 @@ def build_prompt(
     model_route = model_route or recommend_model_profile(
         root=root,
         task=brief or "",
+        intent=_phase_intent_hint(current_phase),
         current_phase=current_phase,
         risk_level=str(intent.get("risk_level", "low")).strip(),
         complexity=str(intent.get("complexity", "low")).strip(),
@@ -265,7 +287,7 @@ def build_prompt(
         "model_profile_recommendation": model_route,
         "why_this_prompt": (
             f"Built from phase `{current_phase}`, project type `{intent.get('project_type')}` "
-            f"and model profile `{model_route.get('recommended_model_profile')}`."
+            f"and model `{model_route.get('recommended_model')}`."
         ),
         "risks": risks,
         "validation_after_prompt": _derive_validation_after_prompt(current_phase, recommended_command),

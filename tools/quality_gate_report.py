@@ -155,6 +155,7 @@ def _run_model_route(
         report = recommend_model_profile(
             root=root,
             task=f"quality gate follow-up for {project.name}",
+            intent="code_review",
             current_phase=str(phase_report.get("current_phase", "")).strip() or None,
             risk_level=str(intent_report.get("risk_level", "low")).strip(),
             complexity=str(intent_report.get("complexity", "low")).strip(),

@@ -1,53 +1,303 @@
 {
-  "default_profile_alias": "cost_saver",
-  "default_fallback_alias": "deep_reasoning",
-  "aliases": {
-    "deep_reasoning": "deep_reasoning",
-    "code_execution": "code_execution",
-    "lightweight_editing": "code_execution",
-    "documentation": "cost_saver",
-    "audit_review": "reviewer",
-    "design_reasoning": "creative_product",
-    "cost_saver": "cost_saver",
-    "security_review": "security"
+  "available_models": [
+    "GPT-5.4",
+    "GPT-5.2-Codex",
+    "GPT-5.1-Codex-Max",
+    "GPT-5.4-Mini",
+    "GPT-5.3-Codex",
+    "GPT-5.2",
+    "GPT-5.1-Codex-Mini"
+  ],
+  "default_rule": {
+    "recommended_model": "GPT-5.4",
+    "fallback_model": "GPT-5.2",
+    "recommended_model_profile": "deep_reasoning",
+    "avoid_models": [
+      "GPT-5.1-Codex-Mini"
+    ],
+    "reason": "When Atlas cannot safely classify the task, it should default to a human-confirmed high-quality recommendation instead of guessing a cheaper execution path.",
+    "requires_confirmation_when_ambiguous": true,
+    "cheaper_alternative_model": "GPT-5.4-Mini",
+    "use_stronger_model_when": "Use the strongest model when the task could affect architecture, certification, security, or multi-file code changes."
   },
-  "intent_aliases": {
-    "planning": "deep_reasoning",
-    "architecture": "deep_reasoning",
-    "code_execution": "code_execution",
-    "code_review": "audit_review",
-    "branding_ux": "design_reasoning",
-    "security": "security_review",
-    "documentation": "documentation",
-    "project_creation": "deep_reasoning",
-    "research": "deep_reasoning",
-    "deployment_or_destructive_action": "security_review",
-    "unknown": "cost_saver"
+  "ambiguity_policy": {
+    "stop_on_low_confidence": true,
+    "stop_when_task_type_unclear": true,
+    "stop_when_planning_vs_execution_unclear": true,
+    "stop_when_cost_vs_quality_unclear": true,
+    "stop_when_auto_switch_unverified": true
   },
-  "skill_aliases": {
-    "project-bootstrap": "deep_reasoning",
-    "repo-audit": "audit_review",
-    "product-branding-review": "design_reasoning",
-    "visual-direction-checkpoint": "design_reasoning",
-    "anti-generic-ui-audit": "audit_review",
-    "design-system-review": "design_reasoning"
+  "auto_switch_policy": {
+    "prefer_project_scoped_config": true,
+    "allow_global_config_mutation": false,
+    "require_cli_verification": true,
+    "require_user_confirmation": true
   },
-  "phase_bias": {
-    "idea": "deep_reasoning",
-    "planning": "deep_reasoning",
-    "bootstrap": "documentation",
-    "build": "code_execution",
-    "audit": "audit_review",
-    "certified": "documentation"
-  },
-  "fallback_by_alias": {
-    "deep_reasoning": "cost_saver",
-    "code_execution": "deep_reasoning",
-    "lightweight_editing": "cost_saver",
-    "documentation": "deep_reasoning",
-    "audit_review": "deep_reasoning",
-    "design_reasoning": "deep_reasoning",
-    "cost_saver": "deep_reasoning",
-    "security_review": "deep_reasoning"
-  }
+  "routing_rules": [
+    {
+      "id": "complex_planning",
+      "task_type": [
+        "planning",
+        "architecture",
+        "project_creation"
+      ],
+      "phase": [
+        "idea",
+        "planning",
+        "certified"
+      ],
+      "complexity": [
+        "high",
+        "medium"
+      ],
+      "risk_level": [
+        "medium",
+        "high"
+      ],
+      "cost_sensitivity": [
+        "low",
+        "medium"
+      ],
+      "recommended_model": "GPT-5.4",
+      "fallback_model": "GPT-5.2",
+      "recommended_model_profile": "deep_reasoning",
+      "avoid_models": [
+        "GPT-5.4-Mini",
+        "GPT-5.1-Codex-Mini"
+      ],
+      "reason": "Complex planning, architecture, and strategic project setup should use the strongest general reasoning model.",
+      "requires_confirmation_when_ambiguous": false,
+      "cheaper_alternative_model": "GPT-5.4-Mini",
+      "use_stronger_model_when": "Keep GPT-5.4 when the task changes boundaries, long-horizon plans, or system-level decisions."
+    },
+    {
+      "id": "delicate_code_change",
+      "task_type": [
+        "code_execution"
+      ],
+      "phase": [
+        "bootstrap",
+        "build",
+        "audit"
+      ],
+      "complexity": [
+        "high"
+      ],
+      "risk_level": [
+        "high",
+        "medium"
+      ],
+      "cost_sensitivity": [
+        "low",
+        "medium"
+      ],
+      "recommended_model": "GPT-5.1-Codex-Max",
+      "fallback_model": "GPT-5.2-Codex",
+      "recommended_model_profile": "code_execution",
+      "avoid_models": [
+        "GPT-5.4-Mini",
+        "GPT-5.1-Codex-Mini"
+      ],
+      "reason": "Large or delicate code changes should prefer the long-running Codex Max profile.",
+      "requires_confirmation_when_ambiguous": false,
+      "cheaper_alternative_model": "GPT-5.2-Codex",
+      "use_stronger_model_when": "Use Codex Max when the change spans many files, risky refactors, or fragile contracts."
+    },
+    {
+      "id": "general_code_execution",
+      "task_type": [
+        "code_execution"
+      ],
+      "phase": [
+        "bootstrap",
+        "build"
+      ],
+      "complexity": [
+        "medium",
+        "low"
+      ],
+      "risk_level": [
+        "medium",
+        "low"
+      ],
+      "cost_sensitivity": [
+        "low",
+        "medium"
+      ],
+      "recommended_model": "GPT-5.2-Codex",
+      "fallback_model": "GPT-5.3-Codex",
+      "recommended_model_profile": "code_execution",
+      "avoid_models": [
+        "GPT-5.4-Mini"
+      ],
+      "reason": "Focused implementation work should default to a Codex-tuned coding model instead of a generic mini model.",
+      "requires_confirmation_when_ambiguous": false,
+      "cheaper_alternative_model": "GPT-5.1-Codex-Mini",
+      "use_stronger_model_when": "Escalate to GPT-5.3-Codex if the implementation becomes long-horizon or more agentic than expected."
+    },
+    {
+      "id": "design_reasoning",
+      "task_type": [
+        "design_reasoning"
+      ],
+      "phase": [
+        "planning",
+        "build",
+        "audit",
+        "certified"
+      ],
+      "complexity": [
+        "medium",
+        "high"
+      ],
+      "risk_level": [
+        "low",
+        "medium"
+      ],
+      "cost_sensitivity": [
+        "medium",
+        "low"
+      ],
+      "recommended_model": "GPT-5.4",
+      "fallback_model": "GPT-5.4-Mini",
+      "recommended_model_profile": "creative_product",
+      "avoid_models": [
+        "GPT-5.1-Codex-Mini"
+      ],
+      "reason": "Design, branding, and visual direction benefit from stronger general reasoning and taste.",
+      "requires_confirmation_when_ambiguous": true,
+      "cheaper_alternative_model": "GPT-5.4-Mini",
+      "use_stronger_model_when": "Keep GPT-5.4 when visual direction, product framing, or anti-generic decisions carry strategic weight."
+    },
+    {
+      "id": "audit_high_complexity",
+      "task_type": [
+        "audit_review",
+        "security_review"
+      ],
+      "phase": [
+        "build",
+        "audit",
+        "certified"
+      ],
+      "complexity": [
+        "high"
+      ],
+      "risk_level": [
+        "high",
+        "medium"
+      ],
+      "cost_sensitivity": [
+        "low",
+        "medium"
+      ],
+      "recommended_model": "GPT-5.4",
+      "fallback_model": "GPT-5.2",
+      "recommended_model_profile": "reviewer",
+      "avoid_models": [
+        "GPT-5.4-Mini",
+        "GPT-5.1-Codex-Mini"
+      ],
+      "reason": "High-stakes audits, certification gates, and security-sensitive reviews should use the strongest reviewer path.",
+      "requires_confirmation_when_ambiguous": false,
+      "cheaper_alternative_model": "GPT-5.2",
+      "use_stronger_model_when": "Use GPT-5.4 when blockers, certification failures, or security-sensitive evidence are involved."
+    },
+    {
+      "id": "audit_standard",
+      "task_type": [
+        "audit_review"
+      ],
+      "phase": [
+        "build",
+        "audit",
+        "certified"
+      ],
+      "complexity": [
+        "medium",
+        "low"
+      ],
+      "risk_level": [
+        "medium",
+        "low"
+      ],
+      "cost_sensitivity": [
+        "low",
+        "medium",
+        "high"
+      ],
+      "recommended_model": "GPT-5.2",
+      "fallback_model": "GPT-5.4",
+      "recommended_model_profile": "reviewer",
+      "avoid_models": [
+        "GPT-5.1-Codex-Mini"
+      ],
+      "reason": "Routine audits and quality gates can use a strong reviewer model without defaulting to the most expensive option.",
+      "requires_confirmation_when_ambiguous": false,
+      "cheaper_alternative_model": "GPT-5.4-Mini",
+      "use_stronger_model_when": "Escalate to GPT-5.4 if blockers appear or the audit becomes architectural."
+    },
+    {
+      "id": "documentation_simple",
+      "task_type": [
+        "documentation"
+      ],
+      "phase": [
+        "bootstrap",
+        "build",
+        "audit",
+        "certified"
+      ],
+      "complexity": [
+        "low",
+        "medium"
+      ],
+      "risk_level": [
+        "low"
+      ],
+      "cost_sensitivity": [
+        "high",
+        "medium"
+      ],
+      "recommended_model": "GPT-5.4-Mini",
+      "fallback_model": "GPT-5.1-Codex-Mini",
+      "recommended_model_profile": "cost_saver",
+      "avoid_models": [
+        "GPT-5.1-Codex-Max"
+      ],
+      "reason": "Simple documentation and small textual edits should prefer the stronger mini model first.",
+      "requires_confirmation_when_ambiguous": false,
+      "cheaper_alternative_model": "GPT-5.1-Codex-Mini",
+      "use_stronger_model_when": "Escalate if the task expands into architecture, audit, or multi-file code work."
+    },
+    {
+      "id": "repetitive_low_risk",
+      "task_type": [
+        "lightweight_editing"
+      ],
+      "phase": [
+        "build",
+        "certified"
+      ],
+      "complexity": [
+        "low"
+      ],
+      "risk_level": [
+        "low"
+      ],
+      "cost_sensitivity": [
+        "high"
+      ],
+      "recommended_model": "GPT-5.1-Codex-Mini",
+      "fallback_model": "GPT-5.4-Mini",
+      "recommended_model_profile": "cost_saver",
+      "avoid_models": [
+        "GPT-5.1-Codex-Max"
+      ],
+      "reason": "Low-risk repetitive work should use the cheapest Codex-capable mini model.",
+      "requires_confirmation_when_ambiguous": false,
+      "cheaper_alternative_model": "GPT-5.1-Codex-Mini",
+      "use_stronger_model_when": "Escalate only if the task stops being repetitive or starts touching risky code."
+    }
+  ]
 }

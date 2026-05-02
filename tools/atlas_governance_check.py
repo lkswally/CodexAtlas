@@ -114,6 +114,7 @@ REQUIRED_ROOT_FILES = (
     "tools/decision_feedback.py",
     "tools/feedback_analyzer.py",
     "tools/model_router.py",
+    "tools/model_router_core.py",
     "tools/error_pattern_analyzer.py",
     "tools/repo_improvement_scout.py",
     "tools/mcp_readiness_check.py",
@@ -303,6 +304,28 @@ VALID_MCP_ATLAS_DECISIONS = {
 }
 VALID_DOCS_SEARCH_CATALOG_STATUSES = {"active", "watchlist", "deprecated"}
 PHASE_PLAYBOOK_PHASES = {"idea", "planning", "bootstrap", "build", "audit", "certified"}
+EXPECTED_CODEX_ROUTING_MODELS = {
+    "GPT-5.4",
+    "GPT-5.2-Codex",
+    "GPT-5.1-Codex-Max",
+    "GPT-5.4-Mini",
+    "GPT-5.3-Codex",
+    "GPT-5.2",
+    "GPT-5.1-Codex-Mini",
+}
+MODEL_ROUTING_RULE_REQUIRED_FIELDS = {
+    "id",
+    "task_type",
+    "phase",
+    "complexity",
+    "risk_level",
+    "cost_sensitivity",
+    "recommended_model",
+    "fallback_model",
+    "avoid_models",
+    "reason",
+    "requires_confirmation_when_ambiguous",
+}
 
 
 def _primary_registry_path(root: Path) -> Path:
@@ -440,30 +463,74 @@ def _validate_model_routing_rules(root: Path, findings: List[str]) -> None:
         return
 
     profile_names = set(profiles.get("profiles", {}).keys()) if isinstance(profiles, dict) else set()
-    aliases = rules.get("aliases")
-    if not isinstance(aliases, dict) or not aliases:
-        findings.append("model_routing_rules_missing_aliases")
+    available_models = rules.get("available_models")
+    if not isinstance(available_models, list) or not available_models:
+        findings.append("model_routing_rules_missing_available_models")
+        return
+    available_model_set = {str(item).strip() for item in available_models if str(item).strip()}
+    if available_model_set != EXPECTED_CODEX_ROUTING_MODELS:
+        findings.append("model_routing_rules_available_models_mismatch")
+
+    default_rule = rules.get("default_rule")
+    if not isinstance(default_rule, dict):
+        findings.append("model_routing_rules_missing_default_rule")
+    else:
+        recommended_model = str(default_rule.get("recommended_model", "")).strip()
+        fallback_model = str(default_rule.get("fallback_model", "")).strip()
+        recommended_profile = str(default_rule.get("recommended_model_profile", "")).strip()
+        if recommended_model not in available_model_set:
+            findings.append(f"model_routing_rules_unknown_default_model:{recommended_model}")
+        if fallback_model not in available_model_set:
+            findings.append(f"model_routing_rules_unknown_default_fallback:{fallback_model}")
+        if recommended_profile and recommended_profile not in profile_names:
+            findings.append(f"model_routing_rules_unknown_default_profile:{recommended_profile}")
+
+    ambiguity_policy = rules.get("ambiguity_policy")
+    if not isinstance(ambiguity_policy, dict) or not ambiguity_policy:
+        findings.append("model_routing_rules_invalid_ambiguity_policy")
+
+    auto_switch_policy = rules.get("auto_switch_policy")
+    if not isinstance(auto_switch_policy, dict) or not auto_switch_policy:
+        findings.append("model_routing_rules_invalid_auto_switch_policy")
+
+    routing_rules = rules.get("routing_rules")
+    if not isinstance(routing_rules, list) or not routing_rules:
+        findings.append("model_routing_rules_missing_routing_rules")
         return
 
-    default_profile_alias = str(rules.get("default_profile_alias", "")).strip()
-    default_fallback_alias = str(rules.get("default_fallback_alias", "")).strip()
-    if default_profile_alias not in aliases:
-        findings.append(f"model_routing_rules_invalid_default_profile_alias:{default_profile_alias}")
-    if default_fallback_alias not in aliases:
-        findings.append(f"model_routing_rules_invalid_default_fallback_alias:{default_fallback_alias}")
-
-    for alias_name, profile_name in aliases.items():
-        if str(profile_name).strip() not in profile_names:
-            findings.append(f"model_routing_rules_unknown_profile:{alias_name}:{profile_name}")
-
-    for mapping_name in ("intent_aliases", "skill_aliases", "phase_bias", "fallback_by_alias"):
-        mapping = rules.get(mapping_name)
-        if not isinstance(mapping, dict) or not mapping:
-            findings.append(f"model_routing_rules_invalid_mapping:{mapping_name}")
+    for index, rule in enumerate(routing_rules, start=1):
+        if not isinstance(rule, dict):
+            findings.append(f"model_routing_rule_not_object:{index}")
             continue
-        for key, alias_name in mapping.items():
-            if str(alias_name).strip() not in aliases:
-                findings.append(f"model_routing_rules_unknown_alias:{mapping_name}:{key}:{alias_name}")
+        missing_fields = MODEL_ROUTING_RULE_REQUIRED_FIELDS - set(rule.keys())
+        if missing_fields:
+            findings.append(f"model_routing_rule_missing_fields:{index}:{','.join(sorted(missing_fields))}")
+
+        recommended_model = str(rule.get("recommended_model", "")).strip()
+        fallback_model = str(rule.get("fallback_model", "")).strip()
+        recommended_profile = str(rule.get("recommended_model_profile", "")).strip()
+        if recommended_model not in available_model_set:
+            findings.append(f"model_routing_rule_unknown_recommended_model:{index}:{recommended_model}")
+        if fallback_model not in available_model_set:
+            findings.append(f"model_routing_rule_unknown_fallback_model:{index}:{fallback_model}")
+        if recommended_profile and recommended_profile not in profile_names:
+            findings.append(f"model_routing_rule_unknown_profile:{index}:{recommended_profile}")
+
+        avoid_models = rule.get("avoid_models")
+        if not isinstance(avoid_models, list):
+            findings.append(f"model_routing_rule_invalid_avoid_models:{index}")
+        else:
+            for model_name in avoid_models:
+                if str(model_name).strip() not in available_model_set:
+                    findings.append(f"model_routing_rule_unknown_avoid_model:{index}:{model_name}")
+
+        for field in ("task_type", "phase", "complexity", "risk_level", "cost_sensitivity"):
+            value = rule.get(field)
+            if not isinstance(value, list) or not value or not all(isinstance(item, str) and item.strip() for item in value):
+                findings.append(f"model_routing_rule_invalid_selector:{index}:{field}")
+
+        if not isinstance(rule.get("requires_confirmation_when_ambiguous"), bool):
+            findings.append(f"model_routing_rule_invalid_confirmation_flag:{index}")
 
 
 def _validate_mcp_profiles(root: Path, findings: List[str]) -> None:
