@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
@@ -129,6 +130,9 @@ def find_relevant_feedback(
             continue
         recommendation_id = _normalize_optional_text(entry.get("recommendation_id"))
         action = _normalize_optional_text(entry.get("action"))
+        if not recommendation_set and not action_set:
+            relevant.append(entry)
+            continue
         if recommendation_set and recommendation_id in recommendation_set:
             relevant.append(entry)
             continue
@@ -151,6 +155,15 @@ def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(add_help=True)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    add_parser = subparsers.add_parser("add")
+    add_parser.add_argument("--root", default=None)
+    add_parser.add_argument("--project", required=True)
+    add_parser.add_argument("--recommendation-id", default=None)
+    add_parser.add_argument("--action", required=True)
+    add_parser.add_argument("--decision", required=True)
+    add_parser.add_argument("--reason", required=True)
+    add_parser.add_argument("--source", default="manual")
+
     record_parser = subparsers.add_parser("record")
     record_parser.add_argument("--root", default=None)
     record_parser.add_argument("--project", required=True)
@@ -159,6 +172,13 @@ def main(argv: Optional[List[str]] = None) -> int:
     record_parser.add_argument("--decision", required=True)
     record_parser.add_argument("--reason", required=True)
     record_parser.add_argument("--source", default="manual")
+
+    list_parser = subparsers.add_parser("list")
+    list_parser.add_argument("--root", default=None)
+    list_parser.add_argument("--project", required=True)
+    list_parser.add_argument("--recommendation-id", action="append", default=[])
+    list_parser.add_argument("--action", action="append", default=[])
+    list_parser.add_argument("--limit", type=int, default=20)
 
     find_parser = subparsers.add_parser("find")
     find_parser.add_argument("--root", default=None)
@@ -170,7 +190,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     args = parser.parse_args(argv)
     root = Path(args.root).resolve() if args.root else DEFAULT_ROOT
 
-    if args.command == "record":
+    if args.command in {"add", "record"}:
         result = append_decision_feedback(
             root=root,
             project_path=Path(args.project),
@@ -180,7 +200,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             reason=args.reason,
             source=args.source,
         )
-    else:
+    elif args.command in {"list", "find"}:
         result = find_relevant_feedback(
             root=root,
             project_path=Path(args.project),
@@ -188,6 +208,9 @@ def main(argv: Optional[List[str]] = None) -> int:
             actions=args.action,
             limit=args.limit,
         )
+    else:
+        parser.print_help(sys.stderr)
+        return 2
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
