@@ -43,6 +43,13 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert isinstance(result["system_learning"], dict)
     assert isinstance(result["execution_plan"], list)
     assert len(result["execution_plan"]) <= 3
+    if result["execution_plan"]:
+        first_step = result["execution_plan"][0]
+        assert "recommended_model" in first_step
+        assert "fallback_model" in first_step
+        assert "cheaper_alternative_model" in first_step
+        assert "requires_user_confirmation" in first_step
+        assert first_step["why_model"]
     assert len(result["quick_wins"]) <= 2
     assert isinstance(result["feedback_adjusted_priorities"], list)
     assert isinstance(result["detected_patterns"], list)
@@ -172,6 +179,101 @@ def test_quality_gate_report_priorities_come_from_existing_design_recommendation
     assert result["quick_wins"][0] == "Replace the generic body sans with a more intentional family."
     assert result["execution_plan"]
     assert result["primary_action"]
+
+
+def test_quality_gate_report_enriches_execution_plan_with_per_action_model_recommendations():
+    phase_report = {
+        "ok": True,
+        "result": {
+            "status": "ok",
+            "current_phase": "audit",
+            "confidence": "high",
+            "blocked_actions": [],
+            "next_valid_phases": ["certified"],
+            "recommended_actions": ["Run certify-project once audit findings are resolved."],
+        },
+    }
+    fake_audit = {"ok": True, "result": {"status": "ok", "findings": []}}
+    fake_certify = {"ok": True, "result": {"status": "ok", "blockers": [], "warnings": []}}
+    fake_surface = {"ok": True, "result": {"status": "ok", "warnings": [], "recommendations": []}}
+    fake_design = {
+        "status": "needs_attention",
+        "public_readiness": "needs_improvement",
+        "landing_score": 82,
+        "warnings": ["content_density:warning"],
+        "quick_wins": ["Trim dense sections"],
+        "checks": [],
+        "recommendation_sources": [
+            {
+                "recommendation": "Trim dense sections",
+                "originating_check": "content_density",
+                "evidence": ["long_sections=3"],
+                "severity": "medium",
+                "status": "warning",
+            }
+        ],
+    }
+
+    def fake_dispatch(command_id, root=None, project=None):
+        class _Res:
+            def __init__(self, output):
+                self.output = output
+
+        mapping = {
+            "project-phase-report": phase_report,
+            "audit-repo": fake_audit,
+            "certify-project": fake_certify,
+            "surface-audit": fake_surface,
+        }
+        return _Res(mapping[command_id])
+
+    routed_models = [
+        {
+            "status": "ok",
+            "recommended_model": "GPT-5.4",
+            "fallback_model": "GPT-5.2",
+            "cost_saver_model": "GPT-5.4-Mini",
+            "requires_user_confirmation": True,
+            "why": "Model route for general gate context.",
+        },
+        {
+            "status": "ok",
+            "recommended_model": "GPT-5.4",
+            "fallback_model": "GPT-5.2",
+            "cost_saver_model": "GPT-5.4-Mini",
+            "requires_user_confirmation": True,
+            "why": "Model route for phase action.",
+        },
+        {
+            "status": "ok",
+            "recommended_model": "GPT-5.4-Mini",
+            "fallback_model": "GPT-5.1-Codex-Mini",
+            "cost_saver_model": "GPT-5.1-Codex-Mini",
+            "requires_user_confirmation": True,
+            "why": "Model route for quick win.",
+        },
+        {
+            "status": "ok",
+            "recommended_model": "GPT-5.2",
+            "fallback_model": "GPT-5.4",
+            "cost_saver_model": "GPT-5.4-Mini",
+            "requires_user_confirmation": True,
+            "why": "Model route for audit-oriented warning.",
+        },
+    ]
+
+    with patch("tools.quality_gate_report._dispatch_output", side_effect=lambda command_id, root=None, project=None: fake_dispatch(command_id, root=root, project=project).output):
+        with patch("tools.quality_gate_report.anti_generic_ui_audit", return_value=fake_design):
+            with patch("tools.quality_gate_report.recommend_model_profile", side_effect=routed_models):
+                result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+
+    assert result["execution_plan"]
+    first_step = result["execution_plan"][0]
+    assert first_step["recommended_model"]
+    assert first_step["fallback_model"]
+    assert first_step["cheaper_alternative_model"]
+    assert isinstance(first_step["requires_user_confirmation"], bool)
+    assert first_step["why_model"]
 
 
 def test_quality_gate_report_surfaces_relevant_decision_feedback():

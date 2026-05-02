@@ -166,6 +166,70 @@ def _run_model_route(
     return _build_ok_report("model_router", report)
 
 
+def _step_intent_hint(source: str) -> Optional[str]:
+    normalized = str(source or "").strip().lower()
+    if normalized in {"phase", "intent", "skill"}:
+        return "planning"
+    if normalized in {"design_audit", "quick_win"}:
+        return "branding_ux"
+    if normalized in {"audit-repo", "certify-project", "surface-audit", "priority"}:
+        return "code_review"
+    return None
+
+
+def _enrich_execution_plan_with_models(
+    *,
+    root: Path,
+    execution_plan: List[Dict[str, Any]],
+    current_phase: Optional[str],
+    intent_report: Optional[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    enriched: List[Dict[str, Any]] = []
+    risk_level = str((intent_report or {}).get("risk_level", "medium")).strip() or "medium"
+    complexity = str((intent_report or {}).get("complexity", "medium")).strip() or "medium"
+    project_type = str((intent_report or {}).get("project_type", "unknown")).strip() or "unknown"
+
+    for step in execution_plan:
+        step_copy = dict(step)
+        action = str(step.get("action", "")).strip()
+        source = str(step.get("source", "")).strip()
+        try:
+            route = recommend_model_profile(
+                root=root,
+                task=action,
+                intent=_step_intent_hint(source),
+                current_phase=str(current_phase or "").strip() or None,
+                risk_level=risk_level,
+                complexity=complexity,
+                project_type=project_type,
+            )
+        except Exception as exc:
+            step_copy.update(
+                {
+                    "recommended_model": None,
+                    "fallback_model": None,
+                    "cheaper_alternative_model": None,
+                    "requires_user_confirmation": True,
+                    "why_model": f"model_router_failed:{exc}",
+                }
+            )
+            enriched.append(step_copy)
+            continue
+
+        step_copy.update(
+            {
+                "recommended_model": route.get("recommended_model"),
+                "fallback_model": route.get("fallback_model"),
+                "cheaper_alternative_model": route.get("cost_saver_model")
+                or route.get("cheaper_alternative_model"),
+                "requires_user_confirmation": bool(route.get("requires_user_confirmation")),
+                "why_model": route.get("why"),
+            }
+        )
+        enriched.append(step_copy)
+    return enriched
+
+
 def _run_prompt_report(
     root: Path,
     project: Path,
@@ -540,6 +604,12 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         priority_bundle=priority_bundle,
         feedback_analysis=source_reports["feedback_analyzer"]["report"] if source_reports["feedback_analyzer"]["status"] == "ok" else None,
     )
+    enriched_execution_plan = _enrich_execution_plan_with_models(
+        root=root,
+        execution_plan=priority_bundle["execution_plan"],
+        current_phase=current_phase,
+        intent_report=source_reports["project_intent_analyzer"]["report"] if source_reports["project_intent_analyzer"]["status"] == "ok" else None,
+    )
     source_reports["error_pattern_analyzer"] = _build_ok_report(
         "error_pattern_analyzer",
         analyze_error_patterns(root=root, project=project),
@@ -577,7 +647,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         "warnings": warnings,
         "top_priorities": top_priorities,
         "quick_wins": priority_bundle["quick_wins"],
-        "execution_plan": priority_bundle["execution_plan"],
+        "execution_plan": enriched_execution_plan,
         "feedback_adjusted_priorities": priority_bundle["feedback_adjusted_priorities"],
         "detected_patterns": (source_reports["feedback_analyzer"]["report"] or {}).get("detected_patterns", []) if source_reports["feedback_analyzer"]["status"] == "ok" else [],
         "primary_action": priority_bundle["primary_action"],

@@ -52,6 +52,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - `quality_gate_report` now includes intent analysis, prompt guidance and a reusable-skill creation signal alongside readiness, phase and evidence summaries
 - Atlas now has a read-only `priority_engine` that reduces noise and turns existing phase, intent, audit and skill signals into a short execution plan
 - `quality_gate_report` now exposes `execution_plan`, `primary_action` and `why_now` so readiness reports say what to do first instead of only listing signals
+- `quality_gate_report` now enriches each `execution_plan` step with its own model recommendation, fallback, cheaper alternative and confirmation signal without attempting any auto-switch
 - Landing quality gates now catch README-like density, CTA integrity and public-readiness drift before Atlas treats a derived landing as presentation-ready
 - Design evidence policy now explicitly treats landing-readiness claims as evidence-bound outputs, not narrative assumptions
 - Dedicated execution tests now cover `repo-audit`, `project-bootstrap` and `product-branding-review`

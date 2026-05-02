@@ -273,6 +273,13 @@
 - Risk: some recommendations will become more conservative because the router now prefers explicit user confirmation over silent tie-breaking
 - Rollback: revert the latest routing-rule and router-output adjustments and return to the previous recommendation wording
 
+## 2026-05-02
+- Decision: add per-action model recommendations to `quality_gate_report` by reusing the existing router on each `execution_plan` step
+- Reason: Atlas already knew the global best-fit model, but users still needed to see which model best matched each concrete next action
+- Impact: each execution-plan step now carries `recommended_model`, `fallback_model`, `cheaper_alternative_model`, `requires_user_confirmation` and `why_model` without duplicating routing logic or attempting auto-switch
+- Risk: generic phase actions may still ask for confirmation more often, because Atlas keeps the zero-assumption rule at the step level too
+- Rollback: remove the per-step enrichment helper from `quality_gate_report` and return to a single top-level model recommendation
+
 ## 2026-05-01
 - Decision: add an append-only decision feedback log for Atlas recommendations instead of writing project state back into derived repos
 - Reason: Priority outputs are only useful over time if Atlas can remember whether a recommendation was accepted, ignored, deferred or replaced without mutating the derived project itself

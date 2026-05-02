@@ -62,6 +62,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep `repo_improvement_scout` anchored to the local reference clone and explicit effort/benefit tradeoffs, not to trend-chasing features
 - Keep `mcp_readiness_check` read-only until Codex CLI can be verified locally without `Access is denied`
 - Keep `priority_engine` as a ranking layer over existing evidence, not as a second policy engine with its own hidden rules
+- Keep per-action model recommendations tied to the existing router so `execution_plan` guidance stays explainable instead of growing a second routing logic
 - Keep landing-quality checks evidence-first and warning-first so Atlas catches README-like public pages without over-blocking intentionally simple derived sites
 - Fix known public placeholder links in derived landings before treating design readiness as anything stronger than `needs_improvement`
 - Keep `design_evidence_policy.md` aligned with landing-readiness heuristics so public-facing PASS states always have traceable proof
