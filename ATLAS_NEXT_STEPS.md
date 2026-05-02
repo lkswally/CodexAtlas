@@ -49,6 +49,13 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep design-intelligence checks evidence-first and warning-first unless a clear risk justifies stronger escalation
 - Keep design-intelligence recommendation generation tied to the originating checks so `next_action` and `quick_wins` do not drift into generic advice
 - Keep `quality_gate_report` as an aggregator over existing validators so readiness decisions do not fork into a second logic layer
+- Observe the new phase-aware gating on a few more derived projects before expanding it beyond `bootstrap`, `audit` and `certified`
+- Prefer stronger metadata or read-only evidence sources before adding more phase heuristics
+- Keep `config/phase_playbook.json` aligned with real factory behavior so guidance stays useful and does not drift into cargo-cult advice
+- Keep `project_intent_analyzer` aligned with explicit brief and metadata signals so it does not reintroduce the kind of false positives Atlas already removed from deploy intent detection
+- Keep `prompt_builder` phase-aware and explicit so it teaches the flow without becoming hidden automation
+- Keep `skill_evaluator` conservative; it should block capability sprawl more often than it approves new reusable skills
+- Keep `priority_engine` as a ranking layer over existing evidence, not as a second policy engine with its own hidden rules
 - Keep landing-quality checks evidence-first and warning-first so Atlas catches README-like public pages without over-blocking intentionally simple derived sites
 - Fix known public placeholder links in derived landings before treating design readiness as anything stronger than `needs_improvement`
 - Keep `design_evidence_policy.md` aligned with landing-readiness heuristics so public-facing PASS states always have traceable proof

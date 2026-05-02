@@ -28,6 +28,7 @@ REQUIRED_ROOT_FILES = (
     "config/model_profiles.json",
     "config/mcp_profiles.json",
     "config/docs_search_catalog.json",
+    "config/phase_playbook.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -105,13 +106,23 @@ REQUIRED_ROOT_FILES = (
     "tools/atlas_surface_audit.py",
     "tools/docs_search_adapter.py",
     "tools/docs_catalog_report.py",
+    "tools/project_phase_resolver.py",
+    "tools/project_intent_analyzer.py",
+    "tools/priority_engine.py",
+    "tools/prompt_builder.py",
     "tools/quality_gate_report.py",
+    "tools/skill_evaluator.py",
     "tests/test_atlas_orchestrator.py",
     "tests/test_certify_project.py",
     "tests/test_docs_catalog_report.py",
     "tests/test_design_intelligence_audit.py",
     "tests/test_mcp_manager.py",
+    "tests/test_project_intent.py",
+    "tests/test_project_phase.py",
+    "tests/test_priority_engine.py",
+    "tests/test_prompt_builder.py",
     "tests/test_quality_gate_report.py",
+    "tests/test_skill_evaluator.py",
     "tests/test_skill_execution.py",
     "tests/test_skill_governance.py",
     "tests/test_surface_audit.py",
@@ -277,6 +288,7 @@ VALID_MCP_ATLAS_DECISIONS = {
     "supporting_profile",
 }
 VALID_DOCS_SEARCH_CATALOG_STATUSES = {"active", "watchlist", "deprecated"}
+PHASE_PLAYBOOK_PHASES = {"idea", "planning", "bootstrap", "build", "audit", "certified"}
 
 
 def _primary_registry_path(root: Path) -> Path:
@@ -521,6 +533,38 @@ def _validate_docs_search_catalog(root: Path, findings: List[str]) -> None:
 
         if status not in VALID_DOCS_SEARCH_CATALOG_STATUSES:
             findings.append(f"{label}:invalid_status:{status}")
+
+
+def _validate_phase_playbook(root: Path, findings: List[str]) -> None:
+    path = root / "config" / "phase_playbook.json"
+    try:
+        playbook = json.loads(path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        findings.append(f"invalid_phase_playbook_json:{exc}")
+        return
+
+    if not isinstance(playbook, dict):
+        findings.append("phase_playbook_not_object")
+        return
+
+    missing_phases = PHASE_PLAYBOOK_PHASES - set(playbook.keys())
+    if missing_phases:
+        findings.append(f"phase_playbook_missing_phases:{','.join(sorted(missing_phases))}")
+
+    for phase_name in sorted(PHASE_PLAYBOOK_PHASES):
+        item = playbook.get(phase_name)
+        if not isinstance(item, dict):
+            findings.append(f"phase_playbook_invalid_phase_object:{phase_name}")
+            continue
+        for field in ("allowed_commands", "recommended_actions", "common_mistakes"):
+            value = item.get(field)
+            if not isinstance(value, list):
+                findings.append(f"phase_playbook_invalid_list:{phase_name}:{field}")
+                continue
+            if field != "allowed_commands" and not value:
+                findings.append(f"phase_playbook_empty_list:{phase_name}:{field}")
+            if any(not isinstance(entry, str) or not entry.strip() for entry in value):
+                findings.append(f"phase_playbook_invalid_list_item:{phase_name}:{field}")
 
 
 def _load_skill_behavior_specs(root: Path) -> Dict[str, Dict[str, Any]]:
@@ -1267,6 +1311,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
 
         _validate_mcp_profiles(root, findings)
         _validate_docs_search_catalog(root, findings)
+        _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)
         _check_legacy_mirror(_primary_registry_path(root), _legacy_registry_path(root), "atomic_command_registry", findings)
         _check_legacy_mirror(_primary_mcp_policy_path(root), _legacy_mcp_policy_path(root), "mcp_connector_policy", findings)

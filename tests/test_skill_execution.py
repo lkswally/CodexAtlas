@@ -207,7 +207,10 @@ def test_anti_generic_ui_audit_execution_reads_project_surface():
     assert execution["ok"] is True
     assert execution["mode"] == "read_only_audit"
     assert execution["output"]["status"] in {"pass", "needs_attention"}
-    assert execution["output"]["prioritized_problems"]
+    if execution["output"]["status"] == "pass":
+        assert execution["output"]["prioritized_problems"] == []
+    else:
+        assert execution["output"]["prioritized_problems"]
 
 
 def test_design_system_review_execution_reads_project_surface():

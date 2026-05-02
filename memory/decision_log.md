@@ -230,3 +230,31 @@
 - Impact: `quality_gate_report` now consolidates `audit-repo`, `certify-project`, `surface-audit` and `design_intelligence_audit` into one readiness view without duplicating their logic
 - Risk: the aggregator could become a shadow policy layer if it starts inventing rules instead of relaying existing outputs
 - Rollback: remove `tools/quality_gate_report.py`, drop its test/governance requirement, and return to reviewing each validator independently
+
+## 2026-05-01
+- Decision: add explicit phase-awareness to derived-project commands using a read-only resolver instead of hooks or hidden runtime
+- Reason: the reference repo's phase gates and readiness-before-handoff pattern fits Atlas, and the factory needed to stop `audit-repo` or `certify-project` from running outside their safe lifecycle context
+- Impact: `project-phase-report` now resolves `idea -> planning -> bootstrap -> build -> audit -> certified`, dispatcher blocks out-of-phase actions explicitly, and `quality_gate_report` now exposes phase alignment
+- Risk: phase inference can become noisy if metadata, scaffold signals and Atlas evidence drift apart
+- Rollback: remove `tools/project_phase_resolver.py`, delete the dispatcher phase checks, and fall back to ungated read-only commands
+
+## 2026-05-01
+- Decision: add a read-only phase playbook on top of the resolver instead of teaching the lifecycle through hidden rules or ad-hoc prose
+- Reason: Atlas already knew the current phase and could block bad commands, but it still did not guide users toward the right next move inside that phase
+- Impact: `project-phase-report` and `quality_gate_report` now expose allowed commands, recommended next steps and common mistakes from `config/phase_playbook.json`
+- Risk: guidance can become stale if the playbook stops matching the real dispatcher rules
+- Rollback: remove `config/phase_playbook.json`, drop the extra guidance fields, and keep phase handling limited to detection plus blocking
+
+## 2026-05-01
+- Decision: add read-only intent, prompt and skill-evaluation guidance layers before expanding Atlas with more capabilities
+- Reason: the reference repo's Intent Clarifier and readiness discipline show that Atlas benefits more from better explicit guidance than from adding more runtime surface or automation
+- Impact: Atlas now exposes `project-intent-report`, `prompt-builder` and `skill-evaluator`, and `quality_gate_report` can summarize intent, next-step prompts and whether a reusable skill is really justified
+- Risk: heuristic intent analysis can become noisy if it starts inferring too much from documentation-style text instead of stable metadata and explicit phrasing
+- Rollback: remove the three helper tools, drop their dispatcher commands, and revert `quality_gate_report` to the previous readiness-only scope
+
+## 2026-05-01
+- Decision: add a small priority engine on top of existing outputs instead of adding more validators or automatic actions
+- Reason: Atlas already had enough evidence surfaces, but still needed a cleaner answer to "what should happen first" when phase, design and intent signals coexist
+- Impact: `quality_gate_report` now returns `execution_plan`, `primary_action` and `why_now`, with phase-aware conflict resolution and reduced noise
+- Risk: the ranking layer could become opinionated drift if it starts inventing priorities outside the existing evidence sources
+- Rollback: remove `tools/priority_engine.py`, delete the extra planning fields from `quality_gate_report`, and keep the gate as a pure aggregation surface

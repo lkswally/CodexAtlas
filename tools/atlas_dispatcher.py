@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import os
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -24,6 +25,18 @@ def _utc_now_iso() -> str:
 
 def _read_json(path: Path) -> Dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8-sig"))
+
+
+def _append_jsonl_record(path: Path, record: Dict[str, Any]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+def _event_logging_enabled(root: Path) -> bool:
+    if os.environ.get("ATLAS_DISABLE_EVENT_LOGS", "").strip() == "1":
+        return False
+    return root.resolve() == DEFAULT_ROOT.resolve()
 
 
 @dataclass(frozen=True)
@@ -407,6 +420,9 @@ def _run_workflow(
     target_root: Path,
     cmd: Dict[str, Any],
     project_metadata: Optional[Dict[str, Any]] = None,
+    brief: Optional[str] = None,
+    candidate: Optional[str] = None,
+    problem: Optional[str] = None,
 ) -> Dict[str, Any]:
     if command_id == "audit-repo":
         return _audit_repo_stub(target_root, cmd, project_metadata=project_metadata)
@@ -414,16 +430,102 @@ def _run_workflow(
         return _certify_project_stub(root, target_root, cmd, project_metadata=project_metadata)
     if command_id == "surface-audit":
         return run_surface_audit(root)
+    if command_id == "project-phase-report":
+        try:
+            from tools.project_phase_resolver import build_project_phase_report
+        except ModuleNotFoundError:
+            from project_phase_resolver import build_project_phase_report
+        return build_project_phase_report(root, target_root)
     if command_id == "quality-gate-report":
         try:
             from tools.quality_gate_report import build_quality_gate_report
         except ModuleNotFoundError:
             from quality_gate_report import build_quality_gate_report
         return build_quality_gate_report(root, target_root)
+    if command_id == "project-intent-report":
+        try:
+            from tools.project_intent_analyzer import analyze_project_intent
+        except ModuleNotFoundError:
+            from project_intent_analyzer import analyze_project_intent
+        if project_metadata is None and not brief:
+            return {"status": "failed", "reason": "project_or_brief_required"}
+        return analyze_project_intent(project=target_root if project_metadata is not None else None, brief=brief)
+    if command_id == "prompt-builder":
+        try:
+            from tools.prompt_builder import build_prompt
+        except ModuleNotFoundError:
+            from prompt_builder import build_prompt
+        if project_metadata is None and not brief:
+            return {"status": "failed", "reason": "project_or_brief_required"}
+        return build_prompt(root=root, project=target_root if project_metadata is not None else None, brief=brief)
+    if command_id == "skill-evaluator":
+        try:
+            from tools.skill_evaluator import evaluate_skill_candidate
+        except ModuleNotFoundError:
+            from skill_evaluator import evaluate_skill_candidate
+        if not candidate or not problem:
+            return {"status": "failed", "reason": "candidate_and_problem_required"}
+        return evaluate_skill_candidate(
+            root=root,
+            candidate_name=candidate,
+            problem_statement=problem,
+            project=target_root if project_metadata is not None else None,
+        )
     return {"status": "error", "summary": {}, "findings": ["workflow_not_implemented_in_minimal_mode"]}
 
 
-def dispatch(command_id: str, root: Optional[Path] = None, project: Optional[Path] = None) -> DispatchResult:
+def _resolve_phase_report(root: Path, target_root: Path) -> Dict[str, Any]:
+    try:
+        from tools.project_phase_resolver import resolve_project_phase
+    except ModuleNotFoundError:
+        from project_phase_resolver import resolve_project_phase
+    return resolve_project_phase(root, target_root)
+
+
+def _phase_allows_command(phase: str, command_id: str) -> bool:
+    try:
+        from tools.project_phase_resolver import PHASE_INDEX
+    except ModuleNotFoundError:
+        from project_phase_resolver import PHASE_INDEX
+    if command_id == "project-bootstrap":
+        return phase in {"idea", "planning"}
+    if command_id == "audit-repo":
+        return phase in PHASE_INDEX and PHASE_INDEX[phase] >= PHASE_INDEX["bootstrap"]
+    if command_id == "certify-project":
+        return phase in PHASE_INDEX and PHASE_INDEX[phase] >= PHASE_INDEX["audit"]
+    return True
+
+
+def _record_dispatch_event(
+    root: Path,
+    command_id: str,
+    project: Optional[Path],
+    ok: bool,
+    result: Dict[str, Any],
+    exit_code: int,
+) -> None:
+    if not _event_logging_enabled(root):
+        return
+    record = {
+        "timestamp": _utc_now_iso(),
+        "event_type": "dispatcher_command",
+        "command_id": command_id,
+        "project": str(project.resolve()) if project else None,
+        "ok": ok,
+        "exit_code": exit_code,
+        "result_status": result.get("status") if isinstance(result, dict) else None,
+    }
+    _append_jsonl_record(root / "memory" / "routing_log.jsonl", record)
+
+
+def dispatch(
+    command_id: str,
+    root: Optional[Path] = None,
+    project: Optional[Path] = None,
+    brief: Optional[str] = None,
+    candidate: Optional[str] = None,
+    problem: Optional[str] = None,
+) -> DispatchResult:
     root = (root or DEFAULT_ROOT).resolve()
     target_root = (project or root).resolve()
     started_at = _utc_now_iso()
@@ -453,6 +555,71 @@ def dispatch(command_id: str, root: Optional[Path] = None, project: Optional[Pat
                 ],
             },
         )
+
+    if command_id == "project-phase-report" and project is None:
+        return DispatchResult(
+            ok=False,
+            exit_code=2,
+            output={
+                "ok": False,
+                "command": command_id,
+                "alias": cmd.get("alias"),
+                "started_at": started_at,
+                "error": "project_argument_required",
+            },
+        )
+
+    phase_report: Optional[Dict[str, Any]] = None
+    if project is not None and command_id in {"project-phase-report", "audit-repo", "certify-project", "quality-gate-report"}:
+        phase_report = _resolve_phase_report(root, target_root)
+        if command_id == "project-phase-report":
+            result = phase_report
+            output = {
+                "ok": True,
+                "command": command_id,
+                "alias": cmd.get("alias"),
+                "purpose": cmd.get("purpose"),
+                "execution_mode": cmd.get("execution_mode"),
+                "root": str(root),
+                "target_project": str(target_root),
+                "started_at": started_at,
+                "finished_at": _utc_now_iso(),
+                "elapsed_ms": int((time.time() - t0) * 1000),
+                "result": result,
+                "governance": None,
+            }
+            _record_dispatch_event(root, command_id, target_root, True, result, 0)
+            return DispatchResult(ok=True, exit_code=0, output=output)
+        if not _phase_allows_command(str(phase_report.get("current_phase", "")).strip(), command_id):
+            recommended_actions = list(phase_report.get("recommended_next_steps", []))
+            suggested_command = None
+            allowed_commands = list(phase_report.get("allowed_commands", []))
+            if allowed_commands:
+                suggested_command = allowed_commands[0]
+            guidance_message = (
+                f"{command_id} blocked: project is in phase '{phase_report.get('current_phase')}'. "
+                f"Recommended next step: {recommended_actions[0] if recommended_actions else 'review the current phase guidance'}."
+            )
+            if suggested_command:
+                guidance_message += f" Preferred command now: {suggested_command}."
+            output = {
+                "ok": False,
+                "command": command_id,
+                "alias": cmd.get("alias"),
+                "purpose": cmd.get("purpose"),
+                "execution_mode": cmd.get("execution_mode"),
+                "root": str(root),
+                "target_project": str(target_root),
+                "started_at": started_at,
+                "finished_at": _utc_now_iso(),
+                "elapsed_ms": int((time.time() - t0) * 1000),
+                "error": "phase_blocked",
+                "message": guidance_message,
+                "suggested_command": suggested_command,
+                "phase_report": phase_report,
+            }
+            _record_dispatch_event(root, command_id, target_root, False, {"status": "failed", "reason": "phase_blocked"}, 2)
+            return DispatchResult(ok=False, exit_code=2, output=output)
 
     project_metadata = None
     project_metadata_error: Optional[str] = None
@@ -492,7 +659,7 @@ def dispatch(command_id: str, root: Optional[Path] = None, project: Optional[Pat
             },
         )
 
-    if command_id not in {"audit-repo", "certify-project", "surface-audit", "quality-gate-report"}:
+    if command_id not in {"audit-repo", "certify-project", "surface-audit", "quality-gate-report", "project-phase-report", "project-intent-report", "prompt-builder", "skill-evaluator"}:
         return DispatchResult(
             ok=False,
             exit_code=2,
@@ -525,7 +692,16 @@ def dispatch(command_id: str, root: Optional[Path] = None, project: Optional[Pat
             },
         )
 
-    result = _run_workflow(command_id, root, target_root, cmd, project_metadata=project_metadata)
+    result = _run_workflow(
+        command_id,
+        root,
+        target_root,
+        cmd,
+        project_metadata=project_metadata,
+        brief=brief,
+        candidate=candidate,
+        problem=problem,
+    )
     if project_metadata_error and command_id == "certify-project":
         result.setdefault("warnings", []).append(
             {
@@ -543,34 +719,38 @@ def dispatch(command_id: str, root: Optional[Path] = None, project: Optional[Pat
     governance_after = _run_project_governance_check(root, target_root) if project is not None else _run_governance_check(root)
     elapsed_ms = int((time.time() - t0) * 1000)
     finished_at = _utc_now_iso()
-    ok = isinstance(result, dict) and result.get("status") in {"ok", "partial"}
+    ok_statuses = {"ok", "partial"}
+    if command_id == "project-intent-report":
+        ok_statuses.update({"ready", "needs_input"})
+    ok = isinstance(result, dict) and result.get("status") in ok_statuses
     if command_id not in {"certify-project", "quality-gate-report"}:
         ok = ok and bool(governance_after.get("ok", False))
 
-    return DispatchResult(
-        ok=ok,
-        exit_code=0 if ok else 2,
-        output={
-            "ok": ok,
-            "command": command_id,
-            "alias": cmd.get("alias"),
-            "purpose": cmd.get("purpose"),
-            "execution_mode": cmd.get("execution_mode"),
-            "root": str(root),
-            "target_project": str(target_root) if project is not None else None,
-            "started_at": started_at,
-            "finished_at": finished_at,
-            "elapsed_ms": elapsed_ms,
-            "result": result,
-            "governance": {"before": governance_before, "after": governance_after},
-        },
-    )
+    output = {
+        "ok": ok,
+        "command": command_id,
+        "alias": cmd.get("alias"),
+        "purpose": cmd.get("purpose"),
+        "execution_mode": cmd.get("execution_mode"),
+        "root": str(root),
+        "target_project": str(target_root) if project is not None else None,
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "elapsed_ms": elapsed_ms,
+        "result": result,
+        "governance": {"before": governance_before, "after": governance_after},
+    }
+    _record_dispatch_event(root, command_id, target_root if project is not None else None, ok, result, 0 if ok else 2)
+    return DispatchResult(ok=ok, exit_code=0 if ok else 2, output=output)
 
 
 def main(argv: Optional[List[str]] = None) -> int:
     parser = argparse.ArgumentParser(add_help=True)
     parser.add_argument("--root", default=None, help="Workspace root to dispatch against (defaults to this repo root).")
     parser.add_argument("--project", default=None, help="Derived project root to audit from Atlas.")
+    parser.add_argument("--brief", default=None, help="Optional free-text brief for intent or prompt commands.")
+    parser.add_argument("--candidate", default=None, help="Optional candidate skill name for skill-evaluator.")
+    parser.add_argument("--problem", default=None, help="Optional problem statement for skill-evaluator.")
     parser.add_argument("command_id", nargs="?", help="Command id (example: audit-repo)")
     args = parser.parse_args(argv)
 
@@ -583,7 +763,14 @@ def main(argv: Optional[List[str]] = None) -> int:
 
     root = Path(args.root).resolve() if args.root else None
     project = Path(args.project).resolve() if args.project else None
-    res = dispatch(args.command_id.strip(), root=root, project=project)
+    res = dispatch(
+        args.command_id.strip(),
+        root=root,
+        project=project,
+        brief=args.brief,
+        candidate=args.candidate,
+        problem=args.problem,
+    )
     print(json.dumps(res.output, ensure_ascii=False, indent=2))
     return res.exit_code
 

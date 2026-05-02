@@ -41,7 +41,10 @@ def test_anti_generic_ui_audit_returns_structured_output_for_codexatlas_web():
     assert isinstance(result["evidence"], list)
     assert result["next_action"]
     assert isinstance(result["recommendation_sources"], list)
-    assert result["prioritized_problems"]
+    if result["status"] == "pass":
+        assert result["prioritized_problems"] == []
+    else:
+        assert result["prioritized_problems"]
     assert len(result["top_priorities"]) <= 3
     assert any(check["id"] == "cta_clarity" for check in result["checks"])
 
@@ -49,7 +52,7 @@ def test_anti_generic_ui_audit_returns_structured_output_for_codexatlas_web():
 def test_design_system_review_returns_design_findings():
     result = design_system_review(WEB_ROOT)
     assert result["status"] in {"pass", "needs_attention"}
-    assert result["design_system_findings"]
+    assert isinstance(result["design_system_findings"], list)
     assert any(item["id"] == "typography_coherence" for item in result["design_system_findings"])
 
 

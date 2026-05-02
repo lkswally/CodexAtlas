@@ -192,6 +192,36 @@
       "rollback": "No aplica: read_only."
     },
     {
+      "id": "project-phase-report",
+      "alias": "atlas project-phase-report",
+      "purpose": "Resolver en modo read-only la fase actual de un proyecto derivado y bloquear acciones fuera de contexto.",
+      "fit": "high",
+      "execution_mode": "read_only",
+      "allowed_paths": [
+        ".atlas-project.json",
+        "README.md",
+        "AGENTS.md",
+        "docs",
+        "memory",
+        "workflows",
+        "policies",
+        "tools"
+      ],
+      "guards": [
+        "No modificar el proyecto derivado durante la resolucion de fase.",
+        "Basar la fase en metadata, estructura y evidencia Atlas existente.",
+        "Si falta evidencia, degradar confianza en vez de inventar estado."
+      ],
+      "outputs": [
+        "current_phase",
+        "confidence",
+        "next_valid_phases",
+        "recommended_actions",
+        "blocked_actions"
+      ],
+      "rollback": "No aplica: read_only."
+    },
+    {
       "id": "quality-gate-report",
       "alias": "atlas quality-gate-report",
       "purpose": "Consolidar en modo read-only el readiness de un proyecto derivado usando audit, certification, design intelligence y surface coherence.",
@@ -221,6 +251,87 @@
         "top_priorities",
         "quick_wins",
         "summary_for_human"
+      ],
+      "rollback": "No aplica: read_only."
+    },
+    {
+      "id": "project-intent-report",
+      "alias": "atlas project-intent-report",
+      "purpose": "Analizar el intent de un brief o de un proyecto derivado con una salida estructurada inspirada en Intent Clarifier, sin automatizar decisiones.",
+      "fit": "high",
+      "execution_mode": "read_only",
+      "allowed_paths": [
+        ".atlas-project.json",
+        "README.md",
+        "AGENTS.md",
+        "docs",
+        "tools"
+      ],
+      "guards": [
+        "No inventar objetivo ni tipo de proyecto cuando falte evidencia.",
+        "Si falta definicion, degradar estado a needs_input en vez de fingir claridad.",
+        "No modificar el proyecto ni abrir runtime."
+      ],
+      "outputs": [
+        "project_type",
+        "objective",
+        "risk_level",
+        "complexity",
+        "missing_definition"
+      ],
+      "rollback": "No aplica: read_only."
+    },
+    {
+      "id": "prompt-builder",
+      "alias": "atlas prompt-builder",
+      "purpose": "Construir prompts de siguiente paso segun fase, tipo de proyecto y objetivo actual, manteniendo guidance explicito y controlado.",
+      "fit": "medium",
+      "execution_mode": "read_only",
+      "allowed_paths": [
+        ".atlas-project.json",
+        "README.md",
+        "AGENTS.md",
+        "docs",
+        "tools",
+        "config"
+      ],
+      "guards": [
+        "No convertir guidance en automatizacion implicita.",
+        "Basar el prompt en fase e intent reales, no en una cadena generica.",
+        "No sugerir comandos bloqueados para la fase actual."
+      ],
+      "outputs": [
+        "prompt",
+        "prompt_kind",
+        "recommended_command",
+        "missing_definition"
+      ],
+      "rollback": "No aplica: read_only."
+    },
+    {
+      "id": "skill-evaluator",
+      "alias": "atlas skill-evaluator",
+      "purpose": "Evaluar si una nueva skill reusable justifica existir o si Atlas ya cubre el problema con sus capas actuales.",
+      "fit": "medium",
+      "execution_mode": "read_only",
+      "allowed_paths": [
+        "skills",
+        "tools",
+        ".atlas-project.json",
+        "README.md",
+        "AGENTS.md"
+      ],
+      "guards": [
+        "No usar el evaluador para justificar feature sprawl.",
+        "Priorizar reuse y overlap con skills existentes antes de recomendar una nueva.",
+        "No crear la skill en la misma operacion del evaluador."
+      ],
+      "outputs": [
+        "need_score",
+        "reuse_potential",
+        "complexity",
+        "should_create",
+        "reasoning"
       ],
       "rollback": "No aplica: read_only."
     }

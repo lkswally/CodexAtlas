@@ -38,6 +38,16 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Atlas now has a read-only docs catalog health report via `tools/docs_catalog_report.py`
 - Atlas now has a read-only `surface-audit` command to detect drift between the canonical README and the real public factory surface
 - Atlas now has a read-only `quality_gate_report` helper that aggregates `audit-repo`, `certify-project`, `surface-audit` and `design_intelligence_audit` into one readiness view
+- Atlas now has a read-only `project-phase-report` helper that resolves derived-project phase from scaffold signals, metadata and Atlas validation evidence
+- Dispatcher commands now fail explicitly on out-of-phase `audit-repo` or `certify-project` calls instead of relying on generic metadata errors
+- `quality_gate_report` now includes `phase_alignment` and `phase_validity` so readiness stays tied to lifecycle context
+- Atlas now has a governed `phase_playbook` that explains the right next steps and common mistakes for each lifecycle phase without adding automation
+- Atlas now has a read-only `project_intent_analyzer` adapted from Intent Clarifier to infer project type, objective, risk, complexity and missing definition
+- Atlas now has a read-only `prompt_builder` that turns current phase plus project intent into explicit next-step prompts instead of hidden workflow logic
+- Atlas now has a read-only `skill_evaluator` that helps reject low-value reusable-skill ideas before Atlas grows new capability surface
+- `quality_gate_report` now includes intent analysis, prompt guidance and a reusable-skill creation signal alongside readiness, phase and evidence summaries
+- Atlas now has a read-only `priority_engine` that reduces noise and turns existing phase, intent, audit and skill signals into a short execution plan
+- `quality_gate_report` now exposes `execution_plan`, `primary_action` and `why_now` so readiness reports say what to do first instead of only listing signals
 - Landing quality gates now catch README-like density, CTA integrity and public-readiness drift before Atlas treats a derived landing as presentation-ready
 - Design evidence policy now explicitly treats landing-readiness claims as evidence-bound outputs, not narrative assumptions
 - Dedicated execution tests now cover `repo-audit`, `project-bootstrap` and `product-branding-review`

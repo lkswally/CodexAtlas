@@ -1,0 +1,73 @@
+{
+  "idea": {
+    "allowed_commands": ["project-bootstrap"],
+    "recommended_actions": [
+      "define project goal",
+      "define scope and constraints",
+      "prepare project brief"
+    ],
+    "common_mistakes": [
+      "starting implementation too early",
+      "not defining clear scope"
+    ]
+  },
+  "planning": {
+    "allowed_commands": ["project-bootstrap"],
+    "recommended_actions": [
+      "finalize project brief",
+      "choose project type",
+      "prepare output_dir"
+    ],
+    "common_mistakes": [
+      "unclear project structure",
+      "missing constraints"
+    ]
+  },
+  "bootstrap": {
+    "allowed_commands": ["audit-repo"],
+    "recommended_actions": [
+      "review generated structure",
+      "validate README and AGENTS",
+      "run audit-repo"
+    ],
+    "common_mistakes": [
+      "editing files before audit",
+      "skipping initial validation"
+    ]
+  },
+  "build": {
+    "allowed_commands": ["audit-repo"],
+    "recommended_actions": [
+      "implement core features",
+      "maintain structure",
+      "run periodic audits"
+    ],
+    "common_mistakes": [
+      "breaking structure",
+      "adding uncontrolled files"
+    ]
+  },
+  "audit": {
+    "allowed_commands": ["certify-project"],
+    "recommended_actions": [
+      "fix warnings",
+      "improve documentation",
+      "validate design and structure"
+    ],
+    "common_mistakes": [
+      "ignoring warnings",
+      "certifying too early"
+    ]
+  },
+  "certified": {
+    "allowed_commands": [],
+    "recommended_actions": [
+      "start new iteration",
+      "expand features",
+      "reuse patterns in new projects"
+    ],
+    "common_mistakes": [
+      "modifying certified project without re-audit"
+    ]
+  }
+}
