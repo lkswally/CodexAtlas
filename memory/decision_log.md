@@ -266,6 +266,13 @@
 - Risk: the router will intentionally ask for confirmation more often until planning-vs-execution intent and cost-vs-quality priorities are explicit
 - Rollback: revert the routing catalog and `model_router` changes, and fall back to the previous profile-only recommendation layer
 
+## 2026-05-02
+- Decision: align the router with the exact Codex Desktop model names and expose auto-switch as `not_available` instead of implying config-based switching
+- Reason: the desktop model list is known, but the local Codex CLI still returns `Access is denied`, so Atlas should recommend those real models without implying that switching can be executed safely
+- Impact: the router now prefers `GPT-5.3-Codex` for standard implementation, emits `cost_saver_model` explicitly, and asks for confirmation when two real model choices remain equally reasonable
+- Risk: some recommendations will become more conservative because the router now prefers explicit user confirmation over silent tie-breaking
+- Rollback: revert the latest routing-rule and router-output adjustments and return to the previous recommendation wording
+
 ## 2026-05-01
 - Decision: add an append-only decision feedback log for Atlas recommendations instead of writing project state back into derived repos
 - Reason: Priority outputs are only useful over time if Atlas can remember whether a recommendation was accepted, ignored, deferred or replaced without mutating the derived project itself

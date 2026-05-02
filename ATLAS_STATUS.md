@@ -43,7 +43,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - `quality_gate_report` now includes `phase_alignment` and `phase_validity` so readiness stays tied to lifecycle context
 - Atlas now has a governed `phase_playbook` that explains the right next steps and common mistakes for each lifecycle phase without adding automation
 - Atlas now has a read-only `project_intent_analyzer` adapted from Intent Clarifier to infer project type, objective, risk, complexity and missing definition
-- Atlas now has a configurable read-only `model_router` that maps intent, phase, risk, complexity and task mode to the real Codex models available on this machine without inventing unsupported auto-switch behavior
+- Atlas now has a configurable read-only `model_router` that recommends the real Codex Desktop models available on this machine and reports `not_available` for auto-switch while CLI verification remains blocked
 - Atlas now has a read-only `prompt_builder` that turns current phase plus project intent into explicit next-step prompts instead of hidden workflow logic
 - Atlas now has a read-only `skill_evaluator` that helps reject low-value reusable-skill ideas before Atlas grows new capability surface
 - Atlas now has a read-only `error_pattern_analyzer` that reads local Atlas logs to detect repeated blocks, ignored actions, MCP runtime failures and governance drift

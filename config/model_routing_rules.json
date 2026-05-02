@@ -17,7 +17,7 @@
     ],
     "reason": "When Atlas cannot safely classify the task, it should default to a human-confirmed high-quality recommendation instead of guessing a cheaper execution path.",
     "requires_confirmation_when_ambiguous": true,
-    "cheaper_alternative_model": "GPT-5.4-Mini",
+    "cost_saver_model": "GPT-5.4-Mini",
     "use_stronger_model_when": "Use the strongest model when the task could affect architecture, certification, security, or multi-file code changes."
   },
   "ambiguity_policy": {
@@ -67,7 +67,7 @@
       ],
       "reason": "Complex planning, architecture, and strategic project setup should use the strongest general reasoning model.",
       "requires_confirmation_when_ambiguous": false,
-      "cheaper_alternative_model": "GPT-5.4-Mini",
+      "cost_saver_model": "GPT-5.4-Mini",
       "use_stronger_model_when": "Keep GPT-5.4 when the task changes boundaries, long-horizon plans, or system-level decisions."
     },
     {
@@ -100,7 +100,7 @@
       ],
       "reason": "Large or delicate code changes should prefer the long-running Codex Max profile.",
       "requires_confirmation_when_ambiguous": false,
-      "cheaper_alternative_model": "GPT-5.2-Codex",
+      "cost_saver_model": "GPT-5.2-Codex",
       "use_stronger_model_when": "Use Codex Max when the change spans many files, risky refactors, or fragile contracts."
     },
     {
@@ -124,16 +124,16 @@
         "low",
         "medium"
       ],
-      "recommended_model": "GPT-5.2-Codex",
-      "fallback_model": "GPT-5.3-Codex",
+      "recommended_model": "GPT-5.3-Codex",
+      "fallback_model": "GPT-5.2-Codex",
       "recommended_model_profile": "code_execution",
       "avoid_models": [
         "GPT-5.4-Mini"
       ],
-      "reason": "Focused implementation work should default to a Codex-tuned coding model instead of a generic mini model.",
-      "requires_confirmation_when_ambiguous": false,
-      "cheaper_alternative_model": "GPT-5.1-Codex-Mini",
-      "use_stronger_model_when": "Escalate to GPT-5.3-Codex if the implementation becomes long-horizon or more agentic than expected."
+      "reason": "Focused implementation work should stay on a Codex-tuned model, but GPT-5.3-Codex and GPT-5.2-Codex are both valid depending on whether the user prefers more depth or a lighter pass.",
+      "requires_confirmation_when_ambiguous": true,
+      "cost_saver_model": "GPT-5.1-Codex-Mini",
+      "use_stronger_model_when": "Keep GPT-5.3-Codex when the implementation becomes more agentic, multi-step, or harder to validate quickly."
     },
     {
       "id": "design_reasoning",
@@ -166,7 +166,7 @@
       ],
       "reason": "Design, branding, and visual direction benefit from stronger general reasoning and taste.",
       "requires_confirmation_when_ambiguous": true,
-      "cheaper_alternative_model": "GPT-5.4-Mini",
+      "cost_saver_model": "GPT-5.4-Mini",
       "use_stronger_model_when": "Keep GPT-5.4 when visual direction, product framing, or anti-generic decisions carry strategic weight."
     },
     {
@@ -200,7 +200,7 @@
       ],
       "reason": "High-stakes audits, certification gates, and security-sensitive reviews should use the strongest reviewer path.",
       "requires_confirmation_when_ambiguous": false,
-      "cheaper_alternative_model": "GPT-5.2",
+      "cost_saver_model": "GPT-5.2",
       "use_stronger_model_when": "Use GPT-5.4 when blockers, certification failures, or security-sensitive evidence are involved."
     },
     {
@@ -234,7 +234,7 @@
       ],
       "reason": "Routine audits and quality gates can use a strong reviewer model without defaulting to the most expensive option.",
       "requires_confirmation_when_ambiguous": false,
-      "cheaper_alternative_model": "GPT-5.4-Mini",
+      "cost_saver_model": "GPT-5.4-Mini",
       "use_stronger_model_when": "Escalate to GPT-5.4 if blockers appear or the audit becomes architectural."
     },
     {
@@ -265,9 +265,9 @@
       "avoid_models": [
         "GPT-5.1-Codex-Max"
       ],
-      "reason": "Simple documentation and small textual edits should prefer the stronger mini model first.",
-      "requires_confirmation_when_ambiguous": false,
-      "cheaper_alternative_model": "GPT-5.1-Codex-Mini",
+      "reason": "Simple documentation and small textual edits should stay on mini models, but Atlas should ask when quality versus token savings is not obvious.",
+      "requires_confirmation_when_ambiguous": true,
+      "cost_saver_model": "GPT-5.1-Codex-Mini",
       "use_stronger_model_when": "Escalate if the task expands into architecture, audit, or multi-file code work."
     },
     {
@@ -296,7 +296,7 @@
       ],
       "reason": "Low-risk repetitive work should use the cheapest Codex-capable mini model.",
       "requires_confirmation_when_ambiguous": false,
-      "cheaper_alternative_model": "GPT-5.1-Codex-Mini",
+      "cost_saver_model": "GPT-5.1-Codex-Mini",
       "use_stronger_model_when": "Escalate only if the task stops being repetitive or starts touching risky code."
     }
   ]

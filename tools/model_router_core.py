@@ -125,8 +125,14 @@ def inspect_model_switch_support(*, root: Path) -> Dict[str, Any]:
 
     global_model = str(global_config.get("model", "")).strip() or None
     project_model = str(project_config.get("model", "")).strip() or None
-    auto_switch_method = "config" if (global_model or project_model) else "unknown"
-    can_auto_switch = bool(cli_available and project_model)
+    can_auto_switch = False
+    if cli_available and project_model:
+        auto_switch_method = "config"
+        can_auto_switch = True
+    elif cli_available:
+        auto_switch_method = "unknown"
+    else:
+        auto_switch_method = "not_available"
 
     evidence: List[str] = []
     if global_model:
@@ -274,8 +280,8 @@ def _user_question(*, missing_information: List[str], task_type_bundle: Dict[str
         return "What kind of task is this: planning, implementation, audit, documentation, or design review?"
     if "phase" in missing_information:
         return "What project phase should Atlas use for this task: idea, planning, bootstrap, build, audit, or certified?"
-    if not cost_priority_explicit and task_type_bundle.get("task_type") == "design_reasoning":
-        return "For this design task, should Atlas prioritize maximum quality or lower token cost?"
+    if not cost_priority_explicit and task_type_bundle.get("task_type") in {"design_reasoning", "documentation", "code_execution"}:
+        return "For this task, should Atlas prioritize maximum quality or lower token cost?"
     if not bool(switch_support.get("can_auto_switch")):
         return f"Atlas recommends `{recommended_model}`, but safe Codex model switching is not verified in this environment. Do you want to keep this as a recommendation only?"
     return "Please confirm the model choice before Atlas changes any model configuration."
@@ -318,7 +324,7 @@ def recommend_model_profile(*, root: Path, task: str = "", intent: Optional[str]
     fallback_model = str(selected_rule.get("fallback_model", "")).strip() or str(_default_route(rules).get("fallback_model", "")).strip()
     recommended_profile = _profile_from_rule(selected_rule, task_type or "planning")
     reasoning_required = _reasoning_required(task_type or "planning", normalized_complexity, normalized_risk, recommended_model)
-    cheaper_alternative = str(selected_rule.get("cheaper_alternative_model", "")).strip() or None
+    cost_saver_model = str(selected_rule.get("cost_saver_model", "")).strip() or None
     use_stronger_model_when = str(selected_rule.get("use_stronger_model_when", "")).strip() or None
     avoid_models = [str(item).strip() for item in selected_rule.get("avoid_models", []) if str(item).strip()]
 
@@ -328,7 +334,12 @@ def recommend_model_profile(*, root: Path, task: str = "", intent: Optional[str]
     elif task_type_bundle.get("confidence") == "medium" or not cost_priority_explicit:
         confidence = "medium"
 
-    requires_confirmation = bool(confidence == "low" or ambiguous_route or bool(selected_rule.get("requires_confirmation_when_ambiguous")) or not bool(switch_support.get("can_auto_switch")))
+    requires_confirmation = bool(
+        confidence == "low"
+        or ambiguous_route
+        or bool(selected_rule.get("requires_confirmation_when_ambiguous"))
+        or not bool(switch_support.get("can_auto_switch"))
+    )
     question_for_user = _user_question(
         missing_information=missing_information,
         task_type_bundle=task_type_bundle,
@@ -361,9 +372,10 @@ def recommend_model_profile(*, root: Path, task: str = "", intent: Optional[str]
         "missing_information": missing_information,
         "requires_user_confirmation": requires_confirmation,
         "question_for_user": question_for_user,
-        "can_auto_switch": bool(switch_support.get("can_auto_switch")),
-        "auto_switch_method": str(switch_support.get("auto_switch_method", "unknown")).strip() or "unknown",
-        "cheaper_alternative_model": cheaper_alternative,
+        "can_auto_switch": False,
+        "auto_switch_method": "not_available" if not bool(switch_support.get("can_auto_switch")) else str(switch_support.get("auto_switch_method", "unknown")).strip() or "unknown",
+        "cost_saver_model": cost_saver_model,
+        "cheaper_alternative_model": cost_saver_model,
         "use_stronger_model_when": use_stronger_model_when,
         "avoid_models": avoid_models,
         "task_type": task_type or None,

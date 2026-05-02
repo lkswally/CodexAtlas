@@ -478,10 +478,13 @@ def _validate_model_routing_rules(root: Path, findings: List[str]) -> None:
         recommended_model = str(default_rule.get("recommended_model", "")).strip()
         fallback_model = str(default_rule.get("fallback_model", "")).strip()
         recommended_profile = str(default_rule.get("recommended_model_profile", "")).strip()
+        cost_saver_model = str(default_rule.get("cost_saver_model", "")).strip()
         if recommended_model not in available_model_set:
             findings.append(f"model_routing_rules_unknown_default_model:{recommended_model}")
         if fallback_model not in available_model_set:
             findings.append(f"model_routing_rules_unknown_default_fallback:{fallback_model}")
+        if cost_saver_model and cost_saver_model not in available_model_set:
+            findings.append(f"model_routing_rules_unknown_default_cost_saver:{cost_saver_model}")
         if recommended_profile and recommended_profile not in profile_names:
             findings.append(f"model_routing_rules_unknown_default_profile:{recommended_profile}")
 
@@ -509,10 +512,13 @@ def _validate_model_routing_rules(root: Path, findings: List[str]) -> None:
         recommended_model = str(rule.get("recommended_model", "")).strip()
         fallback_model = str(rule.get("fallback_model", "")).strip()
         recommended_profile = str(rule.get("recommended_model_profile", "")).strip()
+        cost_saver_model = str(rule.get("cost_saver_model", "")).strip()
         if recommended_model not in available_model_set:
             findings.append(f"model_routing_rule_unknown_recommended_model:{index}:{recommended_model}")
         if fallback_model not in available_model_set:
             findings.append(f"model_routing_rule_unknown_fallback_model:{index}:{fallback_model}")
+        if cost_saver_model and cost_saver_model not in available_model_set:
+            findings.append(f"model_routing_rule_unknown_cost_saver_model:{index}:{cost_saver_model}")
         if recommended_profile and recommended_profile not in profile_names:
             findings.append(f"model_routing_rule_unknown_profile:{index}:{recommended_profile}")
 

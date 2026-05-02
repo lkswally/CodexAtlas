@@ -144,7 +144,9 @@ def _prompt_lines(
         f"(perfil `{model_route.get('recommended_model_profile')}`, "
         f"reasoning `{model_route.get('reasoning_required')}`, cost `{model_route.get('cost_sensitivity')}`)."
     )
-    cheaper_alternative = str(model_route.get("cheaper_alternative_model", "")).strip()
+    cheaper_alternative = str(
+        model_route.get("cost_saver_model", "") or model_route.get("cheaper_alternative_model", "")
+    ).strip()
     if cheaper_alternative:
         lines.append(f"Alternativa mÃ¡s barata: `{cheaper_alternative}`.")
     stronger_hint = str(model_route.get("use_stronger_model_when", "")).strip()
