@@ -300,3 +300,4 @@
 - Impact: Atlas can now recommend model-profile aliases, analyze recurring local failure patterns, evaluate the reference repo with an effort/benefit matrix, and keep MCP real activation blocked with a verifiable readiness report
 - Risk: if these layers start inventing conclusions beyond the available evidence, Atlas could become noisier instead of smarter
 - Rollback: remove `tools/model_router.py`, `tools/error_pattern_analyzer.py`, `tools/repo_improvement_scout.py`, `tools/mcp_readiness_check.py` and the quality-gate sections that consume them
+- Added advisory-only external tool posture guidance so Atlas can explain when local repo context, internal policies, curated adapters or official docs are sufficient before any external escalation.

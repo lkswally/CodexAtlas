@@ -495,6 +495,39 @@ def _build_recommended_next_action(overall_status: str, blockers: List[Dict[str,
     return "Review the aggregated report and decide the next safe action."
 
 
+def _derive_external_tool_posture(
+    *,
+    source_reports: Dict[str, Dict[str, Any]],
+    blockers: List[Dict[str, Any]],
+    warnings: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    if any(source_reports[name].get("status") == "failed" for name in CORE_REPORTS):
+        return {
+            "source_sufficiency": "local_only",
+            "recommended_source_layer": "local_repo",
+            "why": "Atlas should resolve local report failures before considering any external source.",
+            "external_tools_allowed": False,
+            "mcp_allowed": False,
+        }
+
+    if blockers or warnings:
+        return {
+            "source_sufficiency": "adapter_enough",
+            "recommended_source_layer": "curated_internal_adapters",
+            "why": "Current blockers or warnings are already explained by local audits and internal adapters, so no external source is needed.",
+            "external_tools_allowed": False,
+            "mcp_allowed": False,
+        }
+
+    return {
+        "source_sufficiency": "local_only",
+        "recommended_source_layer": "local_repo",
+        "why": "The current readiness decision is fully supported by local repo evidence without needing any external tool.",
+        "external_tools_allowed": False,
+        "mcp_allowed": False,
+    }
+
+
 def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     root = root.resolve()
     project = project.resolve()
@@ -572,6 +605,11 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     recommended_next_action = _build_recommended_next_action(overall_status, blockers, top_priorities)
     landing_score = design_report.get("landing_score")
     public_readiness = design_report.get("public_readiness", "needs_improvement")
+    external_tool_posture = _derive_external_tool_posture(
+        source_reports=source_reports,
+        blockers=blockers,
+        warnings=warnings,
+    )
     phase_result = phase_report.get("report") or {}
     if "result" in phase_result and isinstance(phase_result["result"], dict):
         phase_data = phase_result["result"]
@@ -654,6 +692,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         "phase_guidance": phase_guidance,
         "intent_analysis": source_reports["project_intent_analyzer"]["report"] if source_reports["project_intent_analyzer"]["status"] == "ok" else None,
         "model_routing": source_reports["model_router"]["report"] if source_reports["model_router"]["status"] == "ok" else None,
+        "external_tool_posture": external_tool_posture,
         "prompt_guidance": source_reports["prompt_builder"]["report"] if source_reports["prompt_builder"]["status"] == "ok" else None,
         "skill_creation_signal": source_reports["skill_evaluator"]["report"] if source_reports["skill_evaluator"]["status"] == "ok" else None,
         "system_learning": source_reports["error_pattern_analyzer"]["report"] if source_reports["error_pattern_analyzer"]["status"] == "ok" else None,

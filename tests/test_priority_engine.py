@@ -101,3 +101,30 @@ def test_priority_engine_adjusts_priority_using_feedback_history():
     assert "Strengthen CTA copy" in actions
     assert "Trim dense sections" not in actions
     assert any(item["feedback_weight"] == "up" for item in result["feedback_adjusted_priorities"])
+
+
+def test_priority_engine_prefers_local_actions_over_external_tool_suggestions():
+    result = build_execution_plan(
+        phase_guidance={
+            "current_phase": "planning",
+            "recommended_next_steps": ["finalize project brief", "review local policies"],
+            "top_phase_risks": ["missing constraints"],
+        },
+        phase_validity="valid",
+        top_priorities=[
+            {
+                "source": "surface-audit",
+                "check": "external_docs",
+                "severity": "medium",
+                "message": "Use GitHub CLI to inspect an external repository",
+            }
+        ],
+        quick_wins=[],
+        intent_analysis={"missing_definition": []},
+        skill_creation_signal={"should_create": False},
+        overall_status="needs_improvement",
+        feedback_analysis=None,
+    )
+    actions = [item["action"] for item in result["execution_plan"]]
+    assert "finalize project brief" in actions
+    assert "Use GitHub CLI to inspect an external repository" not in actions

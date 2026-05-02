@@ -3,6 +3,18 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 
+EXTERNAL_TOOL_HINTS = (
+    "mcp",
+    "github cli",
+    "external tool",
+    "official docs",
+    "web search",
+    "context7",
+    "serena",
+    "playwright",
+)
+
+
 def _normalize(text: str) -> str:
     return " ".join(str(text).lower().split())
 
@@ -249,6 +261,20 @@ def _dedupe_candidates(candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]
     return deduped
 
 
+def _is_external_tool_action(action: str) -> bool:
+    normalized = _normalize(action)
+    return any(hint in normalized for hint in EXTERNAL_TOOL_HINTS)
+
+
+def _prefer_local_resolution(candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not candidates:
+        return candidates
+    local_candidates = [item for item in candidates if not _is_external_tool_action(str(item.get("action", "")))]
+    if local_candidates:
+        return local_candidates
+    return candidates
+
+
 def _apply_feedback_weights(
     candidates: List[Dict[str, Any]],
     feedback_analysis: Optional[Dict[str, Any]],
@@ -289,7 +315,7 @@ def build_execution_plan(
         *_skill_candidate(skill_creation_signal, overall_status),
     ]
     adjusted_candidates = _apply_feedback_weights(candidates, feedback_analysis)
-    ranked = _dedupe_candidates(adjusted_candidates)
+    ranked = _dedupe_candidates(_prefer_local_resolution(adjusted_candidates))
     limited = [item for item in ranked if not item.get("_should_filter")][:3]
     if not limited:
         limited = ranked[:3]

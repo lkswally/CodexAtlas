@@ -156,3 +156,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Watch for model-routing aliases drifting away from the real `config/model_profiles.json` catalog
 - Watch for real Codex model-routing rules drifting away from the locally verified model list or from the zero-assumption confirmation policy
 - Watch for system-learning suggestions drifting into silent action-taking instead of remaining report-only
+## External Sources
+
+- If Atlas ever operationalizes external-source routing, keep it opt-in and read-only first.
+- Reuse `external_tool_policy` before adding any automatic MCP or CLI escalation.

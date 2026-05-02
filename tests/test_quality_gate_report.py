@@ -38,6 +38,15 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["source_reports"]["error_pattern_analyzer"]["status"] == "ok"
     assert isinstance(result["intent_analysis"], dict)
     assert isinstance(result["model_routing"], dict)
+    assert isinstance(result["external_tool_posture"], dict)
+    assert result["external_tool_posture"]["source_sufficiency"] in {
+        "local_only",
+        "adapter_enough",
+        "external_recommended",
+        "external_required",
+    }
+    assert result["external_tool_posture"]["external_tools_allowed"] is False
+    assert result["external_tool_posture"]["mcp_allowed"] is False
     assert isinstance(result["prompt_guidance"], dict)
     assert isinstance(result["skill_creation_signal"], dict)
     assert isinstance(result["system_learning"], dict)
@@ -178,6 +187,8 @@ def test_quality_gate_report_priorities_come_from_existing_design_recommendation
 
     assert result["overall_status"] == "needs_improvement"
     assert result["public_readiness"] == "needs_improvement"
+    assert result["external_tool_posture"]["source_sufficiency"] == "adapter_enough"
+    assert result["external_tool_posture"]["recommended_source_layer"] == "curated_internal_adapters"
     assert result["top_priorities"][0]["check"] == "typography_coherence"
     assert result["quick_wins"][0] == "Replace the generic body sans with a more intentional family."
     assert result["execution_plan"]

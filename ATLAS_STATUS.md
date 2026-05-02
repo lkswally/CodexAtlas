@@ -198,3 +198,8 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - `skills/_legacy_flat/` exists as an empty blocked cleanup directory after a failed move attempt
 - Existing blocked test residues remain under `tests/tmpik5_anpo`, `tests/_tmp_bootstrap_case`, `tests/_tmp_bootstrap_tests` and `tests/_tmp_template_validation` because the environment denied deletion
 - `_reference/claude-vibecoding/` may exist locally as an ignored research clone, but it is not part of the canonical repo surface
+## External Tool Posture
+
+- `external_tool_policy` is now surfaced in advisory-only mode.
+- Atlas can explain when local repo evidence, internal policies, curated adapters or official docs are sufficient.
+- No external tool, CLI or MCP is executed automatically from this policy.

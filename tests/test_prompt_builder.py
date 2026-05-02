@@ -33,6 +33,9 @@ def test_prompt_builder_defaults_to_planning_for_new_brief():
     assert result["current_phase"] == "planning"
     assert result["recommended_command"] == "project-bootstrap"
     assert "project-bootstrap" in result["prompt"]
+    assert "Orden de fuentes si hace falta research" in result["prompt"]
+    assert "primero revisar repo local" in result["prompt"]
+    assert "no usar MCP real sin confirmación" in result["prompt"]
     assert result["model_profile_recommendation"]["recommended_model_profile"] in {"cost_saver", "deep_reasoning", "code_execution"}
 
 
@@ -52,6 +55,24 @@ def test_prompt_builder_surfaces_feedback_patterns_when_present():
     assert result["status"] == "ok"
     assert "Patrones de feedback a tener en cuenta" in result["prompt"]
     assert "Trim dense sections" in result["prompt"]
+
+
+def test_prompt_builder_adds_research_guidance_when_definition_is_missing():
+    result = build_prompt(
+        root=ATLAS_ROOT,
+        project=WEB_ROOT,
+        intent_report={
+            "project_type": "internal_tool",
+            "objective": "Investigate external documentation posture.",
+            "risk_level": "medium",
+            "complexity": "medium",
+            "missing_definition": ["reference_scope"],
+            "evidence": [],
+        },
+    )
+    assert result["status"] == "ok"
+    assert "Orden de fuentes si hace falta research" in result["prompt"]
+    assert "luego adapters curados" in result["prompt"]
 
 
 def test_dispatcher_exposes_prompt_builder_and_project_intent_commands():

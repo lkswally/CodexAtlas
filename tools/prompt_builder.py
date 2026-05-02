@@ -19,6 +19,14 @@ except ModuleNotFoundError:
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
+RESEARCH_GUIDANCE_LINES = [
+    "Orden de fuentes si hace falta research:",
+    "- primero revisar repo local",
+    "- luego policies y config internas",
+    "- luego adapters curados",
+    "- recién después docs oficiales o web",
+    "- no usar MCP real sin confirmación",
+]
 
 
 def _utc_now_iso() -> str:
@@ -66,6 +74,7 @@ def _prompt_lines(
     model_route: Dict[str, Any],
     priority_bundle: Optional[Dict[str, Any]],
     feedback_analysis: Optional[Dict[str, Any]],
+    include_research_guidance: bool,
 ) -> List[str]:
     lines: List[str] = []
     if project is not None:
@@ -125,6 +134,9 @@ def _prompt_lines(
         lines.append("Definición faltante detectada:")
         for item in missing_definition[:3]:
             lines.append(f"- {item}")
+
+    if include_research_guidance:
+        lines.extend(RESEARCH_GUIDANCE_LINES)
 
     if isinstance(feedback_analysis, dict):
         patterns = list(feedback_analysis.get("detected_patterns", []))
@@ -201,6 +213,26 @@ def _derive_validation_after_prompt(current_phase: str, recommended_command: Opt
     return checks[:3]
 
 
+def _requires_research_guidance(
+    *,
+    project: Optional[Path],
+    current_phase: str,
+    objective: Optional[str],
+    missing_definition: List[str],
+) -> bool:
+    if project is None:
+        return True
+    if missing_definition:
+        return True
+    if current_phase in {"idea", "planning"}:
+        return True
+    normalized_objective = " ".join(str(objective or "").lower().split())
+    return any(
+        hint in normalized_objective
+        for hint in ("research", "compare", "docs", "documentation", "reference", "investigate")
+    )
+
+
 def build_prompt(
     *,
     root: Path,
@@ -266,6 +298,12 @@ def build_prompt(
             model_route=model_route,
             priority_bundle=priority_bundle,
             feedback_analysis=feedback_analysis,
+            include_research_guidance=_requires_research_guidance(
+                project=project,
+                current_phase=current_phase,
+                objective=str(intent.get("objective", "")).strip() or None,
+                missing_definition=list(intent.get("missing_definition", [])),
+            ),
         )
     )
     risks = _derive_risks(

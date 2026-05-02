@@ -9,6 +9,7 @@ from tools.atlas_governance_check import (
     _find_forbidden_canonical_root_artifacts,
     _record_governance_event,
     _read_text,
+    _validate_external_tool_policy,
     _validate_mcp_profiles,
     _validate_docs_search_catalog,
     _validate_bootstrap_contract,
@@ -375,3 +376,31 @@ def test_docs_search_catalog_rejects_duplicate_or_invalid_entries():
     assert "docs_search_catalog_entry_2:invalid_last_verified:invalid-date" in findings
     assert "docs_search_catalog_entry_2:invalid_freshness_window_days:0" in findings
     assert "docs_search_catalog_entry_2:invalid_status:unsupported" in findings
+
+
+def test_external_tool_policy_rejects_invalid_structure():
+    findings = []
+    invalid_policy = {
+        "version": "1.0",
+        "mode": "automatic",
+        "layers": ["knowledge"],
+        "source_priority": ["local_repo"],
+        "default_stance": {"mcp": "enabled", "preferred_mode": "write"},
+        "prefer_cli_over_mcp_when": [],
+        "do_not_use_external_tools_when": [],
+        "risk_axes": [],
+        "integration_hints": {},
+    }
+
+    with patch("tools.atlas_governance_check._load_external_tool_policy", return_value=invalid_policy):
+        _validate_external_tool_policy(ROOT, findings)
+
+    assert "external_tool_policy_invalid_mode" in findings
+    assert "external_tool_policy_invalid_layers" in findings
+    assert "external_tool_policy_invalid_source_priority" in findings
+    assert "external_tool_policy_invalid_mcp_stance" in findings
+    assert "external_tool_policy_invalid_preferred_mode" in findings
+    assert "external_tool_policy_invalid_list:prefer_cli_over_mcp_when" in findings
+    assert "external_tool_policy_invalid_list:do_not_use_external_tools_when" in findings
+    assert "external_tool_policy_invalid_list:risk_axes" in findings
+    assert "external_tool_policy_invalid_integration_hints" in findings

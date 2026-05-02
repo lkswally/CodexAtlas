@@ -30,6 +30,7 @@ REQUIRED_ROOT_FILES = (
     "config/mcp_profiles.json",
     "config/docs_search_catalog.json",
     "config/phase_playbook.json",
+    "config/external_tool_policy.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -64,6 +65,7 @@ REQUIRED_ROOT_FILES = (
     "policies/model_routing_policy.md",
     "policies/mcp_routing_policy.md",
     "policies/cost_control_policy.md",
+    "policies/external_tool_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
     "memory/session_summaries.md",
@@ -326,6 +328,18 @@ MODEL_ROUTING_RULE_REQUIRED_FIELDS = {
     "reason",
     "requires_confirmation_when_ambiguous",
 }
+EXTERNAL_TOOL_POLICY_REQUIRED_FIELDS = {
+    "version",
+    "mode",
+    "layers",
+    "source_priority",
+    "default_stance",
+    "prefer_cli_over_mcp_when",
+    "do_not_use_external_tools_when",
+    "risk_axes",
+    "integration_hints",
+}
+EXTERNAL_TOOL_POLICY_REQUIRED_LAYERS = {"knowledge", "control", "execution", "context"}
 
 
 def _primary_registry_path(root: Path) -> Path:
@@ -382,6 +396,10 @@ def _load_model_routing_rules(root: Path) -> Dict[str, Any]:
 
 def _load_mcp_profiles(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "mcp_profiles.json").read_text(encoding="utf-8"))
+
+
+def _load_external_tool_policy(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "external_tool_policy.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -590,6 +608,51 @@ def _validate_mcp_profiles(root: Path, findings: List[str]) -> None:
 
     if len(experimental_profiles) > 1:
         findings.append(f"mcp_profiles_multiple_experimental:{','.join(sorted(experimental_profiles))}")
+
+
+def _validate_external_tool_policy(root: Path, findings: List[str]) -> None:
+    try:
+        policy = _load_external_tool_policy(root)
+    except Exception as exc:
+        findings.append(f"invalid_external_tool_policy_json:{exc}")
+        return
+
+    if not isinstance(policy, dict):
+        findings.append("external_tool_policy_not_object")
+        return
+
+    missing = EXTERNAL_TOOL_POLICY_REQUIRED_FIELDS - set(policy.keys())
+    if missing:
+        findings.append(f"external_tool_policy_missing_fields:{','.join(sorted(missing))}")
+
+    if str(policy.get("mode", "")).strip() != "advisory_only":
+        findings.append("external_tool_policy_invalid_mode")
+
+    layers = policy.get("layers")
+    layer_names = {str(item).strip() for item in layers} if isinstance(layers, list) else set()
+    if not isinstance(layers, list) or not EXTERNAL_TOOL_POLICY_REQUIRED_LAYERS.issubset(layer_names):
+        findings.append("external_tool_policy_invalid_layers")
+
+    source_priority = policy.get("source_priority")
+    if not isinstance(source_priority, list) or len(source_priority) < 5:
+        findings.append("external_tool_policy_invalid_source_priority")
+
+    default_stance = policy.get("default_stance")
+    if not isinstance(default_stance, dict):
+        findings.append("external_tool_policy_invalid_default_stance")
+    else:
+        if str(default_stance.get("mcp", "")).strip() != "blocked_until_readiness_verified":
+            findings.append("external_tool_policy_invalid_mcp_stance")
+        if str(default_stance.get("preferred_mode", "")).strip() != "read_only":
+            findings.append("external_tool_policy_invalid_preferred_mode")
+
+    for field in ("prefer_cli_over_mcp_when", "do_not_use_external_tools_when", "risk_axes"):
+        value = policy.get(field)
+        if not isinstance(value, list) or not value:
+            findings.append(f"external_tool_policy_invalid_list:{field}")
+
+    if not isinstance(policy.get("integration_hints"), dict) or not policy.get("integration_hints"):
+        findings.append("external_tool_policy_invalid_integration_hints")
 
 
 def _validate_docs_search_catalog(root: Path, findings: List[str]) -> None:
@@ -1441,6 +1504,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
 
         _validate_model_routing_rules(root, findings)
         _validate_mcp_profiles(root, findings)
+        _validate_external_tool_policy(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)

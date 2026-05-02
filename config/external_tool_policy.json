@@ -1,0 +1,52 @@
+{
+  "version": "1.0",
+  "mode": "advisory_only",
+  "layers": [
+    "knowledge",
+    "control",
+    "execution",
+    "context"
+  ],
+  "source_priority": [
+    "local_repo",
+    "internal_policy_and_config",
+    "curated_internal_adapters",
+    "official_web_docs_or_upstream_repos",
+    "external_tools_or_mcp_if_needed"
+  ],
+  "default_stance": {
+    "external_tools": "deny_by_default",
+    "mcp": "blocked_until_readiness_verified",
+    "global_codex_config_mutation": "forbidden_without_explicit_confirmation",
+    "preferred_mode": "read_only"
+  },
+  "prefer_cli_over_mcp_when": [
+    "repo_inspection",
+    "issue_or_pr_reading",
+    "simple_docs_lookup",
+    "mcp_adds_more_permissions_than_value"
+  ],
+  "do_not_use_external_tools_when": [
+    "local_repo_is_sufficient",
+    "internal_adapter_already_covers_need",
+    "task_is_solved_by_local_policy_or_audit",
+    "tool_would_duplicate_existing_capability",
+    "tool_requires_credentials_or_browser_for_low_value_task",
+    "global_codex_config_change_would_be_required",
+    "real_mcp_support_is_not_verified",
+    "task_is_ambiguous"
+  ],
+  "risk_axes": [
+    "context_cost",
+    "runtime_risk",
+    "false_positive_risk",
+    "hang_risk",
+    "credential_or_config_risk",
+    "capability_overlap"
+  ],
+  "integration_hints": {
+    "quality_gate_report": "show external tool posture or source sufficiency without activating new tools",
+    "priority_engine": "prefer local or adapter-backed actions before external-source actions",
+    "prompt_builder": "state allowed source order when external research may be needed"
+  }
+}
