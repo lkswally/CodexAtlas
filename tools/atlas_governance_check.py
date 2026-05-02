@@ -26,6 +26,7 @@ REQUIRED_ROOT_FILES = (
     "ATLAS_NEXT_STEPS.md",
     "README.md",
     "config/model_profiles.json",
+    "config/model_routing_rules.json",
     "config/mcp_profiles.json",
     "config/docs_search_catalog.json",
     "config/phase_playbook.json",
@@ -112,6 +113,10 @@ REQUIRED_ROOT_FILES = (
     "tools/priority_engine.py",
     "tools/decision_feedback.py",
     "tools/feedback_analyzer.py",
+    "tools/model_router.py",
+    "tools/error_pattern_analyzer.py",
+    "tools/repo_improvement_scout.py",
+    "tools/mcp_readiness_check.py",
     "tools/prompt_builder.py",
     "tools/quality_gate_report.py",
     "tools/skill_evaluator.py",
@@ -125,6 +130,10 @@ REQUIRED_ROOT_FILES = (
     "tests/test_priority_engine.py",
     "tests/test_decision_feedback.py",
     "tests/test_feedback_analyzer.py",
+    "tests/test_model_router.py",
+    "tests/test_error_pattern_analyzer.py",
+    "tests/test_repo_improvement_scout.py",
+    "tests/test_mcp_readiness_check.py",
     "tests/test_prompt_builder.py",
     "tests/test_quality_gate_report.py",
     "tests/test_skill_evaluator.py",
@@ -344,6 +353,10 @@ def _load_model_profiles(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "model_profiles.json").read_text(encoding="utf-8"))
 
 
+def _load_model_routing_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "model_routing_rules.json").read_text(encoding="utf-8"))
+
+
 def _load_mcp_profiles(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "mcp_profiles.json").read_text(encoding="utf-8"))
 
@@ -412,6 +425,45 @@ def _find_forbidden_canonical_root_artifacts(root: Path) -> List[str]:
         if path.exists():
             findings.append(f"forbidden_canonical_artifact:{rel}")
     return findings
+
+
+def _validate_model_routing_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_model_routing_rules(root)
+        profiles = _load_model_profiles(root)
+    except Exception as exc:
+        findings.append(f"invalid_model_routing_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("model_routing_rules_not_object")
+        return
+
+    profile_names = set(profiles.get("profiles", {}).keys()) if isinstance(profiles, dict) else set()
+    aliases = rules.get("aliases")
+    if not isinstance(aliases, dict) or not aliases:
+        findings.append("model_routing_rules_missing_aliases")
+        return
+
+    default_profile_alias = str(rules.get("default_profile_alias", "")).strip()
+    default_fallback_alias = str(rules.get("default_fallback_alias", "")).strip()
+    if default_profile_alias not in aliases:
+        findings.append(f"model_routing_rules_invalid_default_profile_alias:{default_profile_alias}")
+    if default_fallback_alias not in aliases:
+        findings.append(f"model_routing_rules_invalid_default_fallback_alias:{default_fallback_alias}")
+
+    for alias_name, profile_name in aliases.items():
+        if str(profile_name).strip() not in profile_names:
+            findings.append(f"model_routing_rules_unknown_profile:{alias_name}:{profile_name}")
+
+    for mapping_name in ("intent_aliases", "skill_aliases", "phase_bias", "fallback_by_alias"):
+        mapping = rules.get(mapping_name)
+        if not isinstance(mapping, dict) or not mapping:
+            findings.append(f"model_routing_rules_invalid_mapping:{mapping_name}")
+            continue
+        for key, alias_name in mapping.items():
+            if str(alias_name).strip() not in aliases:
+                findings.append(f"model_routing_rules_unknown_alias:{mapping_name}:{key}:{alias_name}")
 
 
 def _validate_mcp_profiles(root: Path, findings: List[str]) -> None:
@@ -1314,6 +1366,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         if not isinstance(legacy_compatibility, dict):
             findings.append("project_state_invalid_legacy_compatibility")
 
+        _validate_model_routing_rules(root, findings)
         _validate_mcp_profiles(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)

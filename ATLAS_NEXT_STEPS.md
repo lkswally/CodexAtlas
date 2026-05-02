@@ -53,8 +53,13 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Prefer stronger metadata or read-only evidence sources before adding more phase heuristics
 - Keep `config/phase_playbook.json` aligned with real factory behavior so guidance stays useful and does not drift into cargo-cult advice
 - Keep `project_intent_analyzer` aligned with explicit brief and metadata signals so it does not reintroduce the kind of false positives Atlas already removed from deploy intent detection
+- Keep `model_router` alias-driven and configurable so Atlas can change provider strategy without rewriting routing logic
 - Keep `prompt_builder` phase-aware and explicit so it teaches the flow without becoming hidden automation
+- Keep `prompt_builder` tied to real priority, feedback and validation signals instead of drifting back toward generic task templates
 - Keep `skill_evaluator` conservative; it should block capability sprawl more often than it approves new reusable skills
+- Keep `error_pattern_analyzer` evidence-first so it reports recurring Atlas failure modes without turning log noise into fake system-learning claims
+- Keep `repo_improvement_scout` anchored to the local reference clone and explicit effort/benefit tradeoffs, not to trend-chasing features
+- Keep `mcp_readiness_check` read-only until Codex CLI can be verified locally without `Access is denied`
 - Keep `priority_engine` as a ranking layer over existing evidence, not as a second policy engine with its own hidden rules
 - Keep landing-quality checks evidence-first and warning-first so Atlas catches README-like public pages without over-blocking intentionally simple derived sites
 - Fix known public placeholder links in derived landings before treating design readiness as anything stronger than `needs_improvement`
@@ -146,3 +151,5 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep the GitHub repo clean of `_reference/`, test residue and personal local artifacts
 - If decision feedback becomes common, consider a small read-only summary layer that groups recurring acceptance and deferral patterns without turning memory into a second policy engine
 - Watch for feedback weighting drifting into hidden personalization if the acceptance and ignore rules stop being explicit and reviewable
+- Watch for model-routing aliases drifting away from the real `config/model_profiles.json` catalog
+- Watch for system-learning suggestions drifting into silent action-taking instead of remaining report-only

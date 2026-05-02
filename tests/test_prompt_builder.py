@@ -18,6 +18,10 @@ def test_prompt_builder_uses_phase_and_intent_for_existing_project():
     assert result["prompt_kind"] == "next_iteration"
     assert "no tocar REYESOFT" in result["prompt"]
     assert "Fase actual: `certified`." in result["prompt"]
+    assert isinstance(result["model_profile_recommendation"], dict)
+    assert result["why_this_prompt"]
+    assert isinstance(result["risks"], list)
+    assert isinstance(result["validation_after_prompt"], list)
 
 
 def test_prompt_builder_defaults_to_planning_for_new_brief():
@@ -29,6 +33,25 @@ def test_prompt_builder_defaults_to_planning_for_new_brief():
     assert result["current_phase"] == "planning"
     assert result["recommended_command"] == "project-bootstrap"
     assert "project-bootstrap" in result["prompt"]
+    assert result["model_profile_recommendation"]["recommended_model_profile"] in {"cost_saver", "deep_reasoning", "code_execution"}
+
+
+def test_prompt_builder_surfaces_feedback_patterns_when_present():
+    result = build_prompt(
+        root=ATLAS_ROOT,
+        project=WEB_ROOT,
+        feedback_analysis={
+            "detected_patterns": [
+                {
+                    "pattern": "Action `Trim dense sections` is repeatedly ignored.",
+                    "recommendation": "Stop surfacing this action unless a new blocker reintroduces it.",
+                }
+            ]
+        },
+    )
+    assert result["status"] == "ok"
+    assert "Patrones de feedback a tener en cuenta" in result["prompt"]
+    assert "Trim dense sections" in result["prompt"]
 
 
 def test_dispatcher_exposes_prompt_builder_and_project_intent_commands():

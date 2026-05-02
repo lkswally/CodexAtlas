@@ -11,6 +11,7 @@ def test_planning_task_routes_to_deep_reasoning():
     result = orchestrate_task("Plan the next architecture phases for Atlas.")
     assert result["intent"] == "planning"
     assert result["model_profile"] == "deep_reasoning"
+    assert result["model_route"]["recommended_model_profile"] == "deep_reasoning"
     assert result["recommended_agent"] == "planner"
     assert result["recommended_skill"] is None
 

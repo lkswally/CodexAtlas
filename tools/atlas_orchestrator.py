@@ -17,12 +17,14 @@ try:
         design_system_review,
         visual_direction_checkpoint,
     )
+    from tools.model_router import recommend_model_profile
 except ModuleNotFoundError:
     from design_intelligence_audit import (  # type: ignore
         anti_generic_ui_audit,
         design_system_review,
         visual_direction_checkpoint,
     )
+    from model_router import recommend_model_profile  # type: ignore
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -1498,10 +1500,23 @@ def orchestrate_task(
     if skill_metadata:
         recommended_agent = str(skill_metadata.get("agent", recommended_agent)).strip() or recommended_agent
         recommended_workflow = str(skill_metadata.get("workflow", recommended_workflow)).strip() or recommended_workflow
-        model_profile_name = str(skill_metadata.get("model_profile", model_profile_name)).strip() or model_profile_name
     elif recommended_skill in WORKFLOW_BY_SKILL:
         recommended_workflow = WORKFLOW_BY_SKILL[recommended_skill]
 
+    routing_risk = _merge_risk(RISK_BY_INTENT[intent], skill_metadata, False)
+    routing_complexity = "high" if intent in {"planning", "architecture", "research", "security"} else "medium"
+    if intent == "documentation":
+        routing_complexity = "low"
+    model_route = recommend_model_profile(
+        root=root,
+        task=task,
+        intent=intent,
+        risk_level=routing_risk,
+        complexity=routing_complexity,
+        project_type=project_type_resolution.get("project_type") if project_type_resolution else None,
+        recommended_skill=recommended_skill,
+    )
+    model_profile_name = str(model_route.get("recommended_model_profile", model_profile_name)).strip() or model_profile_name
     model_profile = model_profiles["profiles"][model_profile_name]
 
     suggested_mcp_ids = _suggest_mcp_ids(task, intent)
@@ -1546,6 +1561,7 @@ def orchestrate_task(
         "recommended_workflow": recommended_workflow,
         "model_profile": model_profile_name,
         "model_reason": _build_model_reason(model_profile_name, model_profile, intent, recommended_skill if skill_metadata else None),
+        "model_route": model_route,
         "suggested_mcps": suggested_mcps,
         "mcp_reason": _build_mcp_reason(suggested_mcp_ids, mcp_profiles),
         "preflight": preflight,

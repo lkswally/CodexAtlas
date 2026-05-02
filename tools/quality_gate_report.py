@@ -19,6 +19,10 @@ try:
 except ModuleNotFoundError:
     from prompt_builder import build_prompt
 try:
+    from tools.model_router import recommend_model_profile
+except ModuleNotFoundError:
+    from model_router import recommend_model_profile
+try:
     from tools.skill_evaluator import evaluate_skill_candidate
 except ModuleNotFoundError:
     from skill_evaluator import evaluate_skill_candidate
@@ -34,6 +38,10 @@ try:
     from tools.feedback_analyzer import analyze_feedback
 except ModuleNotFoundError:
     from feedback_analyzer import analyze_feedback
+try:
+    from tools.error_pattern_analyzer import analyze_error_patterns
+except ModuleNotFoundError:
+    from error_pattern_analyzer import analyze_error_patterns
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -136,9 +144,47 @@ def _run_intent_report(project: Path) -> Dict[str, Any]:
     return _build_ok_report("project_intent_analyzer", report)
 
 
-def _run_prompt_report(root: Path, project: Path) -> Dict[str, Any]:
+def _run_model_route(
+    root: Path,
+    project: Path,
+    *,
+    phase_report: Dict[str, Any],
+    intent_report: Dict[str, Any],
+) -> Dict[str, Any]:
     try:
-        report = build_prompt(root=root, project=project)
+        report = recommend_model_profile(
+            root=root,
+            task=f"quality gate follow-up for {project.name}",
+            current_phase=str(phase_report.get("current_phase", "")).strip() or None,
+            risk_level=str(intent_report.get("risk_level", "low")).strip(),
+            complexity=str(intent_report.get("complexity", "low")).strip(),
+            project_type=str(intent_report.get("project_type", "unknown")).strip(),
+        )
+    except Exception as exc:
+        return _build_failed_report("model_router", f"model_router_failed:{exc}")
+    return _build_ok_report("model_router", report)
+
+
+def _run_prompt_report(
+    root: Path,
+    project: Path,
+    *,
+    phase_report: Optional[Dict[str, Any]] = None,
+    intent_report: Optional[Dict[str, Any]] = None,
+    model_route: Optional[Dict[str, Any]] = None,
+    priority_bundle: Optional[Dict[str, Any]] = None,
+    feedback_analysis: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    try:
+        report = build_prompt(
+            root=root,
+            project=project,
+            phase_report=phase_report,
+            intent_report=intent_report,
+            model_route=model_route,
+            priority_bundle=priority_bundle,
+            feedback_analysis=feedback_analysis,
+        )
     except Exception as exc:
         return _build_failed_report("prompt_builder", f"prompt_builder_failed:{exc}")
     return _build_ok_report("prompt_builder", report)
@@ -374,6 +420,8 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     root = root.resolve()
     project = project.resolve()
     phase_report = _run_dispatch_report("project-phase-report", root=root, project=project)
+    intent_report = _run_intent_report(project)
+    feedback_report = _build_ok_report("feedback_analyzer", analyze_feedback(root=root, project_path=project))
 
     source_reports = {
         "project-phase-report": phase_report,
@@ -381,8 +429,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         "certify-project": _run_dispatch_report("certify-project", root=root, project=project),
         "design_intelligence_audit": _run_design_report(project),
         "surface-audit": _run_dispatch_report("surface-audit", root=root, project=None),
-        "project_intent_analyzer": _run_intent_report(project),
-        "prompt_builder": _run_prompt_report(root, project),
+        "project_intent_analyzer": intent_report,
     }
 
     blockers = _extract_certify_blockers(source_reports["certify-project"])
@@ -466,7 +513,13 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         "top_phase_risks": phase_data.get("common_mistakes", [])[:3],
     }
     source_reports["skill_evaluator"] = _run_skill_signal(root, project, str(current_phase or ""), top_priorities, source_reports["project_intent_analyzer"])
-    source_reports["feedback_analyzer"] = _build_ok_report("feedback_analyzer", analyze_feedback(root=root, project_path=project))
+    source_reports["feedback_analyzer"] = feedback_report
+    source_reports["model_router"] = _run_model_route(
+        root,
+        project,
+        phase_report=phase_data,
+        intent_report=source_reports["project_intent_analyzer"]["report"] if source_reports["project_intent_analyzer"]["status"] == "ok" else {},
+    )
     priority_bundle = build_execution_plan(
         phase_guidance=phase_guidance,
         phase_validity=phase_validity,
@@ -476,6 +529,19 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         skill_creation_signal=source_reports["skill_evaluator"]["report"] if source_reports["skill_evaluator"]["status"] == "ok" else None,
         overall_status=overall_status,
         feedback_analysis=source_reports["feedback_analyzer"]["report"] if source_reports["feedback_analyzer"]["status"] == "ok" else None,
+    )
+    source_reports["prompt_builder"] = _run_prompt_report(
+        root,
+        project,
+        phase_report=phase_data,
+        intent_report=source_reports["project_intent_analyzer"]["report"] if source_reports["project_intent_analyzer"]["status"] == "ok" else None,
+        model_route=source_reports["model_router"]["report"] if source_reports["model_router"]["status"] == "ok" else None,
+        priority_bundle=priority_bundle,
+        feedback_analysis=source_reports["feedback_analyzer"]["report"] if source_reports["feedback_analyzer"]["status"] == "ok" else None,
+    )
+    source_reports["error_pattern_analyzer"] = _build_ok_report(
+        "error_pattern_analyzer",
+        analyze_error_patterns(root=root, project=project),
     )
     feedback_recommendation_ids, feedback_actions = _collect_feedback_candidates(
         top_priorities=top_priorities,
@@ -502,8 +568,10 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         "phase_validity": phase_validity,
         "phase_guidance": phase_guidance,
         "intent_analysis": source_reports["project_intent_analyzer"]["report"] if source_reports["project_intent_analyzer"]["status"] == "ok" else None,
+        "model_routing": source_reports["model_router"]["report"] if source_reports["model_router"]["status"] == "ok" else None,
         "prompt_guidance": source_reports["prompt_builder"]["report"] if source_reports["prompt_builder"]["status"] == "ok" else None,
         "skill_creation_signal": source_reports["skill_evaluator"]["report"] if source_reports["skill_evaluator"]["status"] == "ok" else None,
+        "system_learning": source_reports["error_pattern_analyzer"]["report"] if source_reports["error_pattern_analyzer"]["status"] == "ok" else None,
         "blockers": blockers,
         "warnings": warnings,
         "top_priorities": top_priorities,

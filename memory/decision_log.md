@@ -272,3 +272,10 @@
 - Impact: `tools/feedback_analyzer.py` now derives simple acceptance and ignore patterns from `memory/decision_feedback.jsonl`, `priority_engine` applies explicit feedback weights, and `quality_gate_report` exposes adjusted priorities plus detected patterns
 - Risk: if weighting becomes too strong, Atlas could hide a valid recommendation just because it was ignored in a different context
 - Rollback: remove `tools/feedback_analyzer.py`, drop feedback weighting from `priority_engine`, and keep decision feedback as a passive log only
+
+## 2026-05-02
+- Decision: add configurable routing, local error learning, reference scouting and MCP readiness checks as read-only intelligence layers on top of the current factory
+- Reason: the `claude-vibecoding` reference is strongest when adapted as explicit intent, readiness and evidence discipline, not as hidden runtime or extra automation
+- Impact: Atlas can now recommend model-profile aliases, analyze recurring local failure patterns, evaluate the reference repo with an effort/benefit matrix, and keep MCP real activation blocked with a verifiable readiness report
+- Risk: if these layers start inventing conclusions beyond the available evidence, Atlas could become noisier instead of smarter
+- Rollback: remove `tools/model_router.py`, `tools/error_pattern_analyzer.py`, `tools/repo_improvement_scout.py`, `tools/mcp_readiness_check.py` and the quality-gate sections that consume them

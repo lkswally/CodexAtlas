@@ -7,9 +7,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 try:
+    from tools.feedback_analyzer import analyze_feedback
+    from tools.model_router import recommend_model_profile
     from tools.project_intent_analyzer import analyze_project_intent
     from tools.project_phase_resolver import resolve_project_phase
 except ModuleNotFoundError:
+    from feedback_analyzer import analyze_feedback
+    from model_router import recommend_model_profile
     from project_intent_analyzer import analyze_project_intent
     from project_phase_resolver import resolve_project_phase
 
@@ -47,6 +51,9 @@ def _prompt_lines(
     recommended_command: Optional[str],
     phase_report: Dict[str, Any],
     intent: Dict[str, Any],
+    model_route: Dict[str, Any],
+    priority_bundle: Optional[Dict[str, Any]],
+    feedback_analysis: Optional[Dict[str, Any]],
 ) -> List[str]:
     lines: List[str] = []
     if project is not None:
@@ -58,6 +65,11 @@ def _prompt_lines(
         lines.append(f"Tipo de proyecto: `{project_type}`.")
     if objective:
         lines.append(f"Objetivo: {objective}")
+    top_action = None
+    if isinstance(priority_bundle, dict):
+        top_action = priority_bundle.get("primary_action")
+    if top_action:
+        lines.append(f"Foco principal ahora: {top_action}")
     lines.append("Restricciones:")
     lines.append("- no tocar REYESOFT")
     lines.append("- no hooks")
@@ -102,10 +114,68 @@ def _prompt_lines(
         for item in missing_definition[:3]:
             lines.append(f"- {item}")
 
+    if isinstance(feedback_analysis, dict):
+        patterns = list(feedback_analysis.get("detected_patterns", []))
+        if patterns:
+            lines.append("Patrones de feedback a tener en cuenta:")
+            for item in patterns[:2]:
+                pattern = str(item.get("pattern", "")).strip()
+                recommendation = str(item.get("recommendation", "")).strip()
+                if pattern:
+                    lines.append(f"- {pattern}")
+                if recommendation:
+                    lines.append(f"- Ajuste sugerido: {recommendation}")
+
+    lines.append(
+        "Perfil de modelo recomendado: "
+        f"`{model_route.get('recommended_model_profile')}` "
+        f"(reasoning `{model_route.get('reasoning_required')}`, cost `{model_route.get('cost_sensitivity')}`)."
+    )
     if recommended_command:
         lines.append(f"Comando Atlas más alineado ahora: `{recommended_command}`.")
     lines.append("Quiero un informe final breve con lo hecho, lo validado y los riesgos residuales.")
     return lines
+
+
+def _derive_risks(
+    *,
+    phase_report: Dict[str, Any],
+    intent: Dict[str, Any],
+    model_route: Dict[str, Any],
+    feedback_analysis: Optional[Dict[str, Any]],
+) -> List[str]:
+    risks: List[str] = []
+    for item in phase_report.get("common_mistakes", [])[:2]:
+        item_s = str(item).strip()
+        if item_s:
+            risks.append(item_s)
+    for item in intent.get("missing_definition", [])[:2]:
+        item_s = str(item).strip()
+        if item_s:
+            risks.append(f"missing_definition:{item_s}")
+    if str(model_route.get("reasoning_required", "")).strip() == "high":
+        risks.append("Task likely needs deeper reasoning before any broad code or structure changes.")
+    if isinstance(feedback_analysis, dict):
+        for item in feedback_analysis.get("detected_patterns", [])[:1]:
+            pattern = str(item.get("pattern", "")).strip()
+            if pattern:
+                risks.append(pattern)
+    deduped: List[str] = []
+    for item in risks:
+        if item and item not in deduped:
+            deduped.append(item)
+    return deduped[:4]
+
+
+def _derive_validation_after_prompt(current_phase: str, recommended_command: Optional[str]) -> List[str]:
+    checks: List[str] = []
+    if recommended_command:
+        checks.append(f"Run `{recommended_command}` after the requested work.")
+    if current_phase in {"build", "audit", "certified"}:
+        checks.append("Re-check project phase before the next Atlas command if the project state changes materially.")
+    if current_phase in {"audit", "certified"}:
+        checks.append("Use `quality-gate-report` to confirm readiness after the iteration.")
+    return checks[:3]
 
 
 def build_prompt(
@@ -113,6 +183,11 @@ def build_prompt(
     root: Path,
     project: Optional[Path] = None,
     brief: Optional[str] = None,
+    phase_report: Optional[Dict[str, Any]] = None,
+    intent_report: Optional[Dict[str, Any]] = None,
+    model_route: Optional[Dict[str, Any]] = None,
+    priority_bundle: Optional[Dict[str, Any]] = None,
+    feedback_analysis: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     root = root.resolve()
     if project is None and not brief:
@@ -124,10 +199,11 @@ def build_prompt(
 
     if project is not None:
         project = project.resolve()
-        phase_report = resolve_project_phase(root, project)
-        intent = analyze_project_intent(project=project)
+        phase_report = phase_report or resolve_project_phase(root, project)
+        intent = intent_report or analyze_project_intent(project=project)
+        feedback_analysis = feedback_analysis or analyze_feedback(root=root, project_path=project)
     else:
-        phase_report = {
+        phase_report = phase_report or {
             "current_phase": "planning",
             "confidence": "medium",
             "allowed_commands": ["project-bootstrap"],
@@ -141,10 +217,19 @@ def build_prompt(
                 "not defining clear scope",
             ],
         }
-        intent = analyze_project_intent(brief=brief)
+        intent = intent_report or analyze_project_intent(brief=brief)
+        feedback_analysis = feedback_analysis or {"detected_patterns": []}
 
     current_phase = str(phase_report.get("current_phase", "planning")).strip() or "planning"
     recommended_command = _recommended_command_for_phase(phase_report)
+    model_route = model_route or recommend_model_profile(
+        root=root,
+        task=brief or "",
+        current_phase=current_phase,
+        risk_level=str(intent.get("risk_level", "low")).strip(),
+        complexity=str(intent.get("complexity", "low")).strip(),
+        project_type=str(intent.get("project_type", "unknown")).strip(),
+    )
     prompt = "\n".join(
         _prompt_lines(
             project=project,
@@ -154,7 +239,16 @@ def build_prompt(
             recommended_command=recommended_command,
             phase_report=phase_report,
             intent=intent,
+            model_route=model_route,
+            priority_bundle=priority_bundle,
+            feedback_analysis=feedback_analysis,
         )
+    )
+    risks = _derive_risks(
+        phase_report=phase_report,
+        intent=intent,
+        model_route=model_route,
+        feedback_analysis=feedback_analysis,
     )
     return {
         "status": "ok",
@@ -168,6 +262,13 @@ def build_prompt(
         "complexity": intent.get("complexity"),
         "missing_definition": intent.get("missing_definition", []),
         "prompt": prompt,
+        "model_profile_recommendation": model_route,
+        "why_this_prompt": (
+            f"Built from phase `{current_phase}`, project type `{intent.get('project_type')}` "
+            f"and model profile `{model_route.get('recommended_model_profile')}`."
+        ),
+        "risks": risks,
+        "validation_after_prompt": _derive_validation_after_prompt(current_phase, recommended_command),
         "phase_evidence": phase_report.get("evidence", []),
         "intent_evidence": intent.get("evidence", []),
         "timestamp": _utc_now_iso(),

@@ -1,17 +1,22 @@
 import json
-import tempfile
+import shutil
 from pathlib import Path
+from uuid import uuid4
 
 from tools.feedback_analyzer import analyze_feedback
 
 
 ROOT = Path(r"C:\Proyectos\Codex-Atlas")
 PROJECT = Path(r"C:\Proyectos\CodexAtlas-Web")
+TESTS_DIR = Path(__file__).resolve().parent
 
 
 def test_feedback_analyzer_calculates_rates_and_last_decision():
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        log_path = Path(tmp_dir) / "decision_feedback.jsonl"
+    tmp_dir = TESTS_DIR / f"_tmp_feedback_analyzer_case_1_{uuid4().hex}"
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        log_path = tmp_dir / "decision_feedback.jsonl"
         entries = [
             {
                 "project_path": str(PROJECT.resolve()),
@@ -43,11 +48,16 @@ def test_feedback_analyzer_calculates_rates_and_last_decision():
         assert feedback["acceptance_rate"] == 0.5
         assert feedback["ignore_rate"] == 0.5
         assert feedback["last_decision"] == "ignored"
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 def test_feedback_analyzer_detects_repeated_ignore_pattern():
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        log_path = Path(tmp_dir) / "decision_feedback.jsonl"
+    tmp_dir = TESTS_DIR / f"_tmp_feedback_analyzer_case_2_{uuid4().hex}"
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        log_path = tmp_dir / "decision_feedback.jsonl"
         entries = [
             {
                 "project_path": str(PROJECT.resolve()),
@@ -74,3 +84,5 @@ def test_feedback_analyzer_detects_repeated_ignore_pattern():
 
         assert result["detected_patterns"]
         assert "repeatedly ignored" in result["detected_patterns"][0]["pattern"]
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)

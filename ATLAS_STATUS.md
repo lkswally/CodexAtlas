@@ -43,8 +43,12 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - `quality_gate_report` now includes `phase_alignment` and `phase_validity` so readiness stays tied to lifecycle context
 - Atlas now has a governed `phase_playbook` that explains the right next steps and common mistakes for each lifecycle phase without adding automation
 - Atlas now has a read-only `project_intent_analyzer` adapted from Intent Clarifier to infer project type, objective, risk, complexity and missing definition
+- Atlas now has a configurable read-only `model_router` that maps intent, phase, risk, complexity and task mode to model-profile aliases instead of hardcoded single-model choices
 - Atlas now has a read-only `prompt_builder` that turns current phase plus project intent into explicit next-step prompts instead of hidden workflow logic
 - Atlas now has a read-only `skill_evaluator` that helps reject low-value reusable-skill ideas before Atlas grows new capability surface
+- Atlas now has a read-only `error_pattern_analyzer` that reads local Atlas logs to detect repeated blocks, ignored actions, MCP runtime failures and governance drift
+- Atlas now has a read-only `repo_improvement_scout` that evaluates `_reference/claude-vibecoding` as a structured source of safe Atlas improvements
+- Atlas now has a read-only `mcp_readiness_check` that keeps real MCP activation blocked while the local Codex CLI still cannot be verified safely
 - `quality_gate_report` now includes intent analysis, prompt guidance and a reusable-skill creation signal alongside readiness, phase and evidence summaries
 - Atlas now has a read-only `priority_engine` that reduces noise and turns existing phase, intent, audit and skill signals into a short execution plan
 - `quality_gate_report` now exposes `execution_plan`, `primary_action` and `why_now` so readiness reports say what to do first instead of only listing signals
@@ -173,6 +177,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - No change was made to `C:\Users\Lucas\.codex\config.toml`, and no project-scoped `.codex/config.toml` was added under Atlas because real MCP activation could not be verified safely
 - Decision feedback is now tracked only inside Atlas memory and never written back into derived projects
 - Atlas can now read decision feedback back into its ranking layer to reduce repeated ignored recommendations and reinforce consistently accepted ones
+- Atlas can now combine phase, intent, model routing, feedback history and error-pattern evidence without activating hidden runtime or touching derived projects
 
 ## Product context status
 

@@ -34,9 +34,13 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["source_reports"]["prompt_builder"]["status"] == "ok"
     assert result["source_reports"]["skill_evaluator"]["status"] == "ok"
     assert result["source_reports"]["feedback_analyzer"]["status"] == "ok"
+    assert result["source_reports"]["model_router"]["status"] == "ok"
+    assert result["source_reports"]["error_pattern_analyzer"]["status"] == "ok"
     assert isinstance(result["intent_analysis"], dict)
+    assert isinstance(result["model_routing"], dict)
     assert isinstance(result["prompt_guidance"], dict)
     assert isinstance(result["skill_creation_signal"], dict)
+    assert isinstance(result["system_learning"], dict)
     assert isinstance(result["execution_plan"], list)
     assert len(result["execution_plan"]) <= 3
     assert len(result["quick_wins"]) <= 2

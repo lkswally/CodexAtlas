@@ -1,19 +1,24 @@
 import json
 from io import StringIO
-import tempfile
+import shutil
 from contextlib import redirect_stdout
 from pathlib import Path
+from uuid import uuid4
 
 from tools.decision_feedback import append_decision_feedback, find_relevant_feedback, main
 
 
 ROOT = Path(r"C:\Proyectos\Codex-Atlas")
 PROJECT = Path(r"C:\Proyectos\CodexAtlas-Web")
+TESTS_DIR = Path(__file__).resolve().parent
 
 
 def test_append_decision_feedback_and_find_relevant_entries():
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        log_path = Path(tmp_dir) / "decision_feedback.jsonl"
+    tmp_dir = TESTS_DIR / f"_tmp_decision_feedback_case_1_{uuid4().hex}"
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        log_path = tmp_dir / "decision_feedback.jsonl"
         append_decision_feedback(
             root=ROOT,
             project_path=PROJECT,
@@ -48,11 +53,16 @@ def test_append_decision_feedback_and_find_relevant_entries():
         entry = result["relevant_feedback"][0]
         assert entry["recommendation_id"] == "typography_coherence"
         assert entry["decision"] == "accepted"
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 def test_append_decision_feedback_requires_recommendation_or_action():
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        log_path = Path(tmp_dir) / "decision_feedback.jsonl"
+    tmp_dir = TESTS_DIR / f"_tmp_decision_feedback_case_2_{uuid4().hex}"
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        log_path = tmp_dir / "decision_feedback.jsonl"
         try:
             append_decision_feedback(
                 root=ROOT,
@@ -66,11 +76,16 @@ def test_append_decision_feedback_requires_recommendation_or_action():
             assert str(exc) == "recommendation_id_or_action_required"
         else:
             raise AssertionError("Expected ValueError when both recommendation_id and action are missing.")
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 def test_find_relevant_feedback_skips_blank_lines():
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        log_path = Path(tmp_dir) / "decision_feedback.jsonl"
+    tmp_dir = TESTS_DIR / f"_tmp_decision_feedback_case_3_{uuid4().hex}"
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        log_path = tmp_dir / "decision_feedback.jsonl"
         log_path.write_text(
             "\n"
             + json.dumps(
@@ -98,11 +113,15 @@ def test_find_relevant_feedback_skips_blank_lines():
         assert result["status"] == "ok"
         assert result["has_relevant_feedback"] is True
         assert result["relevant_feedback"][0]["decision"] == "replaced"
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 def test_decision_feedback_cli_add_writes_append_only_entry():
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        root = Path(tmp_dir)
+    root = TESTS_DIR / f"_tmp_decision_feedback_case_4_{uuid4().hex}"
+    shutil.rmtree(root, ignore_errors=True)
+    root.mkdir(parents=True, exist_ok=True)
+    try:
         buffer = StringIO()
         with redirect_stdout(buffer):
             exit_code = main(
@@ -130,11 +149,15 @@ def test_decision_feedback_cli_add_writes_append_only_entry():
         entry = json.loads(lines[0])
         assert entry["action"] == "Refine CTA copy"
         assert entry["decision"] == "accepted"
+    finally:
+        shutil.rmtree(root, ignore_errors=True)
 
 
 def test_decision_feedback_cli_list_returns_project_history_without_filters():
-    with tempfile.TemporaryDirectory() as tmp_dir:
-        root = Path(tmp_dir)
+    root = TESTS_DIR / f"_tmp_decision_feedback_case_5_{uuid4().hex}"
+    shutil.rmtree(root, ignore_errors=True)
+    root.mkdir(parents=True, exist_ok=True)
+    try:
         log_path = root / "memory" / "decision_feedback.jsonl"
         log_path.parent.mkdir(parents=True, exist_ok=True)
         log_path.write_text(
@@ -185,3 +208,5 @@ def test_decision_feedback_cli_list_returns_project_history_without_filters():
         assert payload["status"] == "ok"
         assert payload["has_relevant_feedback"] is True
         assert len(payload["relevant_feedback"]) == 2
+    finally:
+        shutil.rmtree(root, ignore_errors=True)

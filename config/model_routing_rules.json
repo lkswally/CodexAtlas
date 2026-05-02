@@ -1,0 +1,53 @@
+{
+  "default_profile_alias": "cost_saver",
+  "default_fallback_alias": "deep_reasoning",
+  "aliases": {
+    "deep_reasoning": "deep_reasoning",
+    "code_execution": "code_execution",
+    "lightweight_editing": "code_execution",
+    "documentation": "cost_saver",
+    "audit_review": "reviewer",
+    "design_reasoning": "creative_product",
+    "cost_saver": "cost_saver",
+    "security_review": "security"
+  },
+  "intent_aliases": {
+    "planning": "deep_reasoning",
+    "architecture": "deep_reasoning",
+    "code_execution": "code_execution",
+    "code_review": "audit_review",
+    "branding_ux": "design_reasoning",
+    "security": "security_review",
+    "documentation": "documentation",
+    "project_creation": "deep_reasoning",
+    "research": "deep_reasoning",
+    "deployment_or_destructive_action": "security_review",
+    "unknown": "cost_saver"
+  },
+  "skill_aliases": {
+    "project-bootstrap": "deep_reasoning",
+    "repo-audit": "audit_review",
+    "product-branding-review": "design_reasoning",
+    "visual-direction-checkpoint": "design_reasoning",
+    "anti-generic-ui-audit": "audit_review",
+    "design-system-review": "design_reasoning"
+  },
+  "phase_bias": {
+    "idea": "deep_reasoning",
+    "planning": "deep_reasoning",
+    "bootstrap": "documentation",
+    "build": "code_execution",
+    "audit": "audit_review",
+    "certified": "documentation"
+  },
+  "fallback_by_alias": {
+    "deep_reasoning": "cost_saver",
+    "code_execution": "deep_reasoning",
+    "lightweight_editing": "cost_saver",
+    "documentation": "deep_reasoning",
+    "audit_review": "deep_reasoning",
+    "design_reasoning": "deep_reasoning",
+    "cost_saver": "deep_reasoning",
+    "security_review": "deep_reasoning"
+  }
+}
