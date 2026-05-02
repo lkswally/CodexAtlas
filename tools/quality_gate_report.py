@@ -166,7 +166,21 @@ def _run_model_route(
     return _build_ok_report("model_router", report)
 
 
-def _step_intent_hint(source: str) -> Optional[str]:
+LOW_RISK_INFORMATIONAL_PREFIXES = (
+    "avoid ",
+    "review ",
+    "document ",
+    "list ",
+    "check ",
+    "summarize ",
+)
+
+
+def _step_intent_hint(source: str, action: str) -> Optional[str]:
+    normalized_action = str(action or "").strip().lower()
+    if any(normalized_action.startswith(prefix) for prefix in LOW_RISK_INFORMATIONAL_PREFIXES):
+        return "documentation"
+
     normalized = str(source or "").strip().lower()
     if normalized in {"phase", "intent", "skill"}:
         return "planning"
@@ -197,7 +211,7 @@ def _enrich_execution_plan_with_models(
             route = recommend_model_profile(
                 root=root,
                 task=action,
-                intent=_step_intent_hint(source),
+                intent=_step_intent_hint(source, action),
                 current_phase=str(current_phase or "").strip() or None,
                 risk_level=risk_level,
                 complexity=complexity,

@@ -43,6 +43,14 @@ TASK_TYPE_KEYWORDS = {
     "design_reasoning": ("design", "branding", "ux", "visual", "hero", "landing", "copywriting"),
     "security_review": ("security", "secrets", "credentials", "auth", "permission", "destructive"),
 }
+LOW_RISK_INFORMATIONAL_PREFIXES = (
+    "avoid ",
+    "review ",
+    "document ",
+    "list ",
+    "check ",
+    "summarize ",
+)
 PHASE_TO_TASK_TYPE = {
     "idea": "planning",
     "planning": "planning",
@@ -183,6 +191,10 @@ def _derive_cost_sensitivity(task: str) -> Tuple[str, List[str], bool]:
 
 def _derive_task_type(*, task: str, intent: Optional[str], recommended_skill: Optional[str], current_phase: Optional[str]) -> Dict[str, Any]:
     evidence: List[str] = []
+    normalized = _normalize(task)
+    if any(normalized.startswith(prefix.strip()) for prefix in LOW_RISK_INFORMATIONAL_PREFIXES):
+        return {"task_type": "documentation", "confidence": "medium", "ambiguous": False, "candidates": ["documentation"], "evidence": ["low_risk_informational_action"]}
+
     if recommended_skill and recommended_skill in TASK_TYPE_BY_SKILL:
         task_type = TASK_TYPE_BY_SKILL[recommended_skill]
         return {"task_type": task_type, "confidence": "high", "ambiguous": False, "candidates": [task_type], "evidence": [f"skill={recommended_skill}->{task_type}"]}
@@ -190,7 +202,6 @@ def _derive_task_type(*, task: str, intent: Optional[str], recommended_skill: Op
         task_type = TASK_TYPE_BY_INTENT[intent]
         return {"task_type": task_type, "confidence": "high", "ambiguous": False, "candidates": [task_type], "evidence": [f"intent={intent}->{task_type}"]}
 
-    normalized = _normalize(task)
     candidates: List[str] = []
     for task_type, keywords in TASK_TYPE_KEYWORDS.items():
         hits = [keyword for keyword in keywords if keyword in normalized]
@@ -296,6 +307,12 @@ def recommend_model_profile(*, root: Path, task: str = "", intent: Optional[str]
     normalized_complexity = _normalize_level(complexity, COMPLEXITY_LEVELS, "medium")
     cost_sensitivity, cost_evidence, cost_priority_explicit = _derive_cost_sensitivity(task)
     task_type_bundle = _derive_task_type(task=task, intent=intent, recommended_skill=recommended_skill, current_phase=current_phase)
+    if "low_risk_informational_action" in task_type_bundle.get("evidence", []):
+        normalized_risk = "low"
+        normalized_complexity = "low"
+        if not cost_priority_explicit:
+            cost_sensitivity = "high"
+            cost_evidence.append("informational_action_prefers_cost_saver")
     missing_information = _build_missing_information(task_type_bundle=task_type_bundle, current_phase=current_phase)
     effective_phase = normalized_phase
     task_type = str(task_type_bundle.get("task_type") or "").strip().lower()

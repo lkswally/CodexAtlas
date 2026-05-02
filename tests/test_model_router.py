@@ -99,6 +99,22 @@ def test_model_router_prefers_codex_mini_for_low_risk_token_saving():
     assert result["cost_sensitivity"] == "high"
 
 
+def test_model_router_prefers_mini_for_informational_low_risk_action():
+    result = recommend_model_profile(
+        root=ATLAS_ROOT,
+        task="Summarize the current status and list the next checks.",
+        intent=None,
+        current_phase="certified",
+        risk_level="low",
+        complexity="low",
+        project_type="internal_tool",
+        switch_support=SWITCH_SUPPORT_UNVERIFIED,
+    )
+    assert result["recommended_model"] == "GPT-5.4-Mini"
+    assert result["fallback_model"] == "GPT-5.1-Codex-Mini"
+    assert result["cost_saver_model"] == "GPT-5.1-Codex-Mini"
+
+
 def test_model_router_marks_ambiguous_case_for_confirmation():
     result = recommend_model_profile(
         root=ATLAS_ROOT,

@@ -50,6 +50,9 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
         assert "cheaper_alternative_model" in first_step
         assert "requires_user_confirmation" in first_step
         assert first_step["why_model"]
+        avoid_steps = [step for step in result["execution_plan"] if str(step.get("action", "")).lower().startswith("avoid ")]
+        if avoid_steps:
+            assert avoid_steps[0]["recommended_model"] in {"GPT-5.4-Mini", "GPT-5.1-Codex-Mini"}
     assert len(result["quick_wins"]) <= 2
     assert isinstance(result["feedback_adjusted_priorities"], list)
     assert isinstance(result["detected_patterns"], list)
