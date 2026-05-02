@@ -26,6 +26,10 @@ try:
     from tools.priority_engine import build_execution_plan
 except ModuleNotFoundError:
     from priority_engine import build_execution_plan
+try:
+    from tools.decision_feedback import find_relevant_feedback
+except ModuleNotFoundError:
+    from decision_feedback import find_relevant_feedback
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -37,6 +41,38 @@ CORE_REPORTS = {
     "design_intelligence_audit",
     "surface-audit",
 }
+
+
+def _collect_feedback_candidates(
+    top_priorities: List[Dict[str, Any]],
+    quick_wins: List[str],
+    execution_plan: List[Dict[str, Any]],
+    primary_action: Optional[str],
+) -> Tuple[List[str], List[str]]:
+    recommendation_ids: List[str] = []
+    actions: List[str] = []
+    seen_ids: set[str] = set()
+    seen_actions: set[str] = set()
+
+    for item in top_priorities:
+        check = str(item.get("check", "")).strip()
+        if check and check not in seen_ids:
+            seen_ids.add(check)
+            recommendation_ids.append(check)
+
+    for action in [primary_action, *quick_wins]:
+        action_text = str(action or "").strip()
+        if action_text and action_text not in seen_actions:
+            seen_actions.add(action_text)
+            actions.append(action_text)
+
+    for step in execution_plan:
+        action_text = str(step.get("action", "")).strip()
+        if action_text and action_text not in seen_actions:
+            seen_actions.add(action_text)
+            actions.append(action_text)
+
+    return recommendation_ids, actions
 
 
 def _utc_now_iso() -> str:
@@ -435,6 +471,19 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         skill_creation_signal=source_reports["skill_evaluator"]["report"] if source_reports["skill_evaluator"]["status"] == "ok" else None,
         overall_status=overall_status,
     )
+    feedback_recommendation_ids, feedback_actions = _collect_feedback_candidates(
+        top_priorities=top_priorities,
+        quick_wins=priority_bundle["quick_wins"],
+        execution_plan=priority_bundle["execution_plan"],
+        primary_action=priority_bundle["primary_action"],
+    )
+    decision_feedback = find_relevant_feedback(
+        root=root,
+        project_path=project,
+        recommendation_ids=feedback_recommendation_ids,
+        actions=feedback_actions,
+        limit=5,
+    )
 
     return {
         "status": "ok",
@@ -456,6 +505,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         "execution_plan": priority_bundle["execution_plan"],
         "primary_action": priority_bundle["primary_action"],
         "why_now": priority_bundle["why_now"],
+        "decision_feedback": decision_feedback,
         "evidence_summary": evidence_summary,
         "source_reports": source_reports,
         "summary_for_human": summary_for_human,

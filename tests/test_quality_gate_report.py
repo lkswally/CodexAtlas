@@ -41,6 +41,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert len(result["quick_wins"]) <= 2
     assert result["primary_action"] is not None
     assert result["why_now"]
+    assert isinstance(result["decision_feedback"], dict)
+    assert result["decision_feedback"]["status"] in {"ok", "failed"}
     assert result["recommended_next_action"]
 
 
@@ -163,3 +165,77 @@ def test_quality_gate_report_priorities_come_from_existing_design_recommendation
     assert result["quick_wins"][0] == "Replace the generic body sans with a more intentional family."
     assert result["execution_plan"]
     assert result["primary_action"]
+
+
+def test_quality_gate_report_surfaces_relevant_decision_feedback():
+    phase_report = {
+        "ok": True,
+        "result": {
+            "status": "ok",
+            "current_phase": "audit",
+            "confidence": "high",
+            "blocked_actions": [],
+            "next_valid_phases": ["certified"],
+            "recommended_actions": ["Run certify-project once audit findings are resolved."],
+        },
+    }
+    fake_audit = {"ok": True, "result": {"status": "ok", "findings": []}}
+    fake_certify = {"ok": True, "result": {"status": "ok", "blockers": [], "warnings": []}}
+    fake_surface = {"ok": True, "result": {"status": "ok", "warnings": [], "recommendations": []}}
+    fake_design = {
+        "status": "needs_attention",
+        "public_readiness": "needs_improvement",
+        "landing_score": 88,
+        "warnings": ["typography_coherence:warning"],
+        "quick_wins": ["Replace the generic body sans with a more intentional family."],
+        "checks": [],
+        "recommendation_sources": [
+            {
+                "recommendation": "Replace the generic body sans with a more intentional family.",
+                "originating_check": "typography_coherence",
+                "evidence": ["body_font=Segoe UI"],
+                "severity": "medium",
+                "status": "warning",
+            }
+        ],
+    }
+    fake_feedback = {
+        "status": "ok",
+        "reason": None,
+        "has_relevant_feedback": True,
+        "relevant_feedback": [
+            {
+                "project_path": str(WEB_ROOT),
+                "recommendation_id": "typography_coherence",
+                "action": "Replace the generic body sans with a more intentional family.",
+                "decision": "deferred",
+                "reason": "Bundled into the next design pass.",
+                "timestamp": "2026-05-01T00:00:00+00:00",
+                "source": "quality_gate_report",
+            }
+        ],
+        "matched_recommendation_ids": ["typography_coherence"],
+        "matched_actions": ["Replace the generic body sans with a more intentional family."],
+        "log_path": "C:/fake/decision_feedback.jsonl",
+    }
+
+    def fake_dispatch(command_id, root=None, project=None):
+        class _Res:
+            def __init__(self, output):
+                self.output = output
+
+        mapping = {
+            "project-phase-report": phase_report,
+            "audit-repo": fake_audit,
+            "certify-project": fake_certify,
+            "surface-audit": fake_surface,
+        }
+        return _Res(mapping[command_id])
+
+    with patch("tools.quality_gate_report._dispatch_output", side_effect=lambda command_id, root=None, project=None: fake_dispatch(command_id, root=root, project=project).output):
+        with patch("tools.quality_gate_report.anti_generic_ui_audit", return_value=fake_design):
+            with patch("tools.quality_gate_report.find_relevant_feedback", return_value=fake_feedback):
+                result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+
+    assert result["decision_feedback"]["has_relevant_feedback"] is True
+    assert result["decision_feedback"]["relevant_feedback"][0]["decision"] == "deferred"

@@ -258,3 +258,10 @@
 - Impact: `quality_gate_report` now returns `execution_plan`, `primary_action` and `why_now`, with phase-aware conflict resolution and reduced noise
 - Risk: the ranking layer could become opinionated drift if it starts inventing priorities outside the existing evidence sources
 - Rollback: remove `tools/priority_engine.py`, delete the extra planning fields from `quality_gate_report`, and keep the gate as a pure aggregation surface
+
+## 2026-05-01
+- Decision: add an append-only decision feedback log for Atlas recommendations instead of writing project state back into derived repos
+- Reason: Priority outputs are only useful over time if Atlas can remember whether a recommendation was accepted, ignored, deferred or replaced without mutating the derived project itself
+- Impact: `memory/decision_feedback.jsonl` and `tools/decision_feedback.py` now capture follow-up decisions, and `quality_gate_report` can surface relevant previous feedback when similar priorities reappear
+- Risk: if reasons become vague, the log can accumulate noise instead of real learning signals
+- Rollback: remove the feedback log and helper, drop the feedback section from `quality_gate_report`, and return to stateless recommendation reporting

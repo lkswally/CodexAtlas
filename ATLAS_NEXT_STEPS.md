@@ -114,6 +114,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Anti-generic heuristics becoming brittle or over-blocking for intentionally simple internal tools
 - Landing-readiness heuristics drifting into copy taste instead of verifiable public-facing quality signals
 - Too many low-value skills diluting Atlas-native guidance
+- Decision feedback becoming noisy if teams log vague reasons instead of concrete acceptance, deferral or replacement rationale
 
 ## Do not touch yet
 
@@ -124,6 +125,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Large agent fleets copied from Claude-oriented repos
 - Browser-driven visual automation copied from the reference repo before Atlas has a safe local need
 - Design intelligence datasets without a real Atlas use case
+- Automatic write-back from decision logs into derived projects
 
 ## Recommended Level 2
 
@@ -142,3 +144,4 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - If template complexity keeps growing, consider moving repeated static sections into shared partials without expanding the placeholder surface
 - If certification grows further, consider extracting its checks into a shared validator helper while keeping `atlas_dispatcher.py` small
 - Keep the GitHub repo clean of `_reference/`, test residue and personal local artifacts
+- If decision feedback becomes common, consider a small read-only summary layer that groups recurring acceptance and deferral patterns without turning memory into a second policy engine

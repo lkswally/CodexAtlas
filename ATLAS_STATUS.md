@@ -161,6 +161,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Orchestrator output now includes bootstrap preflight status and `safe_to_execute` based on the real target path
 - Orchestrator now distinguishes explicit no-deploy restrictions from actual deploy intent when routing and approval checks run
 - Orchestrator decisions are now logged append-only for later review
+- Quality-gate outputs can now show relevant prior decision feedback from an append-only Atlas log without modifying derived projects
 
 ## GitHub block status
 
@@ -170,6 +171,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - No write-capable MCP or external connector is active inside Atlas workflows
 - The current MCP experiment is advisory by default, can execute through the internal docs adapter after approval, and still does not auto-connect a real external MCP
 - No change was made to `C:\Users\Lucas\.codex\config.toml`, and no project-scoped `.codex/config.toml` was added under Atlas because real MCP activation could not be verified safely
+- Decision feedback is now tracked only inside Atlas memory and never written back into derived projects
 
 ## Product context status
 
