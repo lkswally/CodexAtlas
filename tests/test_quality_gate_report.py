@@ -33,12 +33,15 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["source_reports"]["project_intent_analyzer"]["status"] == "ok"
     assert result["source_reports"]["prompt_builder"]["status"] == "ok"
     assert result["source_reports"]["skill_evaluator"]["status"] == "ok"
+    assert result["source_reports"]["feedback_analyzer"]["status"] == "ok"
     assert isinstance(result["intent_analysis"], dict)
     assert isinstance(result["prompt_guidance"], dict)
     assert isinstance(result["skill_creation_signal"], dict)
     assert isinstance(result["execution_plan"], list)
     assert len(result["execution_plan"]) <= 3
     assert len(result["quick_wins"]) <= 2
+    assert isinstance(result["feedback_adjusted_priorities"], list)
+    assert isinstance(result["detected_patterns"], list)
     assert result["primary_action"] is not None
     assert result["why_now"]
     assert isinstance(result["decision_feedback"], dict)
@@ -239,3 +242,76 @@ def test_quality_gate_report_surfaces_relevant_decision_feedback():
 
     assert result["decision_feedback"]["has_relevant_feedback"] is True
     assert result["decision_feedback"]["relevant_feedback"][0]["decision"] == "deferred"
+
+
+def test_quality_gate_report_exposes_feedback_patterns_and_adjusted_priorities():
+    phase_report = {
+        "ok": True,
+        "result": {
+            "status": "ok",
+            "current_phase": "audit",
+            "confidence": "high",
+            "blocked_actions": [],
+            "next_valid_phases": ["certified"],
+            "recommended_actions": ["Run certify-project once audit findings are resolved."],
+        },
+    }
+    fake_audit = {"ok": True, "result": {"status": "ok", "findings": []}}
+    fake_certify = {"ok": True, "result": {"status": "ok", "blockers": [], "warnings": []}}
+    fake_surface = {"ok": True, "result": {"status": "ok", "warnings": [], "recommendations": []}}
+    fake_design = {
+        "status": "needs_attention",
+        "public_readiness": "needs_improvement",
+        "landing_score": 82,
+        "warnings": ["content_density:warning"],
+        "quick_wins": ["Trim dense sections"],
+        "checks": [],
+        "recommendation_sources": [
+            {
+                "recommendation": "Trim dense sections",
+                "originating_check": "content_density",
+                "evidence": ["long_sections=3"],
+                "severity": "medium",
+                "status": "warning",
+            }
+        ],
+    }
+    fake_feedback_analysis = {
+        "status": "ok",
+        "reason": None,
+        "project_path": str(WEB_ROOT),
+        "analyzed_entries": 2,
+        "action_feedback": [
+            {"action": "Trim dense sections", "frequency": 2, "acceptance_rate": 0.0, "ignore_rate": 1.0, "last_decision": "ignored"}
+        ],
+        "detected_patterns": [
+            {
+                "pattern": "Action `Trim dense sections` is repeatedly ignored.",
+                "impact": "Lower its priority or drop it when stronger signals exist.",
+                "recommendation": "Stop surfacing this action as a top recommendation unless a new blocker reintroduces it.",
+            }
+        ],
+        "log_path": "C:/fake/decision_feedback.jsonl",
+    }
+
+    def fake_dispatch(command_id, root=None, project=None):
+        class _Res:
+            def __init__(self, output):
+                self.output = output
+
+        mapping = {
+            "project-phase-report": phase_report,
+            "audit-repo": fake_audit,
+            "certify-project": fake_certify,
+            "surface-audit": fake_surface,
+        }
+        return _Res(mapping[command_id])
+
+    with patch("tools.quality_gate_report._dispatch_output", side_effect=lambda command_id, root=None, project=None: fake_dispatch(command_id, root=root, project=project).output):
+        with patch("tools.quality_gate_report.anti_generic_ui_audit", return_value=fake_design):
+            with patch("tools.quality_gate_report.analyze_feedback", return_value=fake_feedback_analysis):
+                result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+
+    assert result["detected_patterns"]
+    assert result["feedback_adjusted_priorities"]
+    assert result["feedback_adjusted_priorities"][0]["feedback_weight"] in {"neutral", "down", "up"}

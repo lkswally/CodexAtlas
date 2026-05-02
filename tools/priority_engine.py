@@ -43,6 +43,63 @@ def _candidate(
     }
 
 
+def _feedback_weight_for_action(
+    feedback_analysis: Optional[Dict[str, Any]],
+    action: str,
+    source: str,
+) -> Dict[str, Any]:
+    action_key = _normalize(action)
+    if not isinstance(feedback_analysis, dict):
+        return {"score_delta": 0, "feedback_weight": "neutral", "feedback_reason": None, "should_filter": False}
+
+    for item in feedback_analysis.get("action_feedback", []):
+        if not isinstance(item, dict):
+            continue
+        if _normalize(str(item.get("action", ""))) != action_key:
+            continue
+        frequency = int(item.get("frequency", 0) or 0)
+        acceptance_rate = float(item.get("acceptance_rate", 0.0) or 0.0)
+        ignore_rate = float(item.get("ignore_rate", 0.0) or 0.0)
+        last_decision = str(item.get("last_decision", "")).strip() or None
+
+        if source == "phase":
+            return {
+                "score_delta": 0,
+                "feedback_weight": "neutral",
+                "feedback_reason": "Phase guidance keeps precedence over historical preference.",
+                "should_filter": False,
+            }
+        if frequency >= 2 and ignore_rate >= 0.75:
+            return {
+                "score_delta": -20,
+                "feedback_weight": "down",
+                "feedback_reason": "Repeatedly ignored in prior decision feedback.",
+                "should_filter": True,
+            }
+        if ignore_rate >= 0.5 or last_decision == "ignored":
+            return {
+                "score_delta": -10,
+                "feedback_weight": "down",
+                "feedback_reason": "Recently ignored in prior decision feedback.",
+                "should_filter": False,
+            }
+        if acceptance_rate >= 0.75 and frequency >= 2:
+            return {
+                "score_delta": 12,
+                "feedback_weight": "up",
+                "feedback_reason": "Consistently accepted in prior decision feedback.",
+                "should_filter": False,
+            }
+        if acceptance_rate >= 0.5 or last_decision == "accepted":
+            return {
+                "score_delta": 6,
+                "feedback_weight": "up",
+                "feedback_reason": "Accepted in prior decision feedback.",
+                "should_filter": False,
+            }
+    return {"score_delta": 0, "feedback_weight": "neutral", "feedback_reason": None, "should_filter": False}
+
+
 def _phase_candidates(
     phase_guidance: Dict[str, Any],
     phase_validity: str,
@@ -192,6 +249,26 @@ def _dedupe_candidates(candidates: List[Dict[str, Any]]) -> List[Dict[str, Any]]
     return deduped
 
 
+def _apply_feedback_weights(
+    candidates: List[Dict[str, Any]],
+    feedback_analysis: Optional[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    adjusted: List[Dict[str, Any]] = []
+    for item in candidates:
+        feedback_meta = _feedback_weight_for_action(
+            feedback_analysis=feedback_analysis,
+            action=str(item.get("action", "")),
+            source=str(item.get("source", "")),
+        )
+        candidate = dict(item)
+        candidate["_score"] = int(candidate["_score"]) + int(feedback_meta["score_delta"])
+        candidate["feedback_weight"] = feedback_meta["feedback_weight"]
+        candidate["feedback_reason"] = feedback_meta["feedback_reason"]
+        candidate["_should_filter"] = bool(feedback_meta["should_filter"])
+        adjusted.append(candidate)
+    return adjusted
+
+
 def build_execution_plan(
     *,
     phase_guidance: Dict[str, Any],
@@ -201,6 +278,7 @@ def build_execution_plan(
     intent_analysis: Optional[Dict[str, Any]],
     skill_creation_signal: Optional[Dict[str, Any]],
     overall_status: str,
+    feedback_analysis: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     current_phase = str(phase_guidance.get("current_phase", "")).strip()
     candidates = [
@@ -210,8 +288,11 @@ def build_execution_plan(
         *_quick_win_candidates(quick_wins, current_phase),
         *_skill_candidate(skill_creation_signal, overall_status),
     ]
-    ranked = _dedupe_candidates(candidates)
-    limited = ranked[:3]
+    adjusted_candidates = _apply_feedback_weights(candidates, feedback_analysis)
+    ranked = _dedupe_candidates(adjusted_candidates)
+    limited = [item for item in ranked if not item.get("_should_filter")][:3]
+    if not limited:
+        limited = ranked[:3]
 
     execution_plan = [
         {
@@ -221,8 +302,18 @@ def build_execution_plan(
             "impact": item["impact"],
             "effort": item["effort"],
             "source": item["source"],
+            "feedback_weight": item.get("feedback_weight", "neutral"),
         }
         for index, item in enumerate(limited, start=1)
+    ]
+    feedback_adjusted_priorities = [
+        {
+            "action": item["action"],
+            "source": item["source"],
+            "feedback_weight": item.get("feedback_weight", "neutral"),
+            "feedback_reason": item.get("feedback_reason"),
+        }
+        for item in limited
     ]
     primary_action = execution_plan[0]["action"] if execution_plan else None
     why_now = execution_plan[0]["reason"] if execution_plan else "No action is more urgent than keeping the current validated state."
@@ -231,4 +322,5 @@ def build_execution_plan(
         "primary_action": primary_action,
         "why_now": why_now,
         "quick_wins": _dedupe_strings(quick_wins, 2),
+        "feedback_adjusted_priorities": feedback_adjusted_priorities,
     }

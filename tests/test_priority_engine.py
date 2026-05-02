@@ -25,6 +25,7 @@ def test_priority_engine_prefers_phase_guidance_when_phase_is_invalid():
         intent_analysis={"missing_definition": []},
         skill_creation_signal={"should_create": False},
         overall_status="needs_improvement",
+        feedback_analysis=None,
     )
     assert result["execution_plan"][0]["source"] == "phase"
     assert result["primary_action"] == "run audit-repo"
@@ -47,6 +48,7 @@ def test_priority_engine_reduces_noise_and_limits_output():
         intent_analysis={"missing_definition": []},
         skill_creation_signal={"should_create": False},
         overall_status="needs_improvement",
+        feedback_analysis=None,
     )
     assert len(result["execution_plan"]) <= 3
     assert len(result["quick_wins"]) <= 2
@@ -66,6 +68,36 @@ def test_priority_engine_can_surface_intent_gap_before_other_actions():
         intent_analysis={"missing_definition": ["scope_or_constraints_missing"]},
         skill_creation_signal={"should_create": False},
         overall_status="needs_improvement",
+        feedback_analysis=None,
     )
     assert result["execution_plan"][0]["source"] in {"phase", "intent"}
     assert result["why_now"]
+
+
+def test_priority_engine_adjusts_priority_using_feedback_history():
+    result = build_execution_plan(
+        phase_guidance={
+            "current_phase": "audit",
+            "recommended_next_steps": ["fix warnings", "validate design and structure"],
+            "top_phase_risks": ["ignoring warnings"],
+        },
+        phase_validity="valid",
+        top_priorities=[
+            {"source": "design_intelligence_audit", "check": "content_density", "severity": "medium", "message": "Trim dense sections"},
+            {"source": "design_intelligence_audit", "check": "cta_integrity", "severity": "medium", "message": "Strengthen CTA copy"},
+        ],
+        quick_wins=[],
+        intent_analysis={"missing_definition": []},
+        skill_creation_signal={"should_create": False},
+        overall_status="needs_improvement",
+        feedback_analysis={
+            "action_feedback": [
+                {"action": "Trim dense sections", "frequency": 2, "acceptance_rate": 0.0, "ignore_rate": 1.0, "last_decision": "ignored"},
+                {"action": "Strengthen CTA copy", "frequency": 2, "acceptance_rate": 1.0, "ignore_rate": 0.0, "last_decision": "accepted"},
+            ]
+        },
+    )
+    actions = [item["action"] for item in result["execution_plan"]]
+    assert "Strengthen CTA copy" in actions
+    assert "Trim dense sections" not in actions
+    assert any(item["feedback_weight"] == "up" for item in result["feedback_adjusted_priorities"])

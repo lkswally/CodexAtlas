@@ -30,6 +30,10 @@ try:
     from tools.decision_feedback import find_relevant_feedback
 except ModuleNotFoundError:
     from decision_feedback import find_relevant_feedback
+try:
+    from tools.feedback_analyzer import analyze_feedback
+except ModuleNotFoundError:
+    from feedback_analyzer import analyze_feedback
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -462,6 +466,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         "top_phase_risks": phase_data.get("common_mistakes", [])[:3],
     }
     source_reports["skill_evaluator"] = _run_skill_signal(root, project, str(current_phase or ""), top_priorities, source_reports["project_intent_analyzer"])
+    source_reports["feedback_analyzer"] = _build_ok_report("feedback_analyzer", analyze_feedback(root=root, project_path=project))
     priority_bundle = build_execution_plan(
         phase_guidance=phase_guidance,
         phase_validity=phase_validity,
@@ -470,6 +475,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         intent_analysis=source_reports["project_intent_analyzer"]["report"] if source_reports["project_intent_analyzer"]["status"] == "ok" else None,
         skill_creation_signal=source_reports["skill_evaluator"]["report"] if source_reports["skill_evaluator"]["status"] == "ok" else None,
         overall_status=overall_status,
+        feedback_analysis=source_reports["feedback_analyzer"]["report"] if source_reports["feedback_analyzer"]["status"] == "ok" else None,
     )
     feedback_recommendation_ids, feedback_actions = _collect_feedback_candidates(
         top_priorities=top_priorities,
@@ -503,6 +509,8 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         "top_priorities": top_priorities,
         "quick_wins": priority_bundle["quick_wins"],
         "execution_plan": priority_bundle["execution_plan"],
+        "feedback_adjusted_priorities": priority_bundle["feedback_adjusted_priorities"],
+        "detected_patterns": (source_reports["feedback_analyzer"]["report"] or {}).get("detected_patterns", []) if source_reports["feedback_analyzer"]["status"] == "ok" else [],
         "primary_action": priority_bundle["primary_action"],
         "why_now": priority_bundle["why_now"],
         "decision_feedback": decision_feedback,

@@ -172,6 +172,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - The current MCP experiment is advisory by default, can execute through the internal docs adapter after approval, and still does not auto-connect a real external MCP
 - No change was made to `C:\Users\Lucas\.codex\config.toml`, and no project-scoped `.codex/config.toml` was added under Atlas because real MCP activation could not be verified safely
 - Decision feedback is now tracked only inside Atlas memory and never written back into derived projects
+- Atlas can now read decision feedback back into its ranking layer to reduce repeated ignored recommendations and reinforce consistently accepted ones
 
 ## Product context status
 

@@ -145,3 +145,4 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - If certification grows further, consider extracting its checks into a shared validator helper while keeping `atlas_dispatcher.py` small
 - Keep the GitHub repo clean of `_reference/`, test residue and personal local artifacts
 - If decision feedback becomes common, consider a small read-only summary layer that groups recurring acceptance and deferral patterns without turning memory into a second policy engine
+- Watch for feedback weighting drifting into hidden personalization if the acceptance and ignore rules stop being explicit and reviewable

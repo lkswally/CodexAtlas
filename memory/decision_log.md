@@ -265,3 +265,10 @@
 - Impact: `memory/decision_feedback.jsonl` and `tools/decision_feedback.py` now capture follow-up decisions, and `quality_gate_report` can surface relevant previous feedback when similar priorities reappear
 - Risk: if reasons become vague, the log can accumulate noise instead of real learning signals
 - Rollback: remove the feedback log and helper, drop the feedback section from `quality_gate_report`, and return to stateless recommendation reporting
+
+## 2026-05-01
+- Decision: use decision feedback only as a weighting layer on top of existing evidence, not as a hidden controller or second memory system
+- Reason: the reference repo's evidence and readiness discipline fits Atlas best when historical decisions can lower repeated noise or reinforce proven actions without overriding phase or governance signals
+- Impact: `tools/feedback_analyzer.py` now derives simple acceptance and ignore patterns from `memory/decision_feedback.jsonl`, `priority_engine` applies explicit feedback weights, and `quality_gate_report` exposes adjusted priorities plus detected patterns
+- Risk: if weighting becomes too strong, Atlas could hide a valid recommendation just because it was ignored in a different context
+- Rollback: remove `tools/feedback_analyzer.py`, drop feedback weighting from `priority_engine`, and keep decision feedback as a passive log only
