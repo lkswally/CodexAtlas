@@ -308,3 +308,10 @@
 - Impact: outputs now include `active_runtime_model=manual_or_unknown`, `model_switch_mode=manual_required`, `recommended_model_is_advisory=true`, explicit manual user action, and forced `can_auto_switch=false` with `auto_switch_method=not_available`
 - Risk: users may still skip manual model selection and assume the runtime switched automatically
 - Rollback: revert the advisory-output fields and return to the previous routing output contract
+
+## 2026-05-07
+- Decision: adapt the `verify.sh` pattern from `lucy-ai` as a thin Atlas-native `atlas_verify` helper instead of adding install/runtime automation
+- Reason: Atlas already had strong validators, but lacked one read-only post-setup entrypoint to confirm the factory surface quickly
+- Impact: `tools/atlas_verify.py` now aggregates governance, `audit-repo`, `surface-audit`, and optional `quality-gate-report` without duplicating their internal logic
+- Risk: if the helper starts inventing pass/fail policy beyond the underlying checks, it would become a shadow validator
+- Rollback: remove `tools/atlas_verify.py` and its tests, then go back to running the existing checks manually

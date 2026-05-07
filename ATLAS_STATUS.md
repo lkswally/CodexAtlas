@@ -48,6 +48,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Atlas now has a read-only `skill_evaluator` that helps reject low-value reusable-skill ideas before Atlas grows new capability surface
 - Atlas now has a read-only `error_pattern_analyzer` that reads local Atlas logs to detect repeated blocks, ignored actions, MCP runtime failures and governance drift
 - Atlas now has a read-only `repo_improvement_scout` that evaluates `_reference/claude-vibecoding` as a structured source of safe Atlas improvements
+- Atlas now has a read-only `atlas_verify` helper that reuses governance, `audit-repo`, `surface-audit`, and optional `quality-gate-report` as one post-setup verification entrypoint
 - Atlas now has a read-only `mcp_readiness_check` that keeps real MCP activation blocked while the local Codex CLI still cannot be verified safely
 - `quality_gate_report` now includes intent analysis, prompt guidance and a reusable-skill creation signal alongside readiness, phase and evidence summaries
 - Atlas now has a read-only `priority_engine` that reduces noise and turns existing phase, intent, audit and skill signals into a short execution plan

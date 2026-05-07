@@ -368,6 +368,92 @@ def _certify_project_stub(
     }
 
 
+def _safe_entry_count(path: Path) -> int:
+    try:
+        return sum(1 for _ in path.iterdir())
+    except Exception:
+        return -1
+
+
+def _sample_entries(path: Path, limit: int = 8) -> List[str]:
+    if not path.is_dir():
+        return []
+    try:
+        return sorted(item.name for item in path.iterdir())[:limit]
+    except Exception:
+        return []
+
+
+def _top_level_structure(target_root: Path) -> Dict[str, Any]:
+    try:
+        entries = sorted(target_root.iterdir(), key=lambda item: item.name.lower())
+    except Exception as exc:
+        return {
+            "directories": [],
+            "files": [],
+            "total_entries": 0,
+            "error": f"top_level_scan_failed:{exc}",
+        }
+
+    visible = [item for item in entries if item.name != ".git"]
+    return {
+        "directories": [item.name for item in visible if item.is_dir()],
+        "files": [item.name for item in visible if item.is_file()],
+        "total_entries": len(visible),
+    }
+
+
+def _governance_requirements(project_metadata: Optional[Dict[str, Any]]) -> List[str]:
+    if project_metadata is not None:
+        return [
+            ".atlas-project.json",
+            "README.md",
+            "AGENTS.md",
+            "docs",
+            "memory",
+            "workflows",
+            "policies",
+            "tools",
+        ]
+    return [
+        "AGENTS.md",
+        "README.md",
+        "ATLAS_STATUS.md",
+        "ATLAS_NEXT_STEPS.md",
+        "commands/atomic_command_registry.json",
+        "policies/safe_execution_policy.md",
+        "memory/decision_log.md",
+        "tools/atlas_dispatcher.py",
+        "tools/atlas_governance_check.py",
+    ]
+
+
+def _expected_path_kind(rel: str) -> str:
+    name = Path(rel).name
+    if "." in name:
+        return "file"
+    return "directory"
+
+
+def _audit_finding(
+    severity: str,
+    code: str,
+    message: str,
+    path: Optional[str] = None,
+    evidence: Optional[List[str]] = None,
+) -> Dict[str, Any]:
+    finding: Dict[str, Any] = {
+        "severity": severity,
+        "code": code,
+        "message": message,
+    }
+    if path:
+        finding["path"] = path
+    if evidence:
+        finding["evidence"] = evidence
+    return finding
+
+
 def _audit_repo_stub(target_root: Path, command: Dict[str, Any], project_metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     allowed = command.get("allowed_paths", [])
     if project_metadata is not None:
@@ -378,6 +464,11 @@ def _audit_repo_stub(target_root: Path, command: Dict[str, Any], project_metadat
     present: List[str] = []
     missing: List[str] = []
     counts: Dict[str, int] = {}
+    relevant_paths: List[Dict[str, Any]] = []
+    findings: List[Dict[str, Any]] = []
+    risks: List[Dict[str, Any]] = []
+    recommendations: List[str] = []
+    next_steps: List[str] = []
 
     for rel in allowed:
         rel_s = str(rel).strip()
@@ -387,29 +478,193 @@ def _audit_repo_stub(target_root: Path, command: Dict[str, Any], project_metadat
         if path.exists():
             present.append(rel_s)
             if path.is_dir():
-                try:
-                    counts[rel_s] = sum(1 for _ in path.iterdir())
-                except Exception:
-                    counts[rel_s] = -1
+                counts[rel_s] = _safe_entry_count(path)
+                relevant_paths.append(
+                    {
+                        "path": rel_s,
+                        "type": "directory",
+                        "entry_count": counts[rel_s],
+                        "sample": _sample_entries(path),
+                    }
+                )
+            else:
+                relevant_paths.append({"path": rel_s, "type": "file"})
+
+            expected_kind = _expected_path_kind(rel_s)
+            if expected_kind == "directory" and path.is_file():
+                findings.append(
+                    _audit_finding(
+                        "medium",
+                        "path_kind_mismatch",
+                        f"`{rel_s}` is allowlisted as a structural path but is a file.",
+                        path=str(path),
+                    )
+                )
+            elif expected_kind == "file" and path.is_dir():
+                findings.append(
+                    _audit_finding(
+                        "medium",
+                        "path_kind_mismatch",
+                        f"`{rel_s}` looks like a file path but is a directory.",
+                        path=str(path),
+                    )
+                )
         else:
             missing.append(rel_s)
+            findings.append(
+                _audit_finding(
+                    "medium",
+                    "missing_allowed_path",
+                    f"Allowlisted audit path `{rel_s}` is missing.",
+                    path=str(path),
+                )
+            )
 
-    findings: List[str] = []
+    governance_files = _governance_requirements(project_metadata)
+    missing_governance_files: List[str] = []
+    for rel in governance_files:
+        path = target_root / rel
+        if not path.exists():
+            missing_governance_files.append(rel)
+            findings.append(
+                _audit_finding(
+                    "high" if rel in {"README.md", "AGENTS.md", ".atlas-project.json"} else "medium",
+                    "missing_governance_file",
+                    f"Governance file or directory `{rel}` is missing.",
+                    path=str(path),
+                )
+            )
+
+    top_level = _top_level_structure(target_root)
+    if top_level.get("error"):
+        findings.append(
+            _audit_finding(
+                "high",
+                "structure_scan_failed",
+                "Atlas could not inspect the top-level project structure.",
+                evidence=[str(top_level.get("error"))],
+            )
+        )
+
+    empty_governance_dirs: List[str] = []
+    for rel in ("docs", "memory", "workflows", "policies", "tools", "tests"):
+        path = target_root / rel
+        if path.exists() and path.is_dir() and _safe_entry_count(path) == 0:
+            empty_governance_dirs.append(rel)
+            findings.append(
+                _audit_finding(
+                    "low",
+                    "empty_governance_directory",
+                    f"`{rel}/` exists but is empty.",
+                    path=str(path),
+                )
+            )
+
+    forbidden_paths = [
+        ".claude",
+        "CLAUDE.md",
+    ]
+    if project_metadata is not None:
+        forbidden_paths.extend(
+            [
+                "00_SISTEMA/_meta/atlas",
+                "commands/atomic_command_registry.json",
+                "tools/atlas_dispatcher.py",
+                "tools/atlas_governance_check.py",
+            ]
+        )
+    for rel in forbidden_paths:
+        path = target_root / rel
+        if path.exists():
+            findings.append(
+                _audit_finding(
+                    "high",
+                    "forbidden_or_foreign_artifact",
+                    f"Unexpected Atlas/Claude-specific artifact `{rel}` is present.",
+                    path=str(path),
+                )
+            )
+
+    metadata_summary: Dict[str, Any] = {}
+    if project_metadata is not None:
+        metadata_summary = {
+            "project_name": project_metadata.get("project_name"),
+            "project_profile": project_metadata.get("project_profile"),
+            "project_type": project_metadata.get("project_type"),
+            "status": project_metadata.get("status"),
+            "audit_paths_count": len(project_metadata.get("audit_paths", []))
+            if isinstance(project_metadata.get("audit_paths"), list)
+            else 0,
+        }
+        if project_metadata.get("project_type") != "atlas-derived-project":
+            findings.append(
+                _audit_finding(
+                    "high",
+                    "invalid_project_type",
+                    "Derived project metadata does not declare `project_type` as `atlas-derived-project`.",
+                    path=str(target_root / ".atlas-project.json"),
+                )
+            )
+        if project_metadata.get("derived_from") != "Codex-Atlas":
+            findings.append(
+                _audit_finding(
+                    "medium",
+                    "invalid_derived_from",
+                    "Derived project metadata does not declare `derived_from` as `Codex-Atlas`.",
+                    path=str(target_root / ".atlas-project.json"),
+                )
+            )
+
+    for item in findings:
+        severity = str(item.get("severity", "")).strip()
+        if severity in {"high", "medium"}:
+            risks.append(
+                {
+                    "severity": severity,
+                    "source": item.get("code"),
+                    "message": item.get("message"),
+                    "path": item.get("path"),
+                }
+            )
+
+    if missing_governance_files:
+        recommendations.append("Restore missing governance files before certification or handoff.")
     if missing:
-        findings.append(f"missing_allowed_paths:{','.join(missing)}")
+        recommendations.append("Review `audit_paths` or registry `allowed_paths`; either create the missing paths or update the contract.")
+    if empty_governance_dirs:
+        recommendations.append("Add minimal useful content to empty governance directories or document why they are intentionally reserved.")
+    if not findings:
+        recommendations.append("Structure looks coherent for a lightweight Atlas audit.")
+
+    has_blocking_findings = any(item.get("severity") in {"high", "medium"} for item in findings)
+    if has_blocking_findings:
+        next_steps.append("Address high-severity findings first, then rerun `python tools\\atlas_dispatcher.py audit-repo`.")
+    elif findings:
+        next_steps.append("Review low-severity improvement notes and decide whether they matter for this project phase.")
+    elif project_metadata is not None:
+        next_steps.append("Run `python tools\\atlas_dispatcher.py --project <project> certify-project` when ready to certify.")
+    else:
+        next_steps.append("Run governance and surface checks to keep Atlas core aligned.")
 
     return {
-        "status": "ok" if not missing else "partial",
+        "status": "ok" if not has_blocking_findings else "partial",
         "summary": {
             "target_root": str(target_root),
             "present_allowed_paths": present,
             "missing_allowed_paths": missing,
             "entry_counts": counts,
+            "top_level": top_level,
+            "relevant_paths": relevant_paths,
+            "governance_files_checked": governance_files,
+            "missing_governance_files": missing_governance_files,
+            "metadata": metadata_summary,
         },
         "findings": findings,
+        "risks": risks,
+        "recommendations": recommendations,
+        "possible_improvements": recommendations,
         "recommended_next_steps": [
-            "Fix missing allowlisted paths or update registry allowed_paths (docs-only decision)." if missing else
-            "Registry allowlist matches current structure."
+            *next_steps,
         ],
     }
 
