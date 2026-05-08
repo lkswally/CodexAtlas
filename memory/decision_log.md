@@ -315,3 +315,10 @@
 - Impact: `tools/atlas_verify.py` now aggregates governance, `audit-repo`, `surface-audit`, and optional `quality-gate-report` without duplicating their internal logic
 - Risk: if the helper starts inventing pass/fail policy beyond the underlying checks, it would become a shadow validator
 - Rollback: remove `tools/atlas_verify.py` and its tests, then go back to running the existing checks manually
+
+## 2026-05-07
+- Decision: adapt the `llm-council` pattern as a read-only Atlas decision layer instead of importing its app runtime
+- Reason: Atlas already aggregates evidence well, but difficult decisions still benefit from explicit dissent, role-based critique and chairman synthesis before high-risk changes
+- Impact: Atlas now has a `decision-council` skill, `decision_council_review` workflow and `decision_council_report.py` helper for architecture, external-tool, skill-creation and conflicting-signal decisions
+- Risk: if the council pattern is overused, Atlas could add ceremony to simple work instead of clarity to hard decisions
+- Rollback: remove the new skill, workflow and helper, and keep difficult decisions inside the existing quality-gate and priority layers only

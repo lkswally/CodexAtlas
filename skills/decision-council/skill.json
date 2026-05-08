@@ -1,0 +1,59 @@
+{
+  "name": "decision-council",
+  "intent_keywords": [
+    "decision council",
+    "high-risk decision",
+    "architecture decision",
+    "external tool decision",
+    "mcp evaluation",
+    "skill creation ambiguity",
+    "conflicting recommendations",
+    "difficult decision"
+  ],
+  "agent": "reality_checker",
+  "workflow": "decision_council_review",
+  "model_profile": "deep_reasoning",
+  "risk_level": "medium",
+  "requires_human_approval": false,
+  "supports_execution": true,
+  "required_inputs": [
+    "decision_topic",
+    "current_constraints",
+    "relevant_local_evidence_if_available"
+  ],
+  "execution_mode": "read_only",
+  "allowed_paths_policy": "no_filesystem_writes",
+  "expected_outputs": [
+    "decision framing report",
+    "agreement and dissent structure",
+    "role-specific challenge prompts",
+    "recommended next action"
+  ],
+  "safety_limits": [
+    "do not call external APIs or MCPs",
+    "do not pretend consensus exists without evidence",
+    "do not convert the council into automatic execution",
+    "do not mutate Atlas or derived projects during the review"
+  ],
+  "forbidden_actions": [
+    "activate external tools automatically",
+    "modify global Codex configuration",
+    "treat the chairman synthesis as implementation approval",
+    "hide open questions or dissent"
+  ],
+  "human_approval_triggers": [
+    "the council outcome would change global Codex configuration",
+    "the decision would activate MCP or external tooling",
+    "the decision would mutate a derived project or REYESOFT",
+    "the review expands from framing into execution"
+  ],
+  "rollback_manual": [
+    "no rollback needed because the skill is read-only"
+  ],
+  "validations": [
+    "the decision states whether council review is actually needed",
+    "risks are tied to explicit triggers or local evidence",
+    "dissenting views remain visible",
+    "the next action stays advisory and non-destructive"
+  ]
+}

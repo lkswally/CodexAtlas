@@ -15,6 +15,19 @@ def test_repo_audit_execution_uses_dispatcher():
     assert execution["output"]["command"] == "audit-repo"
 
 
+def test_decision_council_execution_returns_structured_report():
+    execution = execute_skill(
+        "decision-council",
+        "Run a decision council for this MCP evaluation before changing Atlas.",
+    )
+    assert execution["skill"] == "decision-council"
+    assert execution["mode"] == "structured_decision_review"
+    assert execution["ok"] is True
+    assert execution["output"]["status"] == "ok"
+    assert execution["output"]["council_recommended"] is True
+    assert execution["output"]["role_briefs"][-1]["role"] == "Chairman"
+
+
 def test_project_bootstrap_execution_requires_output_dir():
     execution = execute_skill("project-bootstrap", "Bootstrap a new derived project.")
     contract = get_project_bootstrap_contract()

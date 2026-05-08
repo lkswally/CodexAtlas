@@ -17,6 +17,7 @@ try:
         design_system_review,
         visual_direction_checkpoint,
     )
+    from tools.decision_council_report import build_decision_council_report
     from tools.model_router import recommend_model_profile
 except ModuleNotFoundError:
     from design_intelligence_audit import (  # type: ignore
@@ -24,6 +25,7 @@ except ModuleNotFoundError:
         design_system_review,
         visual_direction_checkpoint,
     )
+    from decision_council_report import build_decision_council_report  # type: ignore
     from model_router import recommend_model_profile  # type: ignore
 
 
@@ -176,6 +178,15 @@ INTENT_KEYWORDS = {
     ),
 }
 FALLBACK_SKILL_KEYWORDS = {
+    "decision-council": (
+        "decision council",
+        "high-risk decision",
+        "architecture decision",
+        "external tool decision",
+        "mcp evaluation",
+        "conflicting recommendations",
+        "skill creation ambiguity",
+    ),
     "visual-direction-checkpoint": (
         "visual direction",
         "design direction",
@@ -232,6 +243,7 @@ FALLBACK_SKILL_KEYWORDS = {
 
 SKILL_PRIORITY = (
     "anti-generic-ui-audit",
+    "decision-council",
     "design-system-review",
     "visual-direction-checkpoint",
     "project-bootstrap",
@@ -300,6 +312,7 @@ DEFAULT_SKILL_BY_INTENT = {
     "branding_ux": "product-branding-review",
 }
 WORKFLOW_BY_SKILL = {
+    "decision-council": "decision_council_review",
     "visual-direction-checkpoint": "design_intelligence_pipeline",
     "anti-generic-ui-audit": "design_intelligence_pipeline",
     "design-system-review": "design_intelligence_pipeline",
@@ -1392,6 +1405,19 @@ def _execute_branding_review(task: str) -> Dict[str, Any]:
     }
 
 
+def _execute_decision_council(task: str, root: Path, project: Optional[Path]) -> Dict[str, Any]:
+    report = build_decision_council_report(topic=task, root=root, project=project)
+    return {
+        "skill": "decision-council",
+        "mode": "structured_decision_review",
+        "ok": True,
+        "task": task,
+        "project": str(project) if project else None,
+        "output": report,
+        "summary": "Returned a structured decision-council report without making changes.",
+    }
+
+
 def _execute_visual_direction_checkpoint(task: str) -> Dict[str, Any]:
     checkpoint = visual_direction_checkpoint(task)
     return {
@@ -1454,6 +1480,8 @@ def execute_skill(
     project = project.resolve() if project else None
     output_dir = output_dir.resolve() if output_dir else None
 
+    if skill_name == "decision-council":
+        return _execute_decision_council(task=task, root=root, project=project)
     if skill_name == "repo-audit":
         return _execute_repo_audit(root=root, project=project)
     if skill_name == "project-bootstrap":

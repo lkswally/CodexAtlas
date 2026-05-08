@@ -48,6 +48,7 @@ Capas principales:
 - skills estructuradas con `skill.md`, `skill.json`, `behavior.json` y contratos externos cuando aplica
 - `project-bootstrap` con preflight real, templates por perfil y salida mínima segura
 - `repo-audit` y `certify-project` en modo read-only
+- `decision-council` como capa read-only para decisiones dificiles con dissent explicito y chairman synthesis manual
 - observabilidad append-only para routing, governance, MCPs y proyectos derivados
 - adapter interno `docs_search` con ranking, deduplicación, summary, confidence y política de frescura
 - reporte read-only del catálogo curado de documentación oficial
@@ -56,6 +57,7 @@ Capas principales:
 
 - `project-bootstrap`
 - `repo-audit`
+- `decision-council`
 - `product-branding-review`
 - `visual-direction-checkpoint`
 - `anti-generic-ui-audit`
@@ -69,6 +71,7 @@ Capas principales:
 - `audit_repo`
 - `certify_project`
 - `certify_output`
+- `decision_council_review`
 - `design_intelligence_pipeline`
 - `orchestrator_routing`
 
