@@ -67,6 +67,8 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep landing-quality checks evidence-first and warning-first so Atlas catches README-like public pages without over-blocking intentionally simple derived sites
 - Keep `atlas_verify` as a thin wrapper over existing checks; if it grows new logic, that logic should move back into the canonical validators instead
 - Keep `decision-council` reserved for genuinely high-risk or conflicting decisions so Atlas does not turn routine work into ceremony
+- Keep visual/media capability decisions advisory-only until a derived project repeatedly needs screenshot, image or video evidence that static audits cannot provide
+- Keep external model fallback evaluation separate from Codex Desktop model routing; benchmark NVIDIA candidates manually before adding any profile or adapter
 - Fix known public placeholder links in derived landings before treating design readiness as anything stronger than `needs_improvement`
 - Keep `design_evidence_policy.md` aligned with landing-readiness heuristics so public-facing PASS states always have traceable proof
 
@@ -80,6 +82,8 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Stronger certification summaries that can be consumed by future handoff or reporting layers without adding autonomy
 - Manual validator bundle for architecture drift and boundary checks
 - Optional richer design-evidence helpers only after the current static-file audit path proves useful
+- A read-only `visual_evidence_brief` skill if repeated projects need manual screenshot/reference collection before design review
+- A manual NVIDIA fallback benchmark report if external-model fallback becomes a real operational need
 - Small read-only observability summaries built on top of the new routing and governance logs
 - A second controlled MCP only after the first one proves useful without broadening Atlas risk
 - Stronger docs for derived-project extraction and adapter contracts
@@ -135,6 +139,8 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Large agent fleets copied from Claude-oriented repos
 - Browser-driven visual automation copied from the reference repo before Atlas has a safe local need
 - Design intelligence datasets without a real Atlas use case
+- External model adapters before manual benchmark evidence proves the value
+- Image or video generation agents inside Atlas core
 - Automatic write-back from decision logs into derived projects
 
 ## Recommended Level 2

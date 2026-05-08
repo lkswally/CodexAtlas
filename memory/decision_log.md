@@ -322,3 +322,10 @@
 - Impact: Atlas now has a `decision-council` skill, `decision_council_review` workflow and `decision_council_report.py` helper for architecture, external-tool, skill-creation and conflicting-signal decisions
 - Risk: if the council pattern is overused, Atlas could add ceremony to simple work instead of clarity to hard decisions
 - Rollback: remove the new skill, workflow and helper, and keep difficult decisions inside the existing quality-gate and priority layers only
+
+## 2026-05-08
+- Decision: add advisory-only visual/media and external model fallback policies instead of activating image/video providers, MCPs or NVIDIA endpoints
+- Reason: the reference repo's useful pattern is evidence, fallback and visual-direction discipline, while the provider-specific image/video/runtime pieces carry credentials, cost, hang and scope risk for Atlas core
+- Impact: Atlas now documents how to evaluate branding, visual QA, image/video capabilities and NVIDIA Build fallback candidates without changing Codex Desktop routing or touching external configuration
+- Risk: these policies must stay advisory; adding providers without benchmark evidence would reintroduce the complexity Atlas is intentionally avoiding
+- Rollback: remove `policies/visual_media_capability_policy.md`, `policies/external_model_fallback_policy.md` and `docs/capability_radar_and_fallbacks.md`, then revert status and next-step notes

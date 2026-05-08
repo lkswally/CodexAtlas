@@ -184,6 +184,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Atlas can now combine phase, intent, model routing, feedback history and error-pattern evidence without activating hidden runtime or touching derived projects
 - Atlas now treats Codex model switching as recommendation-only unless CLI or config mutation can be verified safely, and it asks for user confirmation whenever routing stays ambiguous or auto-switch remains unverified
 - Model-router outputs now expose `active_runtime_model=manual_or_unknown`, `model_switch_mode=manual_required`, `recommended_model_is_advisory=true`, explicit manual user action, and `can_auto_switch=false` with `auto_switch_method=not_available` across router, prompt guidance and quality-gate execution steps
+- Atlas now has advisory-only visual/media and external model fallback policies so image, video, branding and NVIDIA Build style fallback decisions stay explicit before any provider, MCP or runtime integration is considered
 
 ## Product context status
 
@@ -207,3 +208,5 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - `external_tool_policy` is now surfaced in advisory-only mode.
 - Atlas can explain when local repo evidence, internal policies, curated adapters or official docs are sufficient.
 - No external tool, CLI or MCP is executed automatically from this policy.
+- Visual/media capabilities remain default-deny: branding and landing review stay local/read-only, while image generation, video generation and browser-driven visual QA remain watchlist or deferred.
+- NVIDIA Build models are documented only as manual benchmark candidates; Atlas does not call them, store keys or route runtime work to them.
