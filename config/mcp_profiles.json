@@ -43,6 +43,30 @@
         "changes that do not depend on GitHub state"
       ]
     },
+    "21st_magic": {
+      "purpose": "Evaluate 21st.dev Magic MCP as a future source for UI component inspiration and frontend design acceleration.",
+      "risk_level": "medium",
+      "default_mode": "read_only",
+      "requires_approval": true,
+      "provider_kind": "external_mcp",
+      "atlas_decision": "watchlist",
+      "experimental_enabled": false,
+      "read_only_scope": "future component inspiration and UI pattern lookup only; no file writes, no API keys in repo, no generated code insertion from Atlas core",
+      "rollback": "keep disabled; remove this profile if Magic MCP proves too risky or duplicates Atlas design intelligence",
+      "when_to_use": [
+        "frontend component inspiration",
+        "UI pattern exploration",
+        "design acceleration after explicit user approval",
+        "derived project work where static Atlas design intelligence is insufficient"
+      ],
+      "when_not_to_use": [
+        "Atlas core changes",
+        "tasks covered by design_intelligence_audit",
+        "work without a fresh non-exposed API key",
+        "any task that would write generated UI code without review",
+        "when Codex MCP runtime is not explicitly approved"
+      ]
+    },
     "filesystem": {
       "purpose": "Access additional filesystem contexts when a task truly depends on files not already available through normal repo inspection.",
       "risk_level": "medium",

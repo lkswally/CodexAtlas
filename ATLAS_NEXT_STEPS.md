@@ -69,6 +69,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep `decision-council` reserved for genuinely high-risk or conflicting decisions so Atlas does not turn routine work into ceremony
 - Keep visual/media capability decisions advisory-only until a derived project repeatedly needs screenshot, image or video evidence that static audits cannot provide
 - Keep external model fallback evaluation separate from Codex Desktop model routing; benchmark NVIDIA candidates manually before adding any profile or adapter
+- Keep `21st_magic` disabled until the exposed key is revoked, a fresh key is stored outside the repo, and a separate approval allows a controlled MCP test
 - Fix known public placeholder links in derived landings before treating design readiness as anything stronger than `needs_improvement`
 - Keep `design_evidence_policy.md` aligned with landing-readiness heuristics so public-facing PASS states always have traceable proof
 
@@ -98,6 +99,8 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Python version compatibility between Atlas tooling and old REYESOFT environments
 - Double source of truth risk if derived repos start copying Atlas docs again
 - Pressure to add MCP or hooks too early
+- Confusing `codex mcp list` success with a configured and authenticated MCP server
+- Treating the disabled `21st_magic` watchlist profile as permission to use a previously exposed API key
 - Pressure to turn Atlas into a product runtime instead of a factory layer
 - Claude-inspired patterns re-entering as hidden runtime assumptions instead of explicit Codex-native policies
 - Deprecated flat skill files lingering too long beside canonical `skill.md` and `skill.json`

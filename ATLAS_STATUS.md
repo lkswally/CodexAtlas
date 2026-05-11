@@ -210,3 +210,5 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - No external tool, CLI or MCP is executed automatically from this policy.
 - Visual/media capabilities remain default-deny: branding and landing review stay local/read-only, while image generation, video generation and browser-driven visual QA remain watchlist or deferred.
 - NVIDIA Build models are documented only as manual benchmark candidates; Atlas does not call them, store keys or route runtime work to them.
+- `21st_magic` is tracked as a disabled watchlist MCP profile for future UI/component inspiration, with no stored API key and no real MCP activation.
+- `mcp_readiness_check` now distinguishes Codex CLI availability, `codex mcp list` functionality, configured server names and verified functional MCP use instead of treating config presence as readiness.

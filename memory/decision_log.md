@@ -329,3 +329,10 @@
 - Impact: Atlas now documents how to evaluate branding, visual QA, image/video capabilities and NVIDIA Build fallback candidates without changing Codex Desktop routing or touching external configuration
 - Risk: these policies must stay advisory; adding providers without benchmark evidence would reintroduce the complexity Atlas is intentionally avoiding
 - Rollback: remove `policies/visual_media_capability_policy.md`, `policies/external_model_fallback_policy.md` and `docs/capability_radar_and_fallbacks.md`, then revert status and next-step notes
+
+## 2026-05-08
+- Decision: add `21st_magic` as a disabled watchlist MCP profile and harden MCP readiness reporting
+- Reason: 21st.dev Magic may be useful later for UI/component inspiration, but a key was exposed in chat and real MCP use must not be confused with configuration or CLI availability
+- Impact: Atlas can now report MCP readiness as CLI availability, MCP CLI functionality, configured server names and verified functional use, while keeping 21st Magic blocked with no stored secret
+- Risk: users may still try to reuse an exposed key or manually configure MCP without a controlled approval step
+- Rollback: remove the `21st_magic` profile and revert `tools/mcp_readiness_check.py` plus its tests to the previous simpler readiness output
