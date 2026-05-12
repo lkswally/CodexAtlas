@@ -71,6 +71,8 @@ Rules:
 - define owner, scope, trigger and validation
 - keep business-specific skills out of the Atlas core
 - skills guide decisions and outputs; they do not create hidden automation
+- lifecycle decisions are governed by `policies/skill_lifecycle_policy.md` and `config/skill_lifecycle_rules.json`
+- a proposed skill may stay `candidate` or be rejected even if the idea sounds useful; Atlas should prefer catalog hygiene over skill sprawl
 
 Current skills:
 - `project-bootstrap`: start a derived project safely from Atlas
@@ -84,6 +86,10 @@ Execution model:
 - skills default to documentary guidance
 - only explicitly marked skills may support minimal safe execution
 - execution must remain local, reversible and non-destructive
+
+Optional lifecycle metadata:
+- `lifecycle_state`: one of `candidate`, `experimental`, `stable`, `deprecated`, `archived`, `rejected`
+- Atlas governance validates `lifecycle_state` only when it is declared; skills are not auto-promoted
 
 Design-intelligence conventions:
 - design skills must return `status`, `warnings`, `evidence` and `next_action`

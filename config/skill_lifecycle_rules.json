@@ -1,0 +1,204 @@
+{
+  "version": "1.0",
+  "states": [
+    "candidate",
+    "experimental",
+    "stable",
+    "deprecated",
+    "archived",
+    "rejected"
+  ],
+  "non_state_recommendations": [
+    "watchlist_only"
+  ],
+  "allowed_transitions": {
+    "candidate": [
+      "experimental",
+      "rejected"
+    ],
+    "experimental": [
+      "stable",
+      "deprecated",
+      "rejected"
+    ],
+    "stable": [
+      "deprecated"
+    ],
+    "deprecated": [
+      "archived"
+    ],
+    "archived": [],
+    "rejected": []
+  },
+  "required_fields_by_state": {
+    "candidate": [
+      "candidate_name",
+      "problem_statement",
+      "reuse_potential",
+      "duplication_risk"
+    ],
+    "experimental": [
+      "candidate_name",
+      "problem_statement",
+      "reuse_potential",
+      "duplication_risk",
+      "promotion_blockers",
+      "requires_human_approval"
+    ],
+    "stable": [
+      "candidate_name",
+      "lifecycle_recommendation",
+      "promotion_blockers",
+      "requires_human_approval"
+    ],
+    "deprecated": [
+      "lifecycle_recommendation",
+      "why"
+    ],
+    "archived": [
+      "lifecycle_recommendation",
+      "why"
+    ],
+    "rejected": [
+      "lifecycle_recommendation",
+      "duplication_risk",
+      "why"
+    ]
+  },
+  "test_requirements_by_state": {
+    "candidate": {
+      "minimum_test_evidence": 0,
+      "requires_dispatcher_coverage": false
+    },
+    "experimental": {
+      "minimum_test_evidence": 1,
+      "requires_dispatcher_coverage": false
+    },
+    "stable": {
+      "minimum_test_evidence": 2,
+      "requires_dispatcher_coverage": true
+    },
+    "deprecated": {
+      "minimum_test_evidence": 1,
+      "requires_dispatcher_coverage": false
+    },
+    "archived": {
+      "minimum_test_evidence": 0,
+      "requires_dispatcher_coverage": false
+    },
+    "rejected": {
+      "minimum_test_evidence": 0,
+      "requires_dispatcher_coverage": false
+    }
+  },
+  "documentation_requirements_by_state": {
+    "candidate": [
+      "problem_statement",
+      "scope_boundary"
+    ],
+    "experimental": [
+      "policy_reference",
+      "skill_readme_plan",
+      "safety_limits"
+    ],
+    "stable": [
+      "skill_md",
+      "skill_json",
+      "behavior_json",
+      "governance_alignment"
+    ],
+    "deprecated": [
+      "replacement_or_reason"
+    ],
+    "archived": [
+      "archive_reason"
+    ],
+    "rejected": [
+      "rejection_reason"
+    ]
+  },
+  "human_approval_required_by_state": {
+    "candidate": false,
+    "experimental": true,
+    "stable": true,
+    "deprecated": true,
+    "archived": true,
+    "rejected": false
+  },
+  "allowed_risk_by_state": {
+    "candidate": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "experimental": [
+      "low",
+      "medium"
+    ],
+    "stable": [
+      "low",
+      "medium"
+    ],
+    "deprecated": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "archived": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "rejected": [
+      "low",
+      "medium",
+      "high"
+    ]
+  },
+  "duplication_signals": {
+    "high": [
+      "existing_skill_overlap",
+      "same_trigger_same_output",
+      "rename_only"
+    ],
+    "medium": [
+      "partial_overlap",
+      "scope_boundary_unclear"
+    ]
+  },
+  "external_dependency_signals": {
+    "high_terms": [
+      "mcp",
+      "playwright",
+      "docker",
+      "install",
+      "sync",
+      "autonomous",
+      "self-heal",
+      "runtime",
+      "browser automation",
+      "provider token",
+      "secret"
+    ],
+    "medium_terms": [
+      "api",
+      "sdk",
+      "provider",
+      "github",
+      "vercel",
+      "external service",
+      "remote docs"
+    ]
+  },
+  "decision_council_triggers": [
+    "duplication_risk_high",
+    "external_dependency_risk_high",
+    "high_complexity",
+    "surface_change_high"
+  ],
+  "watchlist_triggers": [
+    "external_dependency_risk_high",
+    "evidence_not_strong_enough",
+    "atlas_core_fit_unclear"
+  ]
+}

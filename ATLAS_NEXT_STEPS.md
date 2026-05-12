@@ -9,6 +9,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 3. Remove blocked deprecated flat skill pointers once filesystem access allows deletion
 4. Remove blocked test residue folders once filesystem access allows deletion
 5. Evolve the suggestive orchestrator carefully before adding any autonomy
+6. Use the new skill lifecycle layer before approving any new reusable Atlas skill
 
 ## Review before building
 
@@ -20,6 +21,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Preserve compatibility for derived-project metadata and the legacy mirror while the retirement plan is still open
 - Keep model and MCP profile catalogs configurable instead of turning one provider choice into a permanent rule
 - Add skills only when the orchestrator can justify them clearly
+- Use `skill_lifecycle_policy` and `skill_lifecycle_rules.json` before promoting a skill beyond `candidate`
 - Keep execution tests side-effect free unless a real filesystem write is the behavior under test
 - Preserve the skill metadata contract if any future skill is added
 - Keep advanced operational fields aligned with real execution behavior, not just documentation
@@ -59,6 +61,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep `prompt_builder` phase-aware and explicit so it teaches the flow without becoming hidden automation
 - Keep `prompt_builder` tied to real priority, feedback and validation signals instead of drifting back toward generic task templates
 - Keep `skill_evaluator` conservative; it should block capability sprawl more often than it approves new reusable skills
+- Add a stronger `visual_intent_contract` next so design guidance becomes as explicit as skill lifecycle guidance
 - Keep `error_pattern_analyzer` evidence-first so it reports recurring Atlas failure modes without turning log noise into fake system-learning claims
 - Keep `repo_improvement_scout` anchored to the local reference clone and explicit effort/benefit tradeoffs, not to trend-chasing features
 - Keep `mcp_readiness_check` read-only until Codex CLI can be verified locally without `Access is denied`

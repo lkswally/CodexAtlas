@@ -46,6 +46,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Atlas now has a configurable read-only `model_router` that recommends the real Codex Desktop models available on this machine and reports `not_available` for auto-switch while CLI verification remains blocked
 - Atlas now has a read-only `prompt_builder` that turns current phase plus project intent into explicit next-step prompts instead of hidden workflow logic
 - Atlas now has a read-only `skill_evaluator` that helps reject low-value reusable-skill ideas before Atlas grows new capability surface
+- Atlas now has a governed skill-lifecycle layer with explicit lifecycle policy, machine-readable lifecycle rules and advisory evaluator outputs for promotion, rejection and watchlist posture
 - Atlas now has a read-only `error_pattern_analyzer` that reads local Atlas logs to detect repeated blocks, ignored actions, MCP runtime failures and governance drift
 - Atlas now has a read-only `repo_improvement_scout` that evaluates `_reference/claude-vibecoding` as a structured source of safe Atlas improvements
 - Atlas now has a read-only `atlas_verify` helper that reuses governance, `audit-repo`, `surface-audit`, and optional `quality-gate-report` as one post-setup verification entrypoint
@@ -161,6 +162,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Skill execution now has dedicated tests without creating new filesystem residue
 - Skill governance now verifies `expected_outputs` and `validations` for every structured skill
 - Skill governance now verifies `required_inputs`, `safety_limits`, `rollback_manual`, `execution_mode`, `allowed_paths_policy`, `forbidden_actions` and `human_approval_triggers`
+- Skill governance now also verifies the presence and structure of the skill lifecycle source-of-truth files and rejects unknown declared `lifecycle_state` values
 - Skill governance now validates `bootstrap_contract.json` and its consistency with `skill.json` and `behavior.json`
 - Skill governance now validates supported bootstrap project types and template metadata
 - Skill governance now validates that each bootstrap profile points to real external template files

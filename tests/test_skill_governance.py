@@ -9,9 +9,11 @@ from tools.atlas_governance_check import (
     _find_forbidden_canonical_root_artifacts,
     _record_governance_event,
     _read_text,
+    _load_skill_lifecycle_rules,
     _validate_external_tool_policy,
     _validate_mcp_profiles,
     _validate_docs_search_catalog,
+    _validate_skill_lifecycle_rules,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
@@ -29,6 +31,24 @@ ROOT = Path(r"C:\Proyectos\Codex-Atlas")
 def test_current_skill_catalog_passes_governance():
     result = run_check(root=ROOT)
     assert result["ok"] is True
+
+
+def test_skill_lifecycle_rules_allow_expected_transitions():
+    rules = _load_skill_lifecycle_rules(ROOT)
+    assert "experimental" in rules["allowed_transitions"]["candidate"]
+    assert "stable" in rules["allowed_transitions"]["experimental"]
+    assert "deprecated" in rules["allowed_transitions"]["stable"]
+
+
+def test_skill_lifecycle_rules_reject_missing_states():
+    findings = []
+    invalid_rules = _load_skill_lifecycle_rules(ROOT)
+    invalid_rules["states"] = ["candidate", "experimental"]
+
+    with patch("tools.atlas_governance_check._load_skill_lifecycle_rules", return_value=invalid_rules):
+        _validate_skill_lifecycle_rules(ROOT, findings)
+
+    assert any(finding.startswith("skill_lifecycle_rules_missing_states:") for finding in findings)
 
 
 def test_skill_metadata_validation_rejects_invalid_contract_fields():

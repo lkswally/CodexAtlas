@@ -58,6 +58,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["external_tool_posture"]["mcp_allowed"] is False
     assert isinstance(result["prompt_guidance"], dict)
     assert isinstance(result["skill_creation_signal"], dict)
+    assert isinstance(result["skill_lifecycle_posture"], dict)
     assert isinstance(result["system_learning"], dict)
     assert isinstance(result["execution_plan"], list)
     assert len(result["execution_plan"]) <= 3
@@ -88,6 +89,9 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert isinstance(result["decision_feedback"], dict)
     assert result["decision_feedback"]["status"] in {"ok", "failed"}
     assert result["recommended_next_action"]
+    assert "recommended_state" in result["skill_lifecycle_posture"]
+    assert "lifecycle_recommendation" in result["skill_lifecycle_posture"]
+    assert "promotion_blockers" in result["skill_lifecycle_posture"]
 
 
 def test_quality_gate_report_uses_existing_outputs_to_mark_not_ready():

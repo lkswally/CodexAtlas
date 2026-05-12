@@ -31,6 +31,7 @@ REQUIRED_ROOT_FILES = (
     "config/docs_search_catalog.json",
     "config/phase_playbook.json",
     "config/external_tool_policy.json",
+    "config/skill_lifecycle_rules.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -66,6 +67,7 @@ REQUIRED_ROOT_FILES = (
     "policies/mcp_routing_policy.md",
     "policies/cost_control_policy.md",
     "policies/external_tool_policy.md",
+    "policies/skill_lifecycle_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
     "memory/session_summaries.md",
@@ -340,6 +342,24 @@ EXTERNAL_TOOL_POLICY_REQUIRED_FIELDS = {
     "integration_hints",
 }
 EXTERNAL_TOOL_POLICY_REQUIRED_LAYERS = {"knowledge", "control", "execution", "context"}
+REQUIRED_SKILL_LIFECYCLE_STATES = {
+    "candidate",
+    "experimental",
+    "stable",
+    "deprecated",
+    "archived",
+    "rejected",
+}
+SKILL_LIFECYCLE_RULES_REQUIRED_FIELDS = {
+    "version",
+    "states",
+    "allowed_transitions",
+    "required_fields_by_state",
+    "test_requirements_by_state",
+    "documentation_requirements_by_state",
+    "human_approval_required_by_state",
+    "allowed_risk_by_state",
+}
 
 
 def _primary_registry_path(root: Path) -> Path:
@@ -400,6 +420,10 @@ def _load_mcp_profiles(root: Path) -> Dict[str, Any]:
 
 def _load_external_tool_policy(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "external_tool_policy.json").read_text(encoding="utf-8"))
+
+
+def _load_skill_lifecycle_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "skill_lifecycle_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -653,6 +677,81 @@ def _validate_external_tool_policy(root: Path, findings: List[str]) -> None:
 
     if not isinstance(policy.get("integration_hints"), dict) or not policy.get("integration_hints"):
         findings.append("external_tool_policy_invalid_integration_hints")
+
+
+def _validate_skill_lifecycle_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_skill_lifecycle_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_skill_lifecycle_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("skill_lifecycle_rules_not_object")
+        return
+
+    missing_fields = SKILL_LIFECYCLE_RULES_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(f"skill_lifecycle_rules_missing_fields:{','.join(sorted(missing_fields))}")
+
+    states = rules.get("states")
+    if not isinstance(states, list) or not states or not all(isinstance(item, str) and item.strip() for item in states):
+        findings.append("skill_lifecycle_rules_invalid_states")
+        return
+
+    state_set = {str(item).strip() for item in states}
+    missing_states = REQUIRED_SKILL_LIFECYCLE_STATES - state_set
+    unknown_states = state_set - REQUIRED_SKILL_LIFECYCLE_STATES
+    if missing_states:
+        findings.append(f"skill_lifecycle_rules_missing_states:{','.join(sorted(missing_states))}")
+    if unknown_states:
+        findings.append(f"skill_lifecycle_rules_unknown_states:{','.join(sorted(unknown_states))}")
+
+    allowed_transitions = rules.get("allowed_transitions")
+    if not isinstance(allowed_transitions, dict):
+        findings.append("skill_lifecycle_rules_invalid_allowed_transitions")
+    else:
+        for state in REQUIRED_SKILL_LIFECYCLE_STATES:
+            transitions = allowed_transitions.get(state)
+            if not isinstance(transitions, list):
+                findings.append(f"skill_lifecycle_rules_invalid_transitions:{state}")
+                continue
+            for transition in transitions:
+                if str(transition).strip() not in REQUIRED_SKILL_LIFECYCLE_STATES:
+                    findings.append(f"skill_lifecycle_rules_unknown_transition:{state}:{transition}")
+
+    for field_name in (
+        "required_fields_by_state",
+        "test_requirements_by_state",
+        "documentation_requirements_by_state",
+        "human_approval_required_by_state",
+        "allowed_risk_by_state",
+    ):
+        value = rules.get(field_name)
+        if not isinstance(value, dict):
+            findings.append(f"skill_lifecycle_rules_invalid_section:{field_name}")
+            continue
+        missing_state_keys = REQUIRED_SKILL_LIFECYCLE_STATES - set(value.keys())
+        if missing_state_keys:
+            findings.append(
+                f"skill_lifecycle_rules_missing_section_states:{field_name}:{','.join(sorted(missing_state_keys))}"
+            )
+
+    allowed_risk_by_state = rules.get("allowed_risk_by_state", {})
+    if isinstance(allowed_risk_by_state, dict):
+        for state, risks in allowed_risk_by_state.items():
+            if not isinstance(risks, list) or not risks:
+                findings.append(f"skill_lifecycle_rules_invalid_risk_list:{state}")
+                continue
+            for risk in risks:
+                if str(risk).strip() not in VALID_SKILL_RISK_LEVELS:
+                    findings.append(f"skill_lifecycle_rules_unknown_risk_level:{state}:{risk}")
+
+    human_approval_by_state = rules.get("human_approval_required_by_state", {})
+    if isinstance(human_approval_by_state, dict):
+        for state, value in human_approval_by_state.items():
+            if not isinstance(value, bool):
+                findings.append(f"skill_lifecycle_rules_invalid_approval_flag:{state}")
 
 
 def _validate_docs_search_catalog(root: Path, findings: List[str]) -> None:
@@ -922,6 +1021,12 @@ def _validate_skill_metadata(
 
     if not _is_valid_string_list(metadata.get("human_approval_triggers")):
         findings.append(f"skill_{skill_name}:invalid_human_approval_triggers")
+
+    lifecycle_state = metadata.get("lifecycle_state")
+    if lifecycle_state is not None:
+        lifecycle_state_value = str(lifecycle_state).strip()
+        if lifecycle_state_value not in REQUIRED_SKILL_LIFECYCLE_STATES:
+            findings.append(f"skill_{skill_name}:unknown_lifecycle_state:{lifecycle_state_value or 'empty'}")
 
 
 def _validate_behavior_metadata(skill_name: str, behavior: Dict[str, Any], findings: List[str]) -> None:
@@ -1505,6 +1610,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_model_routing_rules(root, findings)
         _validate_mcp_profiles(root, findings)
         _validate_external_tool_policy(root, findings)
+        _validate_skill_lifecycle_rules(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)

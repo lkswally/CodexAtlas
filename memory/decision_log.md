@@ -1,5 +1,12 @@
 # Decision Log
 
+## 2026-05-12
+- Decision: add a governed `skill_lifecycle_policy` plus machine-readable lifecycle rules before growing the Atlas skill catalog further
+- Reason: Atlas already had reusable skills and a conservative evaluator, but still lacked one canonical way to classify candidates, reject duplicates, hold risky ideas in watchlist posture and explain promotion decisions
+- Impact: Atlas can now recommend lifecycle state, duplication risk, external dependency risk, human approval and decision-council escalation without auto-installing or auto-promoting any skill
+- Risk: if lifecycle rules become too rigid, useful edge-case skills could stay in `candidate` longer than necessary
+- Rollback: remove `policies/skill_lifecycle_policy.md`, `config/skill_lifecycle_rules.json` and the evaluator/governance additions, then fall back to the older need-score-only skill evaluation path
+
 ## 2026-04-23
 - Decision: establish a Codex-native Level 1 bootstrap inside the canonical Atlas repo
 - Reason: reduce drift, improve handoff between sessions and avoid depending on long chat context
