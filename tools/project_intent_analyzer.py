@@ -7,6 +7,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+try:
+    from tools.visual_intent_contract import build_visual_intent_assessment
+except ModuleNotFoundError:
+    from visual_intent_contract import build_visual_intent_assessment
+
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
 SURFACE_FILES = ("README.md", "AGENTS.md", "index.html", "docs/architecture.md")
@@ -26,6 +31,74 @@ AUDIENCE_TERMS = (
     "for product teams",
     "for technical teams",
     "audience",
+)
+VISUAL_MOOD_TERMS = (
+    "editorial",
+    "minimal",
+    "luxury",
+    "brutalist",
+    "immersive",
+    "playful",
+    "industrial",
+    "swiss",
+    "monochrome",
+    "cinematic",
+    "warm",
+    "calm",
+    "sharp",
+    "bold",
+    "soft",
+    "premium",
+    "serious",
+    "mood",
+    "vibe",
+    "tone",
+)
+VISUAL_ORIGINALITY_LEVELS = {
+    "conservative": ("conservative",),
+    "balanced": ("balanced",),
+    "distinctive": ("distinctive", "differentiated", "non-generic"),
+    "experimental": ("experimental",),
+}
+HERO_DIRECTION_TERMS = (
+    "hero",
+    "headline",
+    "above the fold",
+    "factory",
+    "system",
+    "governance",
+    "architecture",
+    "control",
+    "anti-chaos",
+)
+CTA_INTENT_TERMS = (
+    "start setup",
+    "create first project",
+    "contact",
+    "get started",
+    "view roadmap",
+    "explore architecture",
+    "audit",
+    "certify",
+)
+ANTI_PATTERN_TERMS = (
+    "avoid generic",
+    "avoid saas",
+    "avoid template",
+    "avoid pdf",
+    "avoid readme",
+    "anti-pattern",
+    "no teal",
+    "no inter",
+)
+EVIDENCE_EXPECTATION_TERMS = (
+    "evidence",
+    "proof",
+    "before pass",
+    "before calling it done",
+    "audit",
+    "certify",
+    "validation",
 )
 SCOPE_TERMS = ("scope", "constraints", "restrictions", "no deploy", "no backend", "no mcp", "read-only")
 HIGH_RISK_TERMS = (
@@ -51,6 +124,16 @@ NEGATED_RISK_PATTERNS = (
     "no production deploy",
     "no backend",
     "no mcp",
+)
+VISUAL_INTENT_CONTRACT_REQUIRED_FIELDS = (
+    "audience",
+    "problem_promise",
+    "mood_vibe",
+    "originality_level",
+    "hero_direction",
+    "cta_intent",
+    "anti_patterns_to_avoid",
+    "evidence_expectations_before_pass",
 )
 
 
@@ -129,6 +212,77 @@ def _keyword_hits(normalized_text: str, terms: Tuple[str, ...]) -> List[str]:
         if term in normalized_text:
             hits.append(term)
     return hits
+
+
+def _dedupe_preserve_order(values: List[str]) -> List[str]:
+    seen: set[str] = set()
+    deduped: List[str] = []
+    for value in values:
+        normalized = value.strip().lower()
+        if not normalized or normalized in seen:
+            continue
+        seen.add(normalized)
+        deduped.append(value.strip())
+    return deduped
+
+
+def _extract_originality_level(normalized_text: str) -> Optional[str]:
+    for level, terms in VISUAL_ORIGINALITY_LEVELS.items():
+        if any(term in normalized_text for term in terms):
+            return level
+    return None
+
+
+def _extract_first_cta_intent(normalized_text: str) -> Optional[str]:
+    for term in CTA_INTENT_TERMS:
+        if term in normalized_text:
+            return term
+    return None
+
+
+def _extract_hero_direction(surface: Dict[str, str], objective: Optional[str], normalized_text: str) -> Optional[str]:
+    index_html = surface.get("index.html", "")
+    hero_heading = _extract_first_heading(index_html)
+    if hero_heading:
+        return hero_heading
+    for term in HERO_DIRECTION_TERMS:
+        if term in normalized_text:
+            return term
+    return objective
+
+
+def _extract_problem_promise(
+    metadata: Optional[Dict[str, Any]],
+    objective: Optional[str],
+    source_text: Optional[str] = None,
+) -> Optional[str]:
+    if metadata:
+        goal = str(metadata.get("project_goal", "")).strip()
+        if goal:
+            return goal[:240]
+    if objective:
+        return objective[:240]
+    sentence = _extract_first_meaningful_sentence(source_text or "")
+    return sentence[:240] if sentence else None
+
+
+def build_visual_intent_contract(
+    *,
+    project_type: Optional[str],
+    surface: Optional[Dict[str, str]] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+    brief: Optional[str] = None,
+    objective: Optional[str] = None,
+    root: Path = DEFAULT_ROOT,
+) -> Dict[str, Any]:
+    return build_visual_intent_assessment(
+        project_type=project_type,
+        surface=surface,
+        metadata=metadata,
+        brief=brief,
+        objective=objective,
+        root=root,
+    )
 
 
 def _risk_hits(normalized_text: str, terms: Tuple[str, ...]) -> List[str]:
@@ -306,6 +460,20 @@ def analyze_project_intent(
         reasoning.append("The current brief or project surface does not state a concrete project objective yet.")
     reasoning.append(f"Risk is `{risk_level}` and complexity is `{complexity}` using project-type and surface-signal heuristics, not hidden runtime behavior.")
 
+    visual_intent_contract = build_visual_intent_contract(
+        project_type=project_type,
+        surface=surface,
+        metadata=metadata,
+        brief=brief,
+        objective=objective,
+        root=DEFAULT_ROOT,
+    )
+    if visual_intent_contract.get("requires_contract") and visual_intent_contract.get("status") != "ready":
+        missing_definition = [*missing_definition, "visual_intent_contract_missing_or_weak"]
+        reasoning.append(
+            "This project looks UI- or landing-oriented, so Atlas should clarify the visual intent contract before treating design direction as settled."
+        )
+
     return {
         "status": "ready" if not missing_definition else "needs_input",
         "project_path": project_path,
@@ -315,6 +483,7 @@ def analyze_project_intent(
         "complexity": complexity,
         "clarity_score": clarity_score,
         "missing_definition": missing_definition,
+        "visual_intent_contract": visual_intent_contract,
         "evidence": evidence[:12],
         "reasoning": reasoning,
         "timestamp": _utc_now_iso(),

@@ -10,10 +10,12 @@ from tools.atlas_governance_check import (
     _record_governance_event,
     _read_text,
     _load_skill_lifecycle_rules,
+    _load_visual_intent_contract,
     _validate_external_tool_policy,
     _validate_mcp_profiles,
     _validate_docs_search_catalog,
     _validate_skill_lifecycle_rules,
+    _validate_visual_intent_contract,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
@@ -49,6 +51,17 @@ def test_skill_lifecycle_rules_reject_missing_states():
         _validate_skill_lifecycle_rules(ROOT, findings)
 
     assert any(finding.startswith("skill_lifecycle_rules_missing_states:") for finding in findings)
+
+
+def test_visual_intent_contract_rejects_missing_required_fields():
+    findings = []
+    invalid_contract = _load_visual_intent_contract(ROOT)
+    invalid_contract["required_fields"] = ["audience", "mood_vibe"]
+
+    with patch("tools.atlas_governance_check._load_visual_intent_contract", return_value=invalid_contract):
+        _validate_visual_intent_contract(ROOT, findings)
+
+    assert any(finding.startswith("visual_intent_contract_missing_required_fields:") for finding in findings)
 
 
 def test_skill_metadata_validation_rejects_invalid_contract_fields():

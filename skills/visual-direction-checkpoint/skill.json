@@ -26,6 +26,7 @@
   "allowed_paths_policy": "no_filesystem_writes",
   "expected_outputs": [
     "structured visual direction checkpoint",
+    "visual intent contract with explicit missing fields",
     "audience, mood and originality prompts",
     "next-step recommendation before UI work"
   ],
@@ -49,8 +50,11 @@
   ],
   "validations": [
     "audience is explicit or clearly marked missing",
+    "problem or promise is explicit or clearly marked missing",
     "mood or vibe is explicit",
     "originality level is explicit",
+    "hero direction and CTA intent are explicit or clearly marked missing",
+    "anti-patterns and evidence expectations are explicit or clearly marked missing",
     "the next action stays advisory"
   ]
 }

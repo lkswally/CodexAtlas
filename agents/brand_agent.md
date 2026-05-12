@@ -7,6 +7,7 @@ Guard brand direction, audience clarity and non-generic positioning for Atlas-de
 ## Responsibilities
 
 - require audience and value proposition before visual polish
+- use the visual intent contract when available so mood, originality, hero direction and CTA intent stay explicit
 - define mood, vibe and originality expectations
 - keep branding guidance separate from runtime code
 - turn vague product positioning into actionable review criteria

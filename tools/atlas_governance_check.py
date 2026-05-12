@@ -32,6 +32,7 @@ REQUIRED_ROOT_FILES = (
     "config/phase_playbook.json",
     "config/external_tool_policy.json",
     "config/skill_lifecycle_rules.json",
+    "config/visual_intent_contract_rules.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -68,6 +69,7 @@ REQUIRED_ROOT_FILES = (
     "policies/cost_control_policy.md",
     "policies/external_tool_policy.md",
     "policies/skill_lifecycle_policy.md",
+    "policies/visual_intent_contract_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
     "memory/session_summaries.md",
@@ -360,6 +362,34 @@ SKILL_LIFECYCLE_RULES_REQUIRED_FIELDS = {
     "human_approval_required_by_state",
     "allowed_risk_by_state",
 }
+VISUAL_INTENT_CONTRACT_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "required_fields",
+    "required_for_project_types",
+    "ui_surface_signals",
+    "backend_exempt_project_types",
+    "allowed_originality_levels",
+    "allowed_motion_intensity",
+    "allowed_visual_density",
+    "minimum_evidence_expectations",
+    "weak_field_rules",
+}
+REQUIRED_VISUAL_INTENT_FIELDS = {
+    "audience",
+    "project_type",
+    "problem_or_promise",
+    "mood_or_vibe",
+    "originality_level",
+    "hero_direction",
+    "primary_cta_intent",
+    "visual_density",
+    "motion_intensity",
+    "typography_intent",
+    "color_strategy",
+    "anti_patterns_to_avoid",
+    "evidence_expectations",
+}
 
 
 def _primary_registry_path(root: Path) -> Path:
@@ -424,6 +454,10 @@ def _load_external_tool_policy(root: Path) -> Dict[str, Any]:
 
 def _load_skill_lifecycle_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "skill_lifecycle_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_visual_intent_contract(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "visual_intent_contract_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -752,6 +786,67 @@ def _validate_skill_lifecycle_rules(root: Path, findings: List[str]) -> None:
         for state, value in human_approval_by_state.items():
             if not isinstance(value, bool):
                 findings.append(f"skill_lifecycle_rules_invalid_approval_flag:{state}")
+
+
+def _validate_visual_intent_contract(root: Path, findings: List[str]) -> None:
+    try:
+        contract = _load_visual_intent_contract(root)
+    except Exception as exc:
+        findings.append(f"invalid_visual_intent_contract_json:{exc}")
+        return
+
+    if not isinstance(contract, dict):
+        findings.append("visual_intent_contract_not_object")
+        return
+
+    missing_fields = VISUAL_INTENT_CONTRACT_REQUIRED_FIELDS - set(contract.keys())
+    if missing_fields:
+        findings.append(f"visual_intent_contract_missing_fields:{','.join(sorted(missing_fields))}")
+
+    required_fields = contract.get("required_fields")
+    if not isinstance(required_fields, list) or not required_fields:
+        findings.append("visual_intent_contract_invalid_required_fields")
+    else:
+        required_set = {str(item).strip() for item in required_fields if str(item).strip()}
+        missing_required = REQUIRED_VISUAL_INTENT_FIELDS - required_set
+        unknown_required = required_set - REQUIRED_VISUAL_INTENT_FIELDS
+        if missing_required:
+            findings.append(f"visual_intent_contract_missing_required_fields:{','.join(sorted(missing_required))}")
+        if unknown_required:
+            findings.append(f"visual_intent_contract_unknown_required_fields:{','.join(sorted(unknown_required))}")
+
+    if not isinstance(contract.get("advisory_only"), bool):
+        findings.append("visual_intent_contract_invalid_advisory_only")
+
+    originality_levels = contract.get("allowed_originality_levels")
+    if not isinstance(originality_levels, list) or set(originality_levels) != {
+        "conservative",
+        "balanced",
+        "distinctive",
+        "experimental",
+    }:
+        findings.append("visual_intent_contract_invalid_originality_levels")
+
+    motion_levels = contract.get("allowed_motion_intensity")
+    if not isinstance(motion_levels, list) or set(motion_levels) != {"low", "medium", "high"}:
+        findings.append("visual_intent_contract_invalid_motion_intensity_levels")
+
+    density_levels = contract.get("allowed_visual_density")
+    if not isinstance(density_levels, list) or set(density_levels) != {"low", "medium", "high"}:
+        findings.append("visual_intent_contract_invalid_visual_density_levels")
+
+    minimum_evidence = contract.get("minimum_evidence_expectations")
+    if not isinstance(minimum_evidence, list) or not minimum_evidence:
+        findings.append("visual_intent_contract_invalid_minimum_evidence_expectations")
+
+    for field_name in ("required_for_project_types", "ui_surface_signals", "backend_exempt_project_types"):
+        value = contract.get(field_name)
+        if not isinstance(value, list) or not value:
+            findings.append(f"visual_intent_contract_invalid_list:{field_name}")
+
+    weak_rules = contract.get("weak_field_rules")
+    if not isinstance(weak_rules, dict) or not weak_rules:
+        findings.append("visual_intent_contract_invalid_weak_field_rules")
 
 
 def _validate_docs_search_catalog(root: Path, findings: List[str]) -> None:
@@ -1611,6 +1706,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_mcp_profiles(root, findings)
         _validate_external_tool_policy(root, findings)
         _validate_skill_lifecycle_rules(root, findings)
+        _validate_visual_intent_contract(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)

@@ -15,6 +15,8 @@ def test_project_intent_analyzer_flags_missing_definition_for_vague_brief():
     assert result["clarity_score"] <= 7
     assert result["missing_definition"]
     assert result["project_type"] in {"unknown", "internal_tool", "frontend_app"}
+    assert result["visual_intent_contract"]["status"] == "needs_input"
+    assert "audience" in result["visual_intent_contract"]["missing_fields"]
 
 
 def test_project_intent_analyzer_returns_structured_intent_for_codexatlas_web():
@@ -25,4 +27,7 @@ def test_project_intent_analyzer_returns_structured_intent_for_codexatlas_web():
     assert result["risk_level"] in {"low", "medium", "high"}
     assert result["complexity"] in {"low", "medium", "high"}
     assert isinstance(result["missing_definition"], list)
+    assert isinstance(result["visual_intent_contract"], dict)
+    assert "required_fields" in result["visual_intent_contract"]
+    assert "contract" in result["visual_intent_contract"]
     assert result["reasoning"]

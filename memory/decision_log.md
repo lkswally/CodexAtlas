@@ -1,6 +1,12 @@
 # Decision Log
 
 ## 2026-05-12
+- Decision: add a governed `visual_intent_contract` before expanding Atlas design automation further
+- Reason: Atlas already had design-intelligence pieces, but still lacked one shared contract for audience, promise, mood, originality, hero direction, CTA intent, anti-patterns and evidence expectations
+- Impact: Atlas can now surface missing visual direction explicitly across intent analysis, design checkpointing, brand guidance, design audit and quality-gate reporting without touching derived projects, and the contract is validated through a dedicated read-only helper plus governed rules
+- Risk: if the contract becomes too rigid too early, intentionally simple pages could look under-specified even when they are acceptable for their scope
+- Rollback: remove `config/visual_intent_contract_rules.json`, `policies/visual_intent_contract_policy.md`, `tools/visual_intent_contract.py` and the connected advisory reporting fields, then fall back to the previous looser design guidance
+
 - Decision: add a governed `skill_lifecycle_policy` plus machine-readable lifecycle rules before growing the Atlas skill catalog further
 - Reason: Atlas already had reusable skills and a conservative evaluator, but still lacked one canonical way to classify candidates, reject duplicates, hold risky ideas in watchlist posture and explain promotion decisions
 - Impact: Atlas can now recommend lifecycle state, duplication risk, external dependency risk, human approval and decision-council escalation without auto-installing or auto-promoting any skill

@@ -20,15 +20,18 @@ def test_visual_direction_checkpoint_requires_missing_inputs_when_brief_is_vague
     assert result["status"] == "needs_input"
     assert "audience_missing_or_implicit" in result["warnings"]
     assert "mood_or_vibe_missing" in result["warnings"]
+    assert result["visual_intent_contract"]["status"] == "needs_input"
+    assert "primary_cta_intent" in result["visual_intent_contract"]["missing_fields"]
 
 
 def test_visual_direction_checkpoint_detects_explicit_direction():
     result = visual_direction_checkpoint(
-        "Create an internal tool landing page for developers with a premium editorial vibe and balanced originality."
+        "Create an internal tool landing page for developers that promises structured project setup without chaos, with a premium editorial vibe, balanced originality, a system-first hero, start setup CTA, medium visual density, low motion intensity, serif plus disciplined sans typography intent, warm neutrals with deep teal color strategy, avoid generic SaaS defaults, and require audit evidence before pass."
     )
     assert result["status"] == "ready"
     assert result["checkpoint"]["audience"] is not None
     assert result["checkpoint"]["mood_or_vibe"] is not None
+    assert result["visual_intent_contract"]["status"] == "ready"
 
 
 def test_anti_generic_ui_audit_returns_structured_output_for_codexatlas_web():
@@ -36,6 +39,7 @@ def test_anti_generic_ui_audit_returns_structured_output_for_codexatlas_web():
     assert result["status"] in {"pass", "needs_attention"}
     assert result["public_readiness"] in {"ready", "needs_improvement", "not_ready"}
     assert isinstance(result["landing_score"], int)
+    assert isinstance(result["visual_intent_contract_review"], dict)
     assert isinstance(result["blockers"], list)
     assert isinstance(result["warnings"], list)
     assert isinstance(result["evidence"], list)

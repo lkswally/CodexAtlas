@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "advisory_only": true,
+  "required_fields": [
+    "audience",
+    "project_type",
+    "problem_or_promise",
+    "mood_or_vibe",
+    "originality_level",
+    "hero_direction",
+    "primary_cta_intent",
+    "visual_density",
+    "motion_intensity",
+    "typography_intent",
+    "color_strategy",
+    "anti_patterns_to_avoid",
+    "evidence_expectations"
+  ],
+  "required_for_project_types": [
+    "frontend_app",
+    "fullstack"
+  ],
+  "ui_surface_signals": [
+    "landing",
+    "website",
+    "site",
+    "frontend",
+    "ui",
+    "interface",
+    "hero",
+    "cta",
+    "design",
+    "dashboard",
+    "page"
+  ],
+  "backend_exempt_project_types": [
+    "backend_service",
+    "ai_agent_system"
+  ],
+  "allowed_originality_levels": [
+    "conservative",
+    "balanced",
+    "distinctive",
+    "experimental"
+  ],
+  "allowed_motion_intensity": [
+    "low",
+    "medium",
+    "high"
+  ],
+  "allowed_visual_density": [
+    "low",
+    "medium",
+    "high"
+  ],
+  "minimum_evidence_expectations": [
+    "explicit visual direction or mood language",
+    "clear hero promise and primary CTA intent",
+    "anti-patterns are stated before declaring pass",
+    "readiness claims stay tied to audit, evidence or certification"
+  ],
+  "weak_field_rules": {
+    "problem_or_promise_min_words": 5,
+    "anti_patterns_min_items": 1,
+    "evidence_expectations_min_items": 1
+  }
+}

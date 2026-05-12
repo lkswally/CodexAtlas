@@ -554,6 +554,33 @@ def _derive_external_tool_posture(
     }
 
 
+def _build_visual_intent_warning(intent_report: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+    if not isinstance(intent_report, dict):
+        return None
+    contract = intent_report.get("visual_intent_contract")
+    if not isinstance(contract, dict):
+        return None
+    if not bool(contract.get("requires_contract")):
+        return None
+    if str(contract.get("status", "")).strip() == "ready":
+        return None
+    missing = list(contract.get("missing_fields", []))
+    weak = list(contract.get("weak_fields", []))
+    warning_code = "visual_intent_contract_missing" if missing else "visual_intent_contract_weak"
+    message = "Create or clarify the visual intent contract before treating design direction as settled."
+    if missing:
+        message = f"{message} Missing: {', '.join(missing[:5])}."
+    elif weak:
+        message = f"{message} Weak: {', '.join(weak[:5])}."
+    return {
+        "source": "visual_intent_contract",
+        "check": warning_code,
+        "severity": "medium",
+        "message": message,
+        "evidence": list(contract.get("missing_fields", []))[:5] + list(contract.get("weak_fields", []))[:5],
+    }
+
+
 def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     root = root.resolve()
     project = project.resolve()
@@ -587,6 +614,12 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     for item in _extract_surface_warnings(source_reports["surface-audit"]):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
+
+    visual_intent_warning = _build_visual_intent_warning(
+        source_reports["project_intent_analyzer"]["report"] if source_reports["project_intent_analyzer"]["status"] == "ok" else None
+    )
+    if visual_intent_warning:
+        _unique_priority_append(warnings, visual_intent_warning, seen)
 
     certify_report = source_reports["certify-project"].get("report") or {}
     for warning in certify_report.get("result", {}).get("warnings", []):
@@ -631,6 +664,12 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     recommended_next_action = _build_recommended_next_action(overall_status, blockers, top_priorities)
     landing_score = design_report.get("landing_score")
     public_readiness = design_report.get("public_readiness", "needs_improvement")
+    visual_intent_from_intent = (
+        (source_reports["project_intent_analyzer"]["report"] or {}).get("visual_intent_contract")
+        if source_reports["project_intent_analyzer"]["status"] == "ok"
+        else None
+    )
+    visual_intent_from_design = design_report.get("visual_intent_contract_review")
     external_tool_posture = _derive_external_tool_posture(
         source_reports=source_reports,
         blockers=blockers,
@@ -717,6 +756,21 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         "phase_validity": phase_validity,
         "phase_guidance": phase_guidance,
         "intent_analysis": source_reports["project_intent_analyzer"]["report"] if source_reports["project_intent_analyzer"]["status"] == "ok" else None,
+        "visual_intent_posture": {
+            "contract_status": (visual_intent_from_intent or {}).get("status"),
+            "design_review_status": (visual_intent_from_design or {}).get("status"),
+            "required_fields": (visual_intent_from_intent or {}).get("required_fields", []),
+            "missing_fields": sorted(
+                {
+                    *list((visual_intent_from_intent or {}).get("missing_fields", [])),
+                    *list((visual_intent_from_design or {}).get("missing_fields", [])),
+                }
+            ),
+            "fields": (visual_intent_from_intent or {}).get("contract"),
+            "next_action": (visual_intent_from_intent or {}).get("next_action")
+            or (visual_intent_from_design or {}).get("next_action"),
+            "advisory_only": True,
+        },
         "model_routing": source_reports["model_router"]["report"] if source_reports["model_router"]["status"] == "ok" else None,
         "external_tool_posture": external_tool_posture,
         "prompt_guidance": source_reports["prompt_builder"]["report"] if source_reports["prompt_builder"]["status"] == "ok" else None,

@@ -22,12 +22,14 @@
     "product_context",
     "target_audience",
     "current_positioning_or_visual_direction",
+    "visual_intent_contract_if_available",
     "references_if_available"
   ],
   "execution_mode": "read_only",
   "allowed_paths_policy": "no_filesystem_writes",
   "expected_outputs": [
     "branding and UX review",
+    "brand guidance aligned with the visual intent contract when available",
     "anti-generic findings",
     "recommendations for audience, value proposition and direction"
   ],

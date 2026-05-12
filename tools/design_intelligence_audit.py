@@ -7,6 +7,11 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+try:
+    from tools.project_intent_analyzer import build_visual_intent_contract
+except ModuleNotFoundError:
+    from project_intent_analyzer import build_visual_intent_contract
+
 
 ALLOWED_PROJECT_FILES = (
     "index.html",
@@ -175,6 +180,18 @@ def _extract_cta_elements(html_text: str) -> List[str]:
 def _strip_html(text: str) -> str:
     text = re.sub(r"<[^>]+>", " ", text)
     return re.sub(r"\s+", " ", text).strip()
+
+
+def _extract_first_meaningful_sentence(text: str) -> Optional[str]:
+    cleaned = _strip_html(text)
+    if not cleaned:
+        return None
+    parts = re.split(r"(?<=[.!?])\s+", cleaned)
+    for part in parts:
+        candidate = part.strip()
+        if len(candidate.split()) >= 5:
+            return candidate
+    return cleaned[:180].strip() if cleaned else None
 
 
 def _extract_link_targets(html_text: str) -> List[Dict[str, str]]:
@@ -355,6 +372,7 @@ def visual_direction_checkpoint(task: str) -> Dict[str, Any]:
     audience_hits = _has_any(normalized, AUDIENCE_TERMS)
     mood_hits = _has_any(normalized, MOOD_TERMS + VISUAL_DIRECTION_TERMS)
     originality_hits = _has_any(normalized, ORIGINALITY_TERMS)
+    visual_intent_contract = build_visual_intent_contract(project_type="frontend_app", brief=task)
     warnings: List[str] = []
     if not audience_hits:
         warnings.append("audience_missing_or_implicit")
@@ -362,6 +380,10 @@ def visual_direction_checkpoint(task: str) -> Dict[str, Any]:
         warnings.append("mood_or_vibe_missing")
     if not originality_hits:
         warnings.append("originality_level_missing")
+    for field_name in visual_intent_contract.get("missing_fields", []):
+        warning = f"visual_intent_missing:{field_name}"
+        if warning not in warnings:
+            warnings.append(warning)
     return {
         "status": "ready" if not warnings else "needs_input",
         "warnings": warnings,
@@ -375,15 +397,18 @@ def visual_direction_checkpoint(task: str) -> Dict[str, Any]:
             if not warnings
             else "Confirm audience, mood/vibe and originality before UI design work."
         ),
+        "visual_intent_contract": visual_intent_contract,
         "checkpoint": {
-            "audience": audience_hits[0] if audience_hits else None,
-            "mood_or_vibe": mood_hits[0] if mood_hits else None,
-            "originality_signal": originality_hits[0] if originality_hits else None,
+            "audience": (visual_intent_contract.get("contract") or {}).get("audience"),
+            "mood_or_vibe": (visual_intent_contract.get("contract") or {}).get("mood_or_vibe"),
+            "originality_signal": (visual_intent_contract.get("contract") or {}).get("originality_level"),
             "questions": [
                 "Who is the primary audience?",
+                "What problem or promise should the hero communicate first?",
                 "What mood or vibe should the interface communicate?",
                 "How conservative or experimental should the visual system be?",
                 "What should the design explicitly avoid?",
+                "What evidence is needed before calling the design pass?",
             ],
         },
         "task": task,
@@ -417,6 +442,11 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
         value
         for key, value in surface.items()
         if value and key != "styles.css"
+    )
+    visual_intent_contract = build_visual_intent_contract(
+        project_type="frontend_app",
+        surface=surface,
+        objective=_extract_first_meaningful_sentence(content_text),
     )
     normalized_text = _normalize(content_text)
     audience_hits = _has_any(normalized_text, AUDIENCE_TERMS)
@@ -763,6 +793,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
         "status": "needs_attention" if prioritized_problems else "pass" if not skipped_checks else "skipped",
         "landing_score": landing_score,
         "public_readiness": public_readiness,
+        "visual_intent_contract_review": visual_intent_contract,
         "blockers": blockers,
         "warnings": warnings,
         "evidence": evidence[:12],

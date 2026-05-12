@@ -28,6 +28,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Claude-vibecoding reference analysis is now captured canonically in `docs/claude_vibecoding_assessment.md`
 - Manual quality-gate policies now cover anti-generic output, evidence, project boundaries and template quality
 - Manual design-intelligence policies now cover visual direction, anti-generic UI review and design evidence
+- Manual design-intelligence policies now also require a visual intent contract before Atlas treats design direction as coherent enough for stronger recommendations
 - Atlas now has persistent observability files for derived projects, routing decisions and governance events under `memory/`
 - Atlas now has a controlled MCP evaluation surface with one experimental read-only candidate and the rest denied or deferred by policy
 - Atlas now has a governed MCP lifecycle manager for read-only dry runs without real connector activation
@@ -43,6 +44,8 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - `quality_gate_report` now includes `phase_alignment` and `phase_validity` so readiness stays tied to lifecycle context
 - Atlas now has a governed `phase_playbook` that explains the right next steps and common mistakes for each lifecycle phase without adding automation
 - Atlas now has a read-only `project_intent_analyzer` adapted from Intent Clarifier to infer project type, objective, risk, complexity and missing definition
+- Atlas now has a governed `visual_intent_contract` that makes audience, promise, mood, originality, hero direction, CTA intent, anti-patterns and evidence expectations explicit before stronger design claims
+- Atlas now has a dedicated read-only `visual_intent_contract` validator with machine-readable rules for UI-facing intent quality
 - Atlas now has a configurable read-only `model_router` that recommends the real Codex Desktop models available on this machine and reports `not_available` for auto-switch while CLI verification remains blocked
 - Atlas now has a read-only `prompt_builder` that turns current phase plus project intent into explicit next-step prompts instead of hidden workflow logic
 - Atlas now has a read-only `skill_evaluator` that helps reject low-value reusable-skill ideas before Atlas grows new capability surface
