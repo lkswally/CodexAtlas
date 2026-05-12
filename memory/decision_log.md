@@ -1,6 +1,12 @@
 # Decision Log
 
 ## 2026-05-12
+- Decision: add an advisory `ui_pre_return_audit` after `visual_intent_contract` and `brand_profile_schema`, before any stronger UI-ready claim
+- Reason: Atlas already had intent, brand and anti-generic checks, but still lacked one final read-only cross-check that ties those signals together before handoff or PASS language
+- Impact: design-intelligence and quality-gate outputs can now surface pre-return blockers, generic risk, brand mismatch, evidence gaps, responsive unknowns and accessibility weaknesses without touching derived projects
+- Risk: if the advisory review becomes too strict too early, intentionally lightweight internal surfaces could look less ready than their scope really requires
+- Rollback: remove `config/ui_pre_return_audit_rules.json`, `policies/ui_pre_return_audit_policy.md`, `tools/ui_pre_return_audit.py` and the connected governance/design/quality-gate fields, then fall back to the previous separate intent and brand checks
+
 - Decision: add a governed `brand_profile_schema` after the visual intent contract and before any stronger design automation
 - Reason: Atlas already had visual-intent and anti-generic checks, but still lacked one structured identity schema for mood vector, palette, typography, differentiation and accessibility review
 - Impact: Atlas can now surface missing, generic or derivative branding signals through a read-only schema helper, design audit and quality-gate posture without touching derived projects

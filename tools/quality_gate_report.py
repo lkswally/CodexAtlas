@@ -638,6 +638,67 @@ def _build_brand_profile_warnings(design_report: Optional[Dict[str, Any]]) -> Li
     return warnings
 
 
+def _build_ui_pre_return_warnings(design_report: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not isinstance(design_report, dict):
+        return []
+    review = design_report.get("ui_pre_return_review")
+    if not isinstance(review, dict):
+        return [
+            {
+                "source": "ui_pre_return_audit",
+                "check": "ui_pre_return_audit_missing",
+                "severity": "medium",
+                "message": "UI pre-return audit output is missing, so final UI readiness has not been cross-checked yet.",
+                "evidence": ["ui_pre_return_review_missing"],
+            }
+        ]
+
+    warnings: List[Dict[str, Any]] = []
+    warning_set = set(review.get("warnings", []))
+
+    if "ui_pre_return_missing_evidence" in warning_set:
+        warnings.append(
+            {
+                "source": "ui_pre_return_audit",
+                "check": "ui_pre_return_missing_evidence",
+                "severity": "high",
+                "message": "The UI still lacks explicit evidence expectations before Atlas should treat it as passable.",
+                "evidence": list(review.get("missing_evidence", []))[:4],
+            }
+        )
+    if "ui_pre_return_generic_risk" in warning_set:
+        warnings.append(
+            {
+                "source": "ui_pre_return_audit",
+                "check": "ui_pre_return_generic_risk",
+                "severity": "medium",
+                "message": "The current UI still shows generic/template risk before final return.",
+                "evidence": list(review.get("anti_generic_risks", []))[:4],
+            }
+        )
+    if "ui_pre_return_brand_mismatch" in warning_set:
+        warnings.append(
+            {
+                "source": "ui_pre_return_audit",
+                "check": "ui_pre_return_brand_mismatch",
+                "severity": "medium",
+                "message": "The current UI still has open brand-alignment mismatches before final return.",
+                "evidence": list(review.get("brand_alignment_risks", []))[:4],
+            }
+        )
+    if review.get("status") == "not_ready" or "ui_pre_return_not_ready" in warning_set:
+        warnings.append(
+            {
+                "source": "ui_pre_return_audit",
+                "check": "ui_pre_return_not_ready",
+                "severity": "high",
+                "message": "The advisory pre-return review still sees unresolved blockers for a strong UI-ready claim.",
+                "evidence": [item.get("id", "unknown_blocker") for item in review.get("blockers", [])[:4]],
+            }
+        )
+    return warnings
+
+
 def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     root = root.resolve()
     project = project.resolve()
@@ -678,6 +739,9 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     if visual_intent_warning:
         _unique_priority_append(warnings, visual_intent_warning, seen)
     for item in _build_brand_profile_warnings(source_reports["design_intelligence_audit"].get("report")):
+        _unique_priority_append(candidate_priorities, item, candidate_seen)
+        _unique_priority_append(warnings, item, seen)
+    for item in _build_ui_pre_return_warnings(source_reports["design_intelligence_audit"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
 
@@ -731,6 +795,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     )
     visual_intent_from_design = design_report.get("visual_intent_contract_review")
     brand_profile_review = design_report.get("brand_profile_review")
+    ui_pre_return_review = design_report.get("ui_pre_return_review")
     external_tool_posture = _derive_external_tool_posture(
         source_reports=source_reports,
         blockers=blockers,
@@ -845,6 +910,22 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "accessibility_risks": (brand_profile_review or {}).get("accessibility_risks", []),
             "fields": (brand_profile_review or {}).get("profile"),
             "next_action": (brand_profile_review or {}).get("next_action"),
+            "advisory_only": True,
+        },
+        "ui_pre_return_posture": {
+            "status": (ui_pre_return_review or {}).get("status"),
+            "pass_ready": bool((ui_pre_return_review or {}).get("pass_ready")),
+            "blockers": (ui_pre_return_review or {}).get("blockers", []),
+            "warnings": (ui_pre_return_review or {}).get("warnings", []),
+            "missing_evidence": (ui_pre_return_review or {}).get("missing_evidence", []),
+            "anti_generic_risks": (ui_pre_return_review or {}).get("anti_generic_risks", []),
+            "brand_alignment_risks": (ui_pre_return_review or {}).get("brand_alignment_risks", []),
+            "accessibility_risks": (ui_pre_return_review or {}).get("accessibility_risks", []),
+            "responsive_risks": (ui_pre_return_review or {}).get("responsive_risks", []),
+            "recommended_fixes": (ui_pre_return_review or {}).get("recommended_fixes", []),
+            "requires_human_clarification": bool((ui_pre_return_review or {}).get("requires_human_clarification")),
+            "requires_decision_council": bool((ui_pre_return_review or {}).get("requires_decision_council")),
+            "why": (ui_pre_return_review or {}).get("why"),
             "advisory_only": True,
         },
         "model_routing": source_reports["model_router"]["report"] if source_reports["model_router"]["status"] == "ok" else None,

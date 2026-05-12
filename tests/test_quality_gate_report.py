@@ -41,6 +41,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["visual_intent_posture"]["advisory_only"] is True
     assert isinstance(result["brand_profile_posture"], dict)
     assert result["brand_profile_posture"]["advisory_only"] is True
+    assert isinstance(result["ui_pre_return_posture"], dict)
+    assert result["ui_pre_return_posture"]["advisory_only"] is True
     assert isinstance(result["model_routing"], dict)
     assert result["model_routing"]["active_runtime_model"] == "manual_or_unknown"
     assert result["model_routing"]["model_switch_mode"] == "manual_required"
@@ -139,6 +141,7 @@ def test_quality_gate_report_uses_existing_outputs_to_mark_not_ready():
         "quick_wins": [],
         "checks": [],
         "recommendation_sources": [],
+        "ui_pre_return_review": {"status": "pass", "pass_ready": True, "warnings": [], "blockers": []},
     }
 
     def fake_dispatch(command_id, root=None, project=None):
@@ -256,6 +259,7 @@ def test_quality_gate_report_enriches_execution_plan_with_per_action_model_recom
                 "status": "warning",
             }
         ],
+        "ui_pre_return_review": {"status": "pass", "pass_ready": True, "warnings": [], "blockers": []},
     }
 
     def fake_dispatch(command_id, root=None, project=None):
@@ -356,6 +360,7 @@ def test_quality_gate_report_surfaces_relevant_decision_feedback():
                 "status": "warning",
             }
         ],
+        "ui_pre_return_review": {"status": "pass", "pass_ready": True, "warnings": [], "blockers": []},
     }
     fake_feedback = {
         "status": "ok",
@@ -430,6 +435,7 @@ def test_quality_gate_report_exposes_feedback_patterns_and_adjusted_priorities()
                 "status": "warning",
             }
         ],
+        "ui_pre_return_review": {"status": "pass", "pass_ready": True, "warnings": [], "blockers": []},
     }
     fake_feedback_analysis = {
         "status": "ok",
@@ -495,6 +501,7 @@ def test_quality_gate_report_warns_when_ui_project_lacks_visual_intent_contract(
         "quick_wins": [],
         "checks": [],
         "recommendation_sources": [],
+        "ui_pre_return_review": {"status": "pass", "pass_ready": True, "warnings": [], "blockers": []},
     }
     fake_intent = {
         "status": "needs_input",
@@ -575,6 +582,7 @@ def test_quality_gate_report_warns_when_brand_profile_is_missing():
             "next_action": "Document the brand profile explicitly before stronger brand readiness claims.",
             "advisory_only": True,
         },
+        "ui_pre_return_review": {"status": "pass", "pass_ready": True, "warnings": [], "blockers": []},
     }
     fake_intent = {
         "status": "ready",
@@ -615,3 +623,67 @@ def test_quality_gate_report_warns_when_brand_profile_is_missing():
     warning_codes = {item["check"] for item in result["warnings"]}
     assert "brand_profile_missing" in warning_codes
     assert "brand_profile_generic_risk" in warning_codes
+
+
+def test_quality_gate_report_exposes_ui_pre_return_posture_and_warnings():
+    phase_report = {
+        "ok": True,
+        "result": {
+            "status": "ok",
+            "current_phase": "audit",
+            "confidence": "high",
+            "blocked_actions": [],
+            "next_valid_phases": ["certified"],
+            "recommended_actions": ["Run certify-project once audit findings are resolved."],
+        },
+    }
+    fake_audit = {"ok": True, "result": {"status": "ok", "findings": []}}
+    fake_certify = {"ok": True, "result": {"status": "ok", "blockers": [], "warnings": []}}
+    fake_surface = {"ok": True, "result": {"status": "ok", "warnings": [], "recommendations": []}}
+    fake_design = {
+        "status": "needs_attention",
+        "public_readiness": "needs_improvement",
+        "landing_score": 84,
+        "warnings": [],
+        "quick_wins": ["Strengthen hierarchy before final return."],
+        "checks": [],
+        "recommendation_sources": [],
+        "ui_pre_return_review": {
+            "status": "not_ready",
+            "pass_ready": False,
+            "warnings": ["ui_pre_return_missing_evidence", "ui_pre_return_generic_risk", "ui_pre_return_not_ready"],
+            "blockers": [{"id": "cta_clarity"}],
+            "missing_evidence": ["evidence_expectations"],
+            "anti_generic_risks": ["anti_generic_default"],
+            "brand_alignment_risks": [],
+            "accessibility_risks": [],
+            "responsive_risks": [],
+            "recommended_fixes": ["Clarify the CTA and evidence trail before handoff."],
+            "requires_human_clarification": True,
+            "requires_decision_council": False,
+            "why": "CTA and evidence still need a final pre-return pass.",
+        },
+    }
+
+    def fake_dispatch(command_id, root=None, project=None):
+        class _Res:
+            def __init__(self, output):
+                self.output = output
+
+        mapping = {
+            "project-phase-report": phase_report,
+            "audit-repo": fake_audit,
+            "certify-project": fake_certify,
+            "surface-audit": fake_surface,
+        }
+        return _Res(mapping[command_id])
+
+    with patch("tools.quality_gate_report._dispatch_output", side_effect=lambda command_id, root=None, project=None: fake_dispatch(command_id, root=root, project=project).output):
+        with patch("tools.quality_gate_report.anti_generic_ui_audit", return_value=fake_design):
+            result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+
+    warning_codes = {item["check"] for item in result["warnings"]}
+    assert result["ui_pre_return_posture"]["status"] == "not_ready"
+    assert "ui_pre_return_missing_evidence" in warning_codes
+    assert "ui_pre_return_generic_risk" in warning_codes
+    assert "ui_pre_return_not_ready" in warning_codes

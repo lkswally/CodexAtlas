@@ -48,6 +48,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Atlas now has a dedicated read-only `visual_intent_contract` validator with machine-readable rules for UI-facing intent quality
 - Atlas now has a governed `brand_profile_schema` that turns visual intent into explicit identity metadata for mood vector, palette, typography, differentiation and accessibility review
 - Design and quality-gate outputs now expose `brand_profile_review` / `brand_profile_posture` so missing, generic or derivative identity signals are visible before stronger PASS claims
+- Atlas now has an advisory `ui_pre_return_audit` that cross-checks visual intent, brand profile, CTA clarity, hierarchy, anti-generic signals, evidence expectations, responsive readiness and accessibility basics before a stronger UI-ready claim
 - Atlas now has a configurable read-only `model_router` that recommends the real Codex Desktop models available on this machine and reports `not_available` for auto-switch while CLI verification remains blocked
 - Atlas now has a read-only `prompt_builder` that turns current phase plus project intent into explicit next-step prompts instead of hidden workflow logic
 - Atlas now has a read-only `skill_evaluator` that helps reject low-value reusable-skill ideas before Atlas grows new capability surface

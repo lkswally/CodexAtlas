@@ -12,12 +12,14 @@ from tools.atlas_governance_check import (
     _load_skill_lifecycle_rules,
     _load_visual_intent_contract,
     _load_brand_profile_schema,
+    _load_ui_pre_return_audit_rules,
     _validate_external_tool_policy,
     _validate_mcp_profiles,
     _validate_docs_search_catalog,
     _validate_skill_lifecycle_rules,
     _validate_visual_intent_contract,
     _validate_brand_profile_schema,
+    _validate_ui_pre_return_audit_rules,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
@@ -75,6 +77,28 @@ def test_brand_profile_schema_rejects_missing_required_fields():
         _validate_brand_profile_schema(ROOT, findings)
 
     assert any(finding.startswith("brand_profile_schema_missing_required_fields:") for finding in findings)
+
+
+def test_ui_pre_return_rules_reject_missing_checks():
+    findings = []
+    invalid_rules = _load_ui_pre_return_audit_rules(ROOT)
+    invalid_rules["checks"] = ["cta_clarity", "above_the_fold_clarity"]
+
+    with patch("tools.atlas_governance_check._load_ui_pre_return_audit_rules", return_value=invalid_rules):
+        _validate_ui_pre_return_audit_rules(ROOT, findings)
+
+    assert any(finding.startswith("ui_pre_return_audit_rules_missing_checks:") for finding in findings)
+
+
+def test_ui_pre_return_rules_reject_missing_warning_codes():
+    findings = []
+    invalid_rules = _load_ui_pre_return_audit_rules(ROOT)
+    invalid_rules["warning_codes"] = ["ui_pre_return_cta_weak"]
+
+    with patch("tools.atlas_governance_check._load_ui_pre_return_audit_rules", return_value=invalid_rules):
+        _validate_ui_pre_return_audit_rules(ROOT, findings)
+
+    assert any(finding.startswith("ui_pre_return_audit_rules_missing_warning_codes:") for finding in findings)
 
 
 def test_skill_metadata_validation_rejects_invalid_contract_fields():

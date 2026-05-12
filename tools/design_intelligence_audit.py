@@ -15,8 +15,13 @@ try:
     from tools.brand_profile_schema import build_brand_profile_assessment
 except ModuleNotFoundError:
     from brand_profile_schema import build_brand_profile_assessment
+try:
+    from tools.ui_pre_return_audit import audit_ui_pre_return
+except ModuleNotFoundError:
+    from ui_pre_return_audit import audit_ui_pre_return
 
 
+DEFAULT_ROOT = Path(__file__).resolve().parents[1]
 ALLOWED_PROJECT_FILES = (
     "index.html",
     "styles.css",
@@ -145,7 +150,7 @@ def _normalize(value: str) -> str:
 def _read_text_if_exists(path: Path) -> str:
     if not path.exists():
         return ""
-    return path.read_text(encoding="utf-8")
+    return path.read_text(encoding="utf-8-sig")
 
 
 def _load_project_surface(project: Path) -> Dict[str, str]:
@@ -384,6 +389,50 @@ def _build_brand_profile_recommendation_sources(review: Dict[str, Any]) -> List[
                 "originating_check": "brand_profile_derivative_risk",
                 "evidence": [f"derivative:{item}" for item in derivative_risks[:4]],
                 "severity": "high",
+                "status": "warning",
+            }
+        )
+    return sources
+
+
+def _build_ui_pre_return_recommendation_sources(review: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if not isinstance(review, dict):
+        return []
+
+    sources: List[Dict[str, Any]] = []
+    severity_by_warning = {
+        "ui_pre_return_missing_visual_intent": "high",
+        "ui_pre_return_missing_brand_profile": "high",
+        "ui_pre_return_missing_evidence": "high",
+        "ui_pre_return_generic_risk": "medium",
+        "ui_pre_return_brand_mismatch": "medium",
+        "ui_pre_return_cta_weak": "high",
+        "ui_pre_return_hierarchy_weak": "medium",
+        "ui_pre_return_accessibility_weak": "medium",
+        "ui_pre_return_responsive_unknown": "medium",
+        "ui_pre_return_not_ready": "high",
+    }
+    evidence_lookup = {
+        "ui_pre_return_missing_evidence": list(review.get("missing_evidence", [])),
+        "ui_pre_return_generic_risk": list(review.get("anti_generic_risks", [])),
+        "ui_pre_return_brand_mismatch": list(review.get("brand_alignment_risks", [])),
+        "ui_pre_return_accessibility_weak": list(review.get("accessibility_risks", [])),
+        "ui_pre_return_responsive_unknown": list(review.get("responsive_risks", [])),
+        "ui_pre_return_not_ready": [str(review.get("status", "unknown"))],
+    }
+
+    fixes = list(review.get("recommended_fixes", []))
+    warnings = list(review.get("warnings", []))
+    for index, warning_code in enumerate(warnings):
+        recommendation = fixes[index] if index < len(fixes) else None
+        if not recommendation:
+            continue
+        sources.append(
+            {
+                "recommendation": recommendation,
+                "originating_check": warning_code,
+                "evidence": evidence_lookup.get(warning_code, [])[:4] or [str(review.get("why", "")).strip()],
+                "severity": severity_by_warning.get(warning_code, "medium"),
                 "status": "warning",
             }
         )
@@ -816,6 +865,21 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
         )
     )
 
+    provisional_landing_score = _score_from_checks(checks)
+    provisional_public_readiness, _ = _derive_public_readiness(checks, provisional_landing_score)
+    ui_pre_return_review = audit_ui_pre_return(
+        {
+            "project_type": "frontend_app",
+            "visual_intent_contract_review": visual_intent_contract,
+            "brand_profile_review": brand_profile_review,
+            "design_checks": checks,
+            "public_readiness": provisional_public_readiness,
+            "landing_score": provisional_landing_score,
+            "source_text": content_text,
+        },
+        root=DEFAULT_ROOT,
+    )
+
     evidence = [f"{check['id']}::{item}" for check in checks for item in check["evidence"][:2]]
     recommendation_sources = [
         source
@@ -823,6 +887,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
         if source is not None
     ]
     recommendation_sources.extend(_build_brand_profile_recommendation_sources(brand_profile_review))
+    recommendation_sources.extend(_build_ui_pre_return_recommendation_sources(ui_pre_return_review))
     skipped_checks = [check for check in checks if check["status"] == "skipped"]
     warnings = [f"{check['id']}:{check['status']}" for check in checks if check["status"] in {"warning", "skipped"}]
     warnings.extend(
@@ -830,6 +895,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
         for source in recommendation_sources
         if source["originating_check"].startswith("brand_profile_")
     )
+    warnings.extend(list(ui_pre_return_review.get("warnings", [])))
     warnings = list(dict.fromkeys(warnings))
     prioritized_problems = [
         {
@@ -842,7 +908,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
         for check in [*checks, *recommendation_sources]
         if check["status"] in {"warning", "fail"}
     ][:5]
-    landing_score = _score_from_checks(checks)
+    landing_score = provisional_landing_score
     quick_wins = [
         source["recommendation"]
         for source in recommendation_sources
@@ -875,6 +941,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
         "public_readiness": public_readiness,
         "visual_intent_contract_review": visual_intent_contract,
         "brand_profile_review": brand_profile_review,
+        "ui_pre_return_review": ui_pre_return_review,
         "blockers": blockers,
         "warnings": warnings,
         "evidence": evidence[:12],

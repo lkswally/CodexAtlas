@@ -41,6 +41,7 @@ def test_anti_generic_ui_audit_returns_structured_output_for_codexatlas_web():
     assert isinstance(result["landing_score"], int)
     assert isinstance(result["visual_intent_contract_review"], dict)
     assert isinstance(result["brand_profile_review"], dict)
+    assert isinstance(result["ui_pre_return_review"], dict)
     assert isinstance(result["blockers"], list)
     assert isinstance(result["warnings"], list)
     assert isinstance(result["evidence"], list)
@@ -91,6 +92,7 @@ def test_skipped_typography_check_includes_reason_without_failing_entire_audit()
     assert skipped_source["status"] == "skipped"
     assert skipped_source["recommendation"] == typography_check["recommendation"]
     assert result["status"] in {"needs_attention", "skipped", "pass"}
+    assert "warnings" in result["ui_pre_return_review"]
 
 
 def test_quick_wins_are_backed_by_recommendation_sources():

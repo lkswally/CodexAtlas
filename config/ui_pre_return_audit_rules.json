@@ -1,0 +1,147 @@
+{
+  "version": 1,
+  "advisory_only": true,
+  "required_inputs": [
+    "project_type",
+    "visual_intent_contract_review",
+    "brand_profile_review",
+    "design_checks",
+    "public_readiness",
+    "landing_score"
+  ],
+  "required_for_project_types": [
+    "frontend_app",
+    "fullstack",
+    "internal_tool"
+  ],
+  "backend_exempt_project_types": [
+    "backend_service",
+    "ai_agent_system"
+  ],
+  "checks": [
+    "visual_intent_contract_present",
+    "visual_intent_contract_sufficient",
+    "brand_profile_present",
+    "brand_profile_sufficient",
+    "cta_clarity",
+    "above_the_fold_clarity",
+    "typography_coherence",
+    "color_strategy_coherence",
+    "layout_hierarchy",
+    "visual_density_alignment",
+    "motion_alignment",
+    "anti_generic_patterns",
+    "responsive_expectations",
+    "accessibility_basics",
+    "evidence_expectations",
+    "final_claim_supported_by_evidence"
+  ],
+  "severity": {
+    "visual_intent_contract_present": "high",
+    "visual_intent_contract_sufficient": "medium",
+    "brand_profile_present": "medium",
+    "brand_profile_sufficient": "medium",
+    "cta_clarity": "high",
+    "above_the_fold_clarity": "high",
+    "typography_coherence": "medium",
+    "color_strategy_coherence": "medium",
+    "layout_hierarchy": "medium",
+    "visual_density_alignment": "medium",
+    "motion_alignment": "low",
+    "anti_generic_patterns": "medium",
+    "responsive_expectations": "medium",
+    "accessibility_basics": "medium",
+    "evidence_expectations": "high",
+    "final_claim_supported_by_evidence": "high"
+  },
+  "evidence_required": {
+    "visual_intent_contract_present": [
+      "visual intent review exists"
+    ],
+    "visual_intent_contract_sufficient": [
+      "required fields are not missing"
+    ],
+    "brand_profile_present": [
+      "brand profile review exists"
+    ],
+    "brand_profile_sufficient": [
+      "brand profile fields are explicit enough"
+    ],
+    "cta_clarity": [
+      "cta check evidence exists"
+    ],
+    "above_the_fold_clarity": [
+      "hero/value/audience evidence exists"
+    ],
+    "typography_coherence": [
+      "font or hierarchy evidence exists"
+    ],
+    "color_strategy_coherence": [
+      "palette or contrast evidence exists"
+    ],
+    "layout_hierarchy": [
+      "layout, hero or density evidence exists"
+    ],
+    "visual_density_alignment": [
+      "visual density intent is explicit"
+    ],
+    "motion_alignment": [
+      "motion intent is explicit"
+    ],
+    "anti_generic_patterns": [
+      "anti-generic evidence exists"
+    ],
+    "responsive_expectations": [
+      "responsive baseline evidence exists"
+    ],
+    "accessibility_basics": [
+      "contrast or accessibility evidence exists"
+    ],
+    "evidence_expectations": [
+      "explicit evidence expectations exist"
+    ],
+    "final_claim_supported_by_evidence": [
+      "the final readiness claim is backed by the current checks"
+    ]
+  },
+  "warning_codes": [
+    "ui_pre_return_audit_missing",
+    "ui_pre_return_missing_visual_intent",
+    "ui_pre_return_missing_brand_profile",
+    "ui_pre_return_missing_evidence",
+    "ui_pre_return_generic_risk",
+    "ui_pre_return_brand_mismatch",
+    "ui_pre_return_cta_weak",
+    "ui_pre_return_hierarchy_weak",
+    "ui_pre_return_accessibility_weak",
+    "ui_pre_return_responsive_unknown",
+    "ui_pre_return_not_ready"
+  ],
+  "pass_conditions": [
+    "visual intent review is ready or not required",
+    "brand profile review is ready or not required",
+    "no high-severity CTA or above-the-fold failures remain",
+    "no missing evidence blocks the final readiness claim"
+  ],
+  "anti_generic_patterns": [
+    "generic teal plus default sans",
+    "README/PDF-like landing density",
+    "repeated equal-weight cards with no pacing",
+    "hero behaves like documentation instead of promise"
+  ],
+  "brand_alignment_checks": [
+    "brand profile matches originality and density intent",
+    "typography and color strategy do not contradict the brand posture",
+    "differentiation and anti-patterns remain explicit"
+  ],
+  "accessibility_basics": [
+    "contrast sanity",
+    "readable hierarchy",
+    "explicit accessibility notes or constraints"
+  ],
+  "responsive_expectations": [
+    "viewport meta or equivalent intent",
+    "at least one responsive breakpoint signal",
+    "no unsupported claim of responsive readiness without evidence"
+  ]
+}

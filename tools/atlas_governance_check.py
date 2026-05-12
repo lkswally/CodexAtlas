@@ -34,6 +34,7 @@ REQUIRED_ROOT_FILES = (
     "config/skill_lifecycle_rules.json",
     "config/visual_intent_contract_rules.json",
     "config/brand_profile_schema_rules.json",
+    "config/ui_pre_return_audit_rules.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -72,6 +73,7 @@ REQUIRED_ROOT_FILES = (
     "policies/skill_lifecycle_policy.md",
     "policies/visual_intent_contract_policy.md",
     "policies/brand_profile_schema_policy.md",
+    "policies/ui_pre_return_audit_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
     "memory/session_summaries.md",
@@ -130,6 +132,7 @@ REQUIRED_ROOT_FILES = (
     "tools/quality_gate_report.py",
     "tools/skill_evaluator.py",
     "tools/brand_profile_schema.py",
+    "tools/ui_pre_return_audit.py",
     "tests/test_atlas_orchestrator.py",
     "tests/test_certify_project.py",
     "tests/test_docs_catalog_report.py",
@@ -150,6 +153,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_skill_execution.py",
     "tests/test_skill_governance.py",
     "tests/test_brand_profile_schema.py",
+    "tests/test_ui_pre_return_audit.py",
     "tests/test_surface_audit.py",
     "templates/project_bootstrap_profiles.md",
 )
@@ -456,6 +460,53 @@ REQUIRED_BRAND_TYPOGRAPHY_FIELDS = {
     "contrast_rationale",
     "forbidden_font_patterns",
 }
+UI_PRE_RETURN_AUDIT_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "required_inputs",
+    "required_for_project_types",
+    "backend_exempt_project_types",
+    "checks",
+    "severity",
+    "evidence_required",
+    "warning_codes",
+    "pass_conditions",
+    "anti_generic_patterns",
+    "brand_alignment_checks",
+    "accessibility_basics",
+    "responsive_expectations",
+}
+REQUIRED_UI_PRE_RETURN_CHECKS = {
+    "visual_intent_contract_present",
+    "visual_intent_contract_sufficient",
+    "brand_profile_present",
+    "brand_profile_sufficient",
+    "cta_clarity",
+    "above_the_fold_clarity",
+    "typography_coherence",
+    "color_strategy_coherence",
+    "layout_hierarchy",
+    "visual_density_alignment",
+    "motion_alignment",
+    "anti_generic_patterns",
+    "responsive_expectations",
+    "accessibility_basics",
+    "evidence_expectations",
+    "final_claim_supported_by_evidence",
+}
+REQUIRED_UI_PRE_RETURN_WARNING_CODES = {
+    "ui_pre_return_audit_missing",
+    "ui_pre_return_missing_visual_intent",
+    "ui_pre_return_missing_brand_profile",
+    "ui_pre_return_missing_evidence",
+    "ui_pre_return_generic_risk",
+    "ui_pre_return_brand_mismatch",
+    "ui_pre_return_cta_weak",
+    "ui_pre_return_hierarchy_weak",
+    "ui_pre_return_accessibility_weak",
+    "ui_pre_return_responsive_unknown",
+    "ui_pre_return_not_ready",
+}
 
 
 def _primary_registry_path(root: Path) -> Path:
@@ -528,6 +579,10 @@ def _load_visual_intent_contract(root: Path) -> Dict[str, Any]:
 
 def _load_brand_profile_schema(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "brand_profile_schema_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_ui_pre_return_audit_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "ui_pre_return_audit_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -1013,6 +1068,80 @@ def _validate_brand_profile_schema(root: Path, findings: List[str]) -> None:
         missing_quality = required_quality_keys - set(quality_rules.keys())
         if missing_quality:
             findings.append(f"brand_profile_schema_missing_quality_rules:{','.join(sorted(missing_quality))}")
+
+
+def _validate_ui_pre_return_audit_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_ui_pre_return_audit_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_ui_pre_return_audit_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("ui_pre_return_audit_rules_not_object")
+        return
+
+    missing_fields = UI_PRE_RETURN_AUDIT_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(f"ui_pre_return_audit_rules_missing_fields:{','.join(sorted(missing_fields))}")
+
+    for field_name in ("required_inputs", "required_for_project_types", "backend_exempt_project_types"):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not value:
+            findings.append(f"ui_pre_return_audit_rules_invalid_list:{field_name}")
+
+    checks = rules.get("checks")
+    if not isinstance(checks, list) or not checks:
+        findings.append("ui_pre_return_audit_rules_invalid_checks")
+    else:
+        check_set = {str(item).strip() for item in checks if str(item).strip()}
+        missing_checks = REQUIRED_UI_PRE_RETURN_CHECKS - check_set
+        unknown_checks = check_set - REQUIRED_UI_PRE_RETURN_CHECKS
+        if missing_checks:
+            findings.append(f"ui_pre_return_audit_rules_missing_checks:{','.join(sorted(missing_checks))}")
+        if unknown_checks:
+            findings.append(f"ui_pre_return_audit_rules_unknown_checks:{','.join(sorted(unknown_checks))}")
+
+    severity = rules.get("severity")
+    if not isinstance(severity, dict) or not severity:
+        findings.append("ui_pre_return_audit_rules_invalid_severity")
+    else:
+        missing_severity = REQUIRED_UI_PRE_RETURN_CHECKS - {str(key).strip() for key in severity.keys()}
+        if missing_severity:
+            findings.append(f"ui_pre_return_audit_rules_missing_severity:{','.join(sorted(missing_severity))}")
+
+    warning_codes = rules.get("warning_codes")
+    if not isinstance(warning_codes, list) or not warning_codes:
+        findings.append("ui_pre_return_audit_rules_invalid_warning_codes")
+    else:
+        warning_set = {str(item).strip() for item in warning_codes if str(item).strip()}
+        missing_warnings = REQUIRED_UI_PRE_RETURN_WARNING_CODES - warning_set
+        unknown_warnings = warning_set - REQUIRED_UI_PRE_RETURN_WARNING_CODES
+        if missing_warnings:
+            findings.append(f"ui_pre_return_audit_rules_missing_warning_codes:{','.join(sorted(missing_warnings))}")
+        if unknown_warnings:
+            findings.append(f"ui_pre_return_audit_rules_unknown_warning_codes:{','.join(sorted(unknown_warnings))}")
+
+    evidence_required = rules.get("evidence_required")
+    if not isinstance(evidence_required, dict) or not evidence_required:
+        findings.append("ui_pre_return_audit_rules_invalid_evidence_required")
+    else:
+        missing_evidence_rules = REQUIRED_UI_PRE_RETURN_CHECKS - {str(key).strip() for key in evidence_required.keys()}
+        if missing_evidence_rules:
+            findings.append(
+                f"ui_pre_return_audit_rules_missing_evidence_required:{','.join(sorted(missing_evidence_rules))}"
+            )
+
+    for field_name in (
+        "pass_conditions",
+        "anti_generic_patterns",
+        "brand_alignment_checks",
+        "accessibility_basics",
+        "responsive_expectations",
+    ):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not value:
+            findings.append(f"ui_pre_return_audit_rules_invalid_list:{field_name}")
 
 
 def _validate_docs_search_catalog(root: Path, findings: List[str]) -> None:
@@ -1874,6 +2003,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_skill_lifecycle_rules(root, findings)
         _validate_visual_intent_contract(root, findings)
         _validate_brand_profile_schema(root, findings)
+        _validate_ui_pre_return_audit_rules(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)
