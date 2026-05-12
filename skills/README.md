@@ -91,6 +91,7 @@ Optional lifecycle metadata:
 - `lifecycle_state`: one of `candidate`, `experimental`, `stable`, `deprecated`, `archived`, `rejected`
 - Atlas governance validates `lifecycle_state` only when it is declared; skills are not auto-promoted
 - design-facing skills should align with `policies/visual_intent_contract_policy.md` and `config/visual_intent_contract_rules.json` before stronger UX or branding claims
+- branding-facing skills should align with `policies/brand_profile_schema_policy.md` and `config/brand_profile_schema_rules.json` before stronger identity or differentiation claims
 
 Design-intelligence conventions:
 - design skills must return `status`, `warnings`, `evidence` and `next_action`

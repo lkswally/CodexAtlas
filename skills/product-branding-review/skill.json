@@ -23,6 +23,7 @@
     "target_audience",
     "current_positioning_or_visual_direction",
     "visual_intent_contract_if_available",
+    "brand_profile_if_available",
     "references_if_available"
   ],
   "execution_mode": "read_only",
@@ -30,6 +31,7 @@
   "expected_outputs": [
     "branding and UX review",
     "brand guidance aligned with the visual intent contract when available",
+    "brand profile schema review or missing-profile warning",
     "anti-generic findings",
     "recommendations for audience, value proposition and direction"
   ],
@@ -56,6 +58,7 @@
   "validations": [
     "audience is explicit",
     "value proposition is explicit",
+    "brand profile is explicit enough or clearly flagged as missing/weak",
     "anti-generic policy is respected",
     "recommendations stay advisory unless implementation is requested"
   ]

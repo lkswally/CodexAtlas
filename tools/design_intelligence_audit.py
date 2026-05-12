@@ -11,6 +11,10 @@ try:
     from tools.project_intent_analyzer import build_visual_intent_contract
 except ModuleNotFoundError:
     from project_intent_analyzer import build_visual_intent_contract
+try:
+    from tools.brand_profile_schema import build_brand_profile_assessment
+except ModuleNotFoundError:
+    from brand_profile_schema import build_brand_profile_assessment
 
 
 ALLOWED_PROJECT_FILES = (
@@ -324,6 +328,68 @@ def _make_recommendation_source(check: Dict[str, Any]) -> Optional[Dict[str, Any
     }
 
 
+def _build_brand_profile_recommendation_sources(review: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if not isinstance(review, dict) or not bool(review.get("requires_profile")):
+        return []
+
+    sources: List[Dict[str, Any]] = []
+    missing_fields = list(review.get("missing_fields", []))
+    weak_fields = list(review.get("weak_fields", []))
+    invalid_fields = list(review.get("invalid_fields", []))
+    anti_generic_risks = list(review.get("anti_generic_risks", []))
+    derivative_risks = list(review.get("derivative_risks", []))
+    accessibility_risks = list(review.get("accessibility_risks", []))
+
+    if not bool(review.get("explicit_profile_present")) or missing_fields:
+        sources.append(
+            {
+                "recommendation": "Document an explicit brand profile before stronger branding or identity claims.",
+                "originating_check": "brand_profile_missing",
+                "evidence": (
+                    [f"profile_source={review.get('profile_source', 'unknown')}"]
+                    + [f"missing:{item}" for item in missing_fields[:4]]
+                )[:4],
+                "severity": "medium",
+                "status": "warning",
+            }
+        )
+    if weak_fields or invalid_fields or accessibility_risks:
+        sources.append(
+            {
+                "recommendation": "Clarify the weakest brand-profile fields so palette, typography and accessibility rationale become explicit.",
+                "originating_check": "brand_profile_weak",
+                "evidence": (
+                    [f"weak:{item}" for item in weak_fields[:3]]
+                    + [f"invalid:{item}" for item in invalid_fields[:3]]
+                    + [f"accessibility:{item}" for item in accessibility_risks[:2]]
+                )[:5],
+                "severity": "medium",
+                "status": "warning",
+            }
+        )
+    if anti_generic_risks:
+        sources.append(
+            {
+                "recommendation": "Strengthen the brand profile so it explains how the identity avoids generic SaaS defaults.",
+                "originating_check": "brand_profile_generic_risk",
+                "evidence": [f"generic:{item}" for item in anti_generic_risks[:4]],
+                "severity": "medium",
+                "status": "warning",
+            }
+        )
+    if derivative_risks:
+        sources.append(
+            {
+                "recommendation": "Add clearer differentiation notes before Atlas treats the identity as safely non-derivative.",
+                "originating_check": "brand_profile_derivative_risk",
+                "evidence": [f"derivative:{item}" for item in derivative_risks[:4]],
+                "severity": "high",
+                "status": "warning",
+            }
+        )
+    return sources
+
+
 def _derive_public_readiness(checks: List[Dict[str, Any]], landing_score: int) -> Tuple[str, List[Dict[str, Any]]]:
     blockers = [
         {
@@ -446,6 +512,13 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
     visual_intent_contract = build_visual_intent_contract(
         project_type="frontend_app",
         surface=surface,
+        objective=_extract_first_meaningful_sentence(content_text),
+    )
+    brand_profile_review = build_brand_profile_assessment(
+        project_type="frontend_app",
+        visual_intent_contract=visual_intent_contract.get("contract"),
+        surface=surface,
+        project_name=project.name,
         objective=_extract_first_meaningful_sentence(content_text),
     )
     normalized_text = _normalize(content_text)
@@ -743,23 +816,30 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
         )
     )
 
-    warnings = [f"{check['id']}:{check['status']}" for check in checks if check["status"] in {"warning", "skipped"}]
     evidence = [f"{check['id']}::{item}" for check in checks for item in check["evidence"][:2]]
     recommendation_sources = [
         source
         for source in (_make_recommendation_source(check) for check in checks)
         if source is not None
     ]
+    recommendation_sources.extend(_build_brand_profile_recommendation_sources(brand_profile_review))
     skipped_checks = [check for check in checks if check["status"] == "skipped"]
+    warnings = [f"{check['id']}:{check['status']}" for check in checks if check["status"] in {"warning", "skipped"}]
+    warnings.extend(
+        source["originating_check"]
+        for source in recommendation_sources
+        if source["originating_check"].startswith("brand_profile_")
+    )
+    warnings = list(dict.fromkeys(warnings))
     prioritized_problems = [
         {
-            "title": check["title"],
-            "id": check["id"],
+            "title": check["title"] if "title" in check else check["originating_check"],
+            "id": check["id"] if "id" in check else check["originating_check"],
             "severity": check["severity"],
             "evidence": check["evidence"],
             "recommendation": check.get("recommendation"),
         }
-        for check in checks
+        for check in [*checks, *recommendation_sources]
         if check["status"] in {"warning", "fail"}
     ][:5]
     landing_score = _score_from_checks(checks)
@@ -794,6 +874,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
         "landing_score": landing_score,
         "public_readiness": public_readiness,
         "visual_intent_contract_review": visual_intent_contract,
+        "brand_profile_review": brand_profile_review,
         "blockers": blockers,
         "warnings": warnings,
         "evidence": evidence[:12],

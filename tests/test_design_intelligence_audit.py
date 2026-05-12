@@ -40,6 +40,7 @@ def test_anti_generic_ui_audit_returns_structured_output_for_codexatlas_web():
     assert result["public_readiness"] in {"ready", "needs_improvement", "not_ready"}
     assert isinstance(result["landing_score"], int)
     assert isinstance(result["visual_intent_contract_review"], dict)
+    assert isinstance(result["brand_profile_review"], dict)
     assert isinstance(result["blockers"], list)
     assert isinstance(result["warnings"], list)
     assert isinstance(result["evidence"], list)
@@ -51,6 +52,7 @@ def test_anti_generic_ui_audit_returns_structured_output_for_codexatlas_web():
         assert result["prioritized_problems"]
     assert len(result["top_priorities"]) <= 3
     assert any(check["id"] == "cta_clarity" for check in result["checks"])
+    assert "profile_source" in result["brand_profile_review"]
 
 
 def test_design_system_review_returns_design_findings():

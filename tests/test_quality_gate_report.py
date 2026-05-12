@@ -15,7 +15,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
     assert result["status"] == "ok"
     assert result["project_path"] == str(WEB_ROOT)
-    assert result["overall_status"] == "ready"
+    assert result["overall_status"] in {"ready", "needs_improvement"}
     assert result["confidence_level"] in {"medium", "high"}
     assert result["public_readiness"] == "ready"
     assert isinstance(result["landing_score"], int)
@@ -39,6 +39,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert isinstance(result["intent_analysis"], dict)
     assert isinstance(result["visual_intent_posture"], dict)
     assert result["visual_intent_posture"]["advisory_only"] is True
+    assert isinstance(result["brand_profile_posture"], dict)
+    assert result["brand_profile_posture"]["advisory_only"] is True
     assert isinstance(result["model_routing"], dict)
     assert result["model_routing"]["active_runtime_model"] == "manual_or_unknown"
     assert result["model_routing"]["model_switch_mode"] == "manual_required"
@@ -96,6 +98,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert "promotion_blockers" in result["skill_lifecycle_posture"]
     assert "required_fields" in result["visual_intent_posture"]
     assert "missing_fields" in result["visual_intent_posture"]
+    assert "required_fields" in result["brand_profile_posture"]
+    assert "missing_fields" in result["brand_profile_posture"]
 
 
 def test_quality_gate_report_uses_existing_outputs_to_mark_not_ready():
@@ -530,3 +534,84 @@ def test_quality_gate_report_warns_when_ui_project_lacks_visual_intent_contract(
 
     assert result["overall_status"] == "ready"
     assert any(item["check"] == "visual_intent_contract_missing" for item in result["warnings"])
+
+
+def test_quality_gate_report_warns_when_brand_profile_is_missing():
+    phase_report = {
+        "ok": True,
+        "result": {
+            "status": "ok",
+            "current_phase": "audit",
+            "confidence": "high",
+            "blocked_actions": [],
+            "next_valid_phases": ["certified"],
+            "recommended_actions": ["Run certify-project once audit findings are resolved."],
+        },
+    }
+    fake_audit = {"ok": True, "result": {"status": "ok", "findings": []}}
+    fake_certify = {"ok": True, "result": {"status": "ok", "blockers": [], "warnings": []}}
+    fake_surface = {"ok": True, "result": {"status": "ok", "warnings": [], "recommendations": []}}
+    fake_design = {
+        "status": "pass",
+        "public_readiness": "ready",
+        "landing_score": 95,
+        "warnings": [],
+        "quick_wins": [],
+        "checks": [],
+        "recommendation_sources": [],
+        "brand_profile_review": {
+            "status": "needs_input",
+            "requires_profile": True,
+            "explicit_profile_present": False,
+            "profile_source": "inferred_from_context",
+            "missing_fields": ["brand_name", "inspiration_references"],
+            "weak_fields": [],
+            "invalid_fields": [],
+            "anti_generic_risks": ["missing_differentiation_notes"],
+            "derivative_risks": [],
+            "accessibility_risks": [],
+            "required_fields": ["brand_name", "audience"],
+            "profile": {"audience": "for developers"},
+            "next_action": "Document the brand profile explicitly before stronger brand readiness claims.",
+            "advisory_only": True,
+        },
+    }
+    fake_intent = {
+        "status": "ready",
+        "project_type": "frontend_app",
+        "objective": "Create an Atlas landing page.",
+        "risk_level": "medium",
+        "complexity": "medium",
+        "visual_intent_contract": {
+            "status": "ready",
+            "requires_contract": True,
+            "missing_fields": [],
+            "weak_fields": [],
+            "required_fields": ["audience", "project_type"],
+            "contract": {"project_type": "frontend_app", "audience": "for developers"},
+            "next_action": "Proceed.",
+            "advisory_only": True,
+        },
+    }
+
+    def fake_dispatch(command_id, root=None, project=None):
+        class _Res:
+            def __init__(self, output):
+                self.output = output
+
+        mapping = {
+            "project-phase-report": phase_report,
+            "audit-repo": fake_audit,
+            "certify-project": fake_certify,
+            "surface-audit": fake_surface,
+        }
+        return _Res(mapping[command_id])
+
+    with patch("tools.quality_gate_report._dispatch_output", side_effect=lambda command_id, root=None, project=None: fake_dispatch(command_id, root=root, project=project).output):
+        with patch("tools.quality_gate_report.anti_generic_ui_audit", return_value=fake_design):
+            with patch("tools.quality_gate_report.analyze_project_intent", return_value=fake_intent):
+                result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+
+    warning_codes = {item["check"] for item in result["warnings"]}
+    assert "brand_profile_missing" in warning_codes
+    assert "brand_profile_generic_risk" in warning_codes

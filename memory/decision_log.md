@@ -1,6 +1,12 @@
 # Decision Log
 
 ## 2026-05-12
+- Decision: add a governed `brand_profile_schema` after the visual intent contract and before any stronger design automation
+- Reason: Atlas already had visual-intent and anti-generic checks, but still lacked one structured identity schema for mood vector, palette, typography, differentiation and accessibility review
+- Impact: Atlas can now surface missing, generic or derivative branding signals through a read-only schema helper, design audit and quality-gate posture without touching derived projects
+- Risk: if the schema becomes too strict too early, intentionally light internal UIs could look under-branded even when their scope is acceptable
+- Rollback: remove `config/brand_profile_schema_rules.json`, `policies/brand_profile_schema_policy.md`, `tools/brand_profile_schema.py` and the connected advisory review fields, then fall back to visual-intent-only branding guidance
+
 - Decision: add a governed `visual_intent_contract` before expanding Atlas design automation further
 - Reason: Atlas already had design-intelligence pieces, but still lacked one shared contract for audience, promise, mood, originality, hero direction, CTA intent, anti-patterns and evidence expectations
 - Impact: Atlas can now surface missing visual direction explicitly across intent analysis, design checkpointing, brand guidance, design audit and quality-gate reporting without touching derived projects, and the contract is validated through a dedicated read-only helper plus governed rules

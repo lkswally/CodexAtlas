@@ -581,6 +581,63 @@ def _build_visual_intent_warning(intent_report: Optional[Dict[str, Any]]) -> Opt
     }
 
 
+def _build_brand_profile_warnings(design_report: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not isinstance(design_report, dict):
+        return []
+    review = design_report.get("brand_profile_review")
+    if not isinstance(review, dict) or not bool(review.get("requires_profile")):
+        return []
+
+    warnings: List[Dict[str, Any]] = []
+    missing = list(review.get("missing_fields", []))
+    weak = list(review.get("weak_fields", []))
+    invalid = list(review.get("invalid_fields", []))
+    generic = list(review.get("anti_generic_risks", []))
+    derivative = list(review.get("derivative_risks", []))
+
+    if not bool(review.get("explicit_profile_present")) or missing:
+        warnings.append(
+            {
+                "source": "brand_profile_schema",
+                "check": "brand_profile_missing",
+                "severity": "medium",
+                "message": "Create an explicit brand profile before treating the identity as settled.",
+                "evidence": [f"profile_source={review.get('profile_source', 'unknown')}"] + missing[:4],
+            }
+        )
+    if weak or invalid:
+        warnings.append(
+            {
+                "source": "brand_profile_schema",
+                "check": "brand_profile_weak",
+                "severity": "medium",
+                "message": "Clarify the weakest brand-profile fields before stronger branding claims.",
+                "evidence": weak[:3] + invalid[:3],
+            }
+        )
+    if generic:
+        warnings.append(
+            {
+                "source": "brand_profile_schema",
+                "check": "brand_profile_generic_risk",
+                "severity": "medium",
+                "message": "The current brand profile still leans toward generic defaults instead of explicit differentiation.",
+                "evidence": generic[:4],
+            }
+        )
+    if derivative:
+        warnings.append(
+            {
+                "source": "brand_profile_schema",
+                "check": "brand_profile_derivative_risk",
+                "severity": "high",
+                "message": "The current brand profile needs clearer differentiation from its inspiration references.",
+                "evidence": derivative[:4],
+            }
+        )
+    return warnings
+
+
 def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     root = root.resolve()
     project = project.resolve()
@@ -620,6 +677,9 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     )
     if visual_intent_warning:
         _unique_priority_append(warnings, visual_intent_warning, seen)
+    for item in _build_brand_profile_warnings(source_reports["design_intelligence_audit"].get("report")):
+        _unique_priority_append(candidate_priorities, item, candidate_seen)
+        _unique_priority_append(warnings, item, seen)
 
     certify_report = source_reports["certify-project"].get("report") or {}
     for warning in certify_report.get("result", {}).get("warnings", []):
@@ -670,6 +730,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         else None
     )
     visual_intent_from_design = design_report.get("visual_intent_contract_review")
+    brand_profile_review = design_report.get("brand_profile_review")
     external_tool_posture = _derive_external_tool_posture(
         source_reports=source_reports,
         blockers=blockers,
@@ -769,6 +830,21 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "fields": (visual_intent_from_intent or {}).get("contract"),
             "next_action": (visual_intent_from_intent or {}).get("next_action")
             or (visual_intent_from_design or {}).get("next_action"),
+            "advisory_only": True,
+        },
+        "brand_profile_posture": {
+            "profile_status": (brand_profile_review or {}).get("status"),
+            "profile_source": (brand_profile_review or {}).get("profile_source"),
+            "explicit_profile_present": bool((brand_profile_review or {}).get("explicit_profile_present")),
+            "required_fields": (brand_profile_review or {}).get("required_fields", []),
+            "missing_fields": (brand_profile_review or {}).get("missing_fields", []),
+            "weak_fields": (brand_profile_review or {}).get("weak_fields", []),
+            "invalid_fields": (brand_profile_review or {}).get("invalid_fields", []),
+            "anti_generic_risks": (brand_profile_review or {}).get("anti_generic_risks", []),
+            "derivative_risks": (brand_profile_review or {}).get("derivative_risks", []),
+            "accessibility_risks": (brand_profile_review or {}).get("accessibility_risks", []),
+            "fields": (brand_profile_review or {}).get("profile"),
+            "next_action": (brand_profile_review or {}).get("next_action"),
             "advisory_only": True,
         },
         "model_routing": source_reports["model_router"]["report"] if source_reports["model_router"]["status"] == "ok" else None,

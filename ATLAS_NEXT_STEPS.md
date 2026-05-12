@@ -63,6 +63,8 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep `skill_evaluator` conservative; it should block capability sprawl more often than it approves new reusable skills
 - Keep `visual_intent_contract` advisory and evidence-first until repeated usage proves that stronger gating would reduce generic design drift without over-blocking simple projects
 - Keep `visual_intent_contract` aligned across `project_intent_analyzer`, `visual-direction-checkpoint`, `brand_agent`, `design_intelligence_audit` and `quality_gate_report`
+- Keep `brand_profile_schema` aligned with the visual intent contract so identity, differentiation and accessibility rationale do not drift into generic branding language
+- Keep brand-profile warnings advisory and evidence-first until Atlas has enough repeated usage to justify stronger gating for public-facing UI work
 - If the contract proves consistently useful, decide later whether it should become a stronger certification prerequisite for public-facing UI work
 - Keep `error_pattern_analyzer` evidence-first so it reports recurring Atlas failure modes without turning log noise into fake system-learning claims
 - Keep `repo_improvement_scout` anchored to the local reference clone and explicit effort/benefit tradeoffs, not to trend-chasing features

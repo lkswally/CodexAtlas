@@ -33,6 +33,7 @@ REQUIRED_ROOT_FILES = (
     "config/external_tool_policy.json",
     "config/skill_lifecycle_rules.json",
     "config/visual_intent_contract_rules.json",
+    "config/brand_profile_schema_rules.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -70,6 +71,7 @@ REQUIRED_ROOT_FILES = (
     "policies/external_tool_policy.md",
     "policies/skill_lifecycle_policy.md",
     "policies/visual_intent_contract_policy.md",
+    "policies/brand_profile_schema_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
     "memory/session_summaries.md",
@@ -127,6 +129,7 @@ REQUIRED_ROOT_FILES = (
     "tools/prompt_builder.py",
     "tools/quality_gate_report.py",
     "tools/skill_evaluator.py",
+    "tools/brand_profile_schema.py",
     "tests/test_atlas_orchestrator.py",
     "tests/test_certify_project.py",
     "tests/test_docs_catalog_report.py",
@@ -146,6 +149,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_skill_evaluator.py",
     "tests/test_skill_execution.py",
     "tests/test_skill_governance.py",
+    "tests/test_brand_profile_schema.py",
     "tests/test_surface_audit.py",
     "templates/project_bootstrap_profiles.md",
 )
@@ -390,6 +394,68 @@ REQUIRED_VISUAL_INTENT_FIELDS = {
     "anti_patterns_to_avoid",
     "evidence_expectations",
 }
+BRAND_PROFILE_SCHEMA_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "required_fields",
+    "recommended_fields",
+    "required_for_project_types",
+    "ui_surface_signals",
+    "backend_exempt_project_types",
+    "allowed_originality_levels",
+    "allowed_visual_density",
+    "mood_vector_dimensions",
+    "mood_vector_range",
+    "required_color_strategy_fields",
+    "required_typography_strategy_fields",
+    "minimum_quality_rules",
+    "anti_generic_criteria",
+    "forbidden_font_patterns",
+    "derivative_reference_signals",
+    "minimum_evidence_expectations",
+}
+REQUIRED_BRAND_PROFILE_FIELDS = {
+    "brand_name",
+    "audience",
+    "project_type",
+    "personality_traits",
+    "mood_vector",
+    "color_strategy",
+    "typography_strategy",
+    "layout_principles",
+    "motion_principles",
+    "visual_density",
+    "originality_level",
+    "anti_patterns_to_avoid",
+    "inspiration_references",
+    "differentiation_notes",
+    "accessibility_notes",
+    "evidence_expectations",
+}
+REQUIRED_BRAND_MOOD_VECTOR_DIMENSIONS = {
+    "premium",
+    "playful",
+    "technical",
+    "editorial",
+    "minimalist",
+    "bold",
+    "warm",
+    "futuristic",
+}
+REQUIRED_BRAND_COLOR_STRATEGY_FIELDS = {
+    "primary",
+    "secondary",
+    "accent",
+    "background",
+    "contrast_notes",
+    "forbidden_color_patterns",
+}
+REQUIRED_BRAND_TYPOGRAPHY_FIELDS = {
+    "heading_style",
+    "body_style",
+    "contrast_rationale",
+    "forbidden_font_patterns",
+}
 
 
 def _primary_registry_path(root: Path) -> Path:
@@ -458,6 +524,10 @@ def _load_skill_lifecycle_rules(root: Path) -> Dict[str, Any]:
 
 def _load_visual_intent_contract(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "visual_intent_contract_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_brand_profile_schema(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "brand_profile_schema_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -847,6 +917,102 @@ def _validate_visual_intent_contract(root: Path, findings: List[str]) -> None:
     weak_rules = contract.get("weak_field_rules")
     if not isinstance(weak_rules, dict) or not weak_rules:
         findings.append("visual_intent_contract_invalid_weak_field_rules")
+
+
+def _validate_brand_profile_schema(root: Path, findings: List[str]) -> None:
+    try:
+        schema = _load_brand_profile_schema(root)
+    except Exception as exc:
+        findings.append(f"invalid_brand_profile_schema_json:{exc}")
+        return
+
+    if not isinstance(schema, dict):
+        findings.append("brand_profile_schema_not_object")
+        return
+
+    missing_fields = BRAND_PROFILE_SCHEMA_REQUIRED_FIELDS - set(schema.keys())
+    if missing_fields:
+        findings.append(f"brand_profile_schema_missing_fields:{','.join(sorted(missing_fields))}")
+
+    required_fields = schema.get("required_fields")
+    if not isinstance(required_fields, list) or not required_fields:
+        findings.append("brand_profile_schema_invalid_required_fields")
+    else:
+        required_set = {str(item).strip() for item in required_fields if str(item).strip()}
+        missing_required = REQUIRED_BRAND_PROFILE_FIELDS - required_set
+        unknown_required = required_set - REQUIRED_BRAND_PROFILE_FIELDS
+        if missing_required:
+            findings.append(f"brand_profile_schema_missing_required_fields:{','.join(sorted(missing_required))}")
+        if unknown_required:
+            findings.append(f"brand_profile_schema_unknown_required_fields:{','.join(sorted(unknown_required))}")
+
+    recommended_fields = schema.get("recommended_fields")
+    if not isinstance(recommended_fields, list) or not recommended_fields:
+        findings.append("brand_profile_schema_invalid_recommended_fields")
+
+    if not isinstance(schema.get("advisory_only"), bool):
+        findings.append("brand_profile_schema_invalid_advisory_only")
+
+    originality_levels = schema.get("allowed_originality_levels")
+    if not isinstance(originality_levels, list) or set(originality_levels) != {
+        "conservative",
+        "balanced",
+        "distinctive",
+        "experimental",
+    }:
+        findings.append("brand_profile_schema_invalid_originality_levels")
+
+    density_levels = schema.get("allowed_visual_density")
+    if not isinstance(density_levels, list) or set(density_levels) != {"low", "medium", "high"}:
+        findings.append("brand_profile_schema_invalid_visual_density_levels")
+
+    mood_dimensions = schema.get("mood_vector_dimensions")
+    if not isinstance(mood_dimensions, list) or set(mood_dimensions) != REQUIRED_BRAND_MOOD_VECTOR_DIMENSIONS:
+        findings.append("brand_profile_schema_invalid_mood_vector_dimensions")
+
+    mood_range = schema.get("mood_vector_range")
+    if not isinstance(mood_range, dict):
+        findings.append("brand_profile_schema_invalid_mood_vector_range")
+    else:
+        if mood_range.get("min") != 0 or mood_range.get("max") != 10:
+            findings.append("brand_profile_schema_invalid_mood_vector_bounds")
+
+    color_fields = schema.get("required_color_strategy_fields")
+    if not isinstance(color_fields, list) or set(color_fields) != REQUIRED_BRAND_COLOR_STRATEGY_FIELDS:
+        findings.append("brand_profile_schema_invalid_color_strategy_fields")
+
+    typography_fields = schema.get("required_typography_strategy_fields")
+    if not isinstance(typography_fields, list) or set(typography_fields) != REQUIRED_BRAND_TYPOGRAPHY_FIELDS:
+        findings.append("brand_profile_schema_invalid_typography_strategy_fields")
+
+    for field_name in (
+        "required_for_project_types",
+        "ui_surface_signals",
+        "backend_exempt_project_types",
+        "anti_generic_criteria",
+        "forbidden_font_patterns",
+        "derivative_reference_signals",
+        "minimum_evidence_expectations",
+    ):
+        value = schema.get(field_name)
+        if not isinstance(value, list) or not value:
+            findings.append(f"brand_profile_schema_invalid_list:{field_name}")
+
+    quality_rules = schema.get("minimum_quality_rules")
+    if not isinstance(quality_rules, dict) or not quality_rules:
+        findings.append("brand_profile_schema_invalid_minimum_quality_rules")
+    else:
+        required_quality_keys = {
+            "personality_traits_min_items",
+            "layout_principles_min_items",
+            "motion_principles_min_items",
+            "anti_patterns_min_items",
+            "evidence_expectations_min_items",
+            "differentiation_notes_min_words",
+        }
+        missing_quality = required_quality_keys - set(quality_rules.keys())
+        if missing_quality:
+            findings.append(f"brand_profile_schema_missing_quality_rules:{','.join(sorted(missing_quality))}")
 
 
 def _validate_docs_search_catalog(root: Path, findings: List[str]) -> None:
@@ -1707,6 +1873,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_external_tool_policy(root, findings)
         _validate_skill_lifecycle_rules(root, findings)
         _validate_visual_intent_contract(root, findings)
+        _validate_brand_profile_schema(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)

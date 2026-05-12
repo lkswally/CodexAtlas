@@ -1,0 +1,132 @@
+{
+  "version": 1,
+  "advisory_only": true,
+  "required_fields": [
+    "brand_name",
+    "audience",
+    "project_type",
+    "personality_traits",
+    "mood_vector",
+    "color_strategy",
+    "typography_strategy",
+    "layout_principles",
+    "motion_principles",
+    "visual_density",
+    "originality_level",
+    "anti_patterns_to_avoid",
+    "inspiration_references",
+    "differentiation_notes",
+    "accessibility_notes",
+    "evidence_expectations"
+  ],
+  "recommended_fields": [
+    "color_strategy.contrast_notes",
+    "color_strategy.forbidden_color_patterns",
+    "typography_strategy.contrast_rationale",
+    "typography_strategy.forbidden_font_patterns"
+  ],
+  "required_for_project_types": [
+    "frontend_app",
+    "fullstack"
+  ],
+  "ui_surface_signals": [
+    "landing",
+    "website",
+    "site",
+    "frontend",
+    "ui",
+    "interface",
+    "hero",
+    "cta",
+    "design",
+    "dashboard",
+    "page"
+  ],
+  "backend_exempt_project_types": [
+    "backend_service",
+    "ai_agent_system"
+  ],
+  "allowed_originality_levels": [
+    "conservative",
+    "balanced",
+    "distinctive",
+    "experimental"
+  ],
+  "allowed_visual_density": [
+    "low",
+    "medium",
+    "high"
+  ],
+  "mood_vector_dimensions": [
+    "premium",
+    "playful",
+    "technical",
+    "editorial",
+    "minimalist",
+    "bold",
+    "warm",
+    "futuristic"
+  ],
+  "mood_vector_range": {
+    "min": 0,
+    "max": 10
+  },
+  "required_color_strategy_fields": [
+    "primary",
+    "secondary",
+    "accent",
+    "background",
+    "contrast_notes",
+    "forbidden_color_patterns"
+  ],
+  "required_typography_strategy_fields": [
+    "heading_style",
+    "body_style",
+    "contrast_rationale",
+    "forbidden_font_patterns"
+  ],
+  "minimum_quality_rules": {
+    "personality_traits_min_items": 2,
+    "layout_principles_min_items": 2,
+    "motion_principles_min_items": 1,
+    "anti_patterns_min_items": 2,
+    "evidence_expectations_min_items": 1,
+    "differentiation_notes_min_words": 6
+  },
+  "anti_generic_criteria": [
+    "forbid default SaaS teal or cyan with generic sans unless rationale is explicit",
+    "require a stated differentiation note when inspiration references are present",
+    "require typography contrast or hierarchy rationale",
+    "require anti-patterns before stronger brand PASS claims"
+  ],
+  "forbidden_font_patterns": [
+    "inter",
+    "roboto",
+    "open sans",
+    "lato",
+    "arial",
+    "sf pro",
+    "segoe ui",
+    "helvetica"
+  ],
+  "derivative_reference_signals": [
+    "apple",
+    "linear",
+    "stripe",
+    "notion",
+    "vercel",
+    "openai",
+    "claude",
+    "figma",
+    "airbnb",
+    "spotify",
+    "nike",
+    "tesla"
+  ],
+  "minimum_evidence_expectations": [
+    "palette rationale is explicit",
+    "typography hierarchy rationale is explicit",
+    "accessibility notes cover contrast or readability expectations",
+    "brand claims stay tied to audit, review or validation before PASS"
+  ]
+}

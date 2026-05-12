@@ -21,11 +21,14 @@ Review product positioning, audience, UX direction and branding quality without 
 - product context
 - target audience
 - current positioning or visual direction
+- visual intent contract if available
+- brand profile if available
 - references if available
 
 ## Expected outputs
 
 - branding/UX review
+- brand profile sufficiency review
 - anti-generic findings
 - recommendations for audience, value proposition and direction
 
@@ -51,6 +54,7 @@ Review product positioning, audience, UX direction and branding quality without 
 
 - audience is explicit
 - value proposition is explicit
+- brand profile is explicit enough or clearly flagged as missing/weak
 - anti-generic policy is respected
 - recommendations stay advisory unless implementation is requested
 
