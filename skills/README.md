@@ -83,6 +83,7 @@ Current skills:
 - `visual-direction-checkpoint`: turn a vague brief into explicit audience, mood and originality signals
 - `anti-generic-ui-audit`: run a read-only design audit with evidence, warnings and next action
 - `design-system-review`: review typography, spacing, hierarchy and layout coherence without changing files
+- `market-research-benchmark`: benchmark Atlas against `_reference/claude-vibecoding` and documented radar repos without scraping, installing or mutating anything
 - `ui_pre_return_audit` (tool-level advisory): cross-check final UI readiness against visual intent, brand profile, CTA clarity, anti-generic risk and evidence before stronger PASS claims
 
 Execution model:

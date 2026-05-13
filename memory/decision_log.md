@@ -1,6 +1,12 @@
 # Decision Log
 
 ## 2026-05-12
+- Decision: add a read-only `market_research_benchmark` layer after skill-improvement review, instead of jumping straight into broader research automation
+- Reason: Atlas needed a governed way to compare itself against `claude-vibecoding` and documented radar repos without scraping, cloning, syncing or auto-installing anything
+- Impact: Atlas can now benchmark current capability coverage, highlight high-fit adaptation opportunities, keep risky runtime-heavy references in watchlist posture and escalate to `decision-council` when a benchmark would widen the factory surface
+- Risk: if documented-only repos are treated as stronger evidence than local reference material, Atlas could overfit to trend signals instead of repeated local need
+- Rollback: remove `config/market_research_benchmark_rules.json`, `policies/market_research_benchmark_policy.md`, `tools/market_research_benchmark.py`, the skill folder and the governance/orchestrator wiring, then rely on `repo_improvement_scout` plus manual roadmap review again
+
 - Decision: add an advisory `skill_improvement_review` layer after lifecycle, visual intent, brand profile and UI pre-return hardening
 - Reason: Atlas already knew how to evaluate a single skill candidate, but still lacked a manual catalog-health pass that can surface weak skills, duplicates, stale coverage and promising external candidates without auto-modifying anything
 - Impact: Atlas can now review its existing skill surface, recommend `keep`/`improve`/`deprecate` style actions, and surface catalog-health posture inside `quality_gate_report` while keeping human approval and decision-council boundaries explicit

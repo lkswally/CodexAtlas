@@ -76,6 +76,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep landing-quality checks evidence-first and warning-first so Atlas catches README-like public pages without over-blocking intentionally simple derived sites
 - Keep `atlas_verify` as a thin wrapper over existing checks; if it grows new logic, that logic should move back into the canonical validators instead
 - Keep `decision-council` reserved for genuinely high-risk or conflicting decisions so Atlas does not turn routine work into ceremony
+- Use `market-research-benchmark` before adding roadmap features that come mainly from external reference pressure rather than repeated Atlas-local need
 - Keep visual/media capability decisions advisory-only until a derived project repeatedly needs screenshot, image or video evidence that static audits cannot provide
 - Keep external model fallback evaluation separate from Codex Desktop model routing; benchmark NVIDIA candidates manually before adding any profile or adapter
 - Keep `21st_magic` disabled until the exposed key is revoked, a fresh key is stored outside the repo, and a separate approval allows a controlled MCP test
@@ -99,7 +100,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Stronger docs for derived-project extraction and adapter contracts
 - A second-level orchestrator that can consume structured task metadata instead of only free text
 - Skill-aware routing with richer signals than keyword matching
-- A manual `market_research_benchmark_skill` if Atlas starts needing repeatable competitive or reference-repo comparison beyond the current scout/audit layers
+- Keep `market-research-benchmark` advisory and explicit; if it grows, prefer richer local reference payloads before any web or MCP expansion
 - Optional skill manifest validation inside governance check if the catalog grows
 - Controlled retirement plan for `00_SISTEMA/_meta/atlas/` once no consumers need it
 - Better release hygiene around commit cadence, ignored local research clones and validation reports

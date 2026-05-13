@@ -1,0 +1,220 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "primary_reference_repo": {
+    "id": "claude-vibecoding",
+    "source_type": "local_reference_clone",
+    "path": "_reference/claude-vibecoding"
+  },
+  "allowed_source_types": [
+    "local_reference_clone",
+    "documented_repo",
+    "explicit_payload"
+  ],
+  "benchmark_axes": [
+    "design_quality",
+    "skill_governance",
+    "evidence_discipline",
+    "runtime_risk",
+    "reuse_fit",
+    "cost_context"
+  ],
+  "recommendation_types": [
+    "adapt_now",
+    "design_later",
+    "watchlist",
+    "discard"
+  ],
+  "required_output_sections": [
+    "reviewed_references",
+    "atlas_capabilities",
+    "prioritized_opportunities",
+    "blocked_references",
+    "recommended_next_actions"
+  ],
+  "high_risk_signals": [
+    "requires_mcp",
+    "requires_install",
+    "auto_modifies_skills",
+    "auto_sync",
+    "claude_only_runtime",
+    "browser_automation",
+    "creative_runtime"
+  ],
+  "requires_decision_council_signals": [
+    "automation_heavy",
+    "conflicting_reference_patterns",
+    "runtime_expansion",
+    "global_factory_surface_change"
+  ],
+  "reference_catalog": [
+    {
+      "id": "claude-vibecoding",
+      "source_type": "local_reference_clone",
+      "source": "_reference/claude-vibecoding",
+      "focus_areas": [
+        "intent_clarifier",
+        "visual_direction",
+        "brand_profile",
+        "ui_pre_return_audit",
+        "evidence_discipline",
+        "anti_generic_guardrails",
+        "creative_pipeline",
+        "visual_qa_real"
+      ],
+      "benefit": "high",
+      "risk": "medium",
+      "fit": "high",
+      "notes": [
+        "primary benchmark for Atlas adaptation",
+        "contains strong design and readiness discipline mixed with Claude-specific runtime assumptions"
+      ],
+      "risk_signals": [
+        "claude_only_runtime",
+        "browser_automation"
+      ],
+      "default_recommendation": "adapt_now"
+    },
+    {
+      "id": "claude-auto-tune",
+      "source_type": "documented_repo",
+      "source": "https://github.com/kakeami/claude-auto-tune",
+      "focus_areas": [
+        "skill_improvement_loop",
+        "continuous_review"
+      ],
+      "benefit": "medium",
+      "risk": "medium",
+      "fit": "medium",
+      "notes": [
+        "useful mainly as inspiration for periodic review and tuning posture",
+        "do not import automatic self-modification patterns"
+      ],
+      "risk_signals": [
+        "automation_heavy"
+      ],
+      "default_recommendation": "design_later"
+    },
+    {
+      "id": "vercel-labs-skills",
+      "source_type": "documented_repo",
+      "source": "https://github.com/vercel-labs/skills",
+      "focus_areas": [
+        "skill_packaging",
+        "skill_distribution"
+      ],
+      "benefit": "medium",
+      "risk": "medium",
+      "fit": "medium",
+      "notes": [
+        "good reference for ecosystem packaging and skill metadata conventions",
+        "Atlas should avoid turning install tooling into core runtime behavior"
+      ],
+      "risk_signals": [
+        "requires_install",
+        "auto_sync"
+      ],
+      "default_recommendation": "design_later"
+    },
+    {
+      "id": "claude-skills",
+      "source_type": "documented_repo",
+      "source": "https://github.com/alirezarezvani/claude-skills",
+      "focus_areas": [
+        "skill_catalog_scale",
+        "stdlib_helper_tools"
+      ],
+      "benefit": "medium",
+      "risk": "medium",
+      "fit": "low",
+      "notes": [
+        "useful as a catalog-scale reference and stdlib-tooling signal",
+        "too broad to import directly into Atlas core"
+      ],
+      "risk_signals": [
+        "requires_install",
+        "claude_only_runtime"
+      ],
+      "default_recommendation": "watchlist"
+    },
+    {
+      "id": "awesome-agent-skills",
+      "source_type": "documented_repo",
+      "source": "https://github.com/VoltAgent/awesome-agent-skills",
+      "focus_areas": [
+        "curated_skill_discovery"
+      ],
+      "benefit": "medium",
+      "risk": "low",
+      "fit": "high",
+      "notes": [
+        "useful as curated radar, not as direct install source",
+        "strong fit for future benchmark/reference review"
+      ],
+      "risk_signals": [],
+      "default_recommendation": "adapt_now"
+    },
+    {
+      "id": "skillshare",
+      "source_type": "documented_repo",
+      "source": "https://github.com/runkids/skillshare",
+      "focus_areas": [
+        "skill_distribution",
+        "cross_tool_sync"
+      ],
+      "benefit": "low",
+      "risk": "high",
+      "fit": "low",
+      "notes": [
+        "distribution idea is interesting, but sync/install posture is out of scope for Atlas core"
+      ],
+      "risk_signals": [
+        "requires_install",
+        "auto_sync"
+      ],
+      "default_recommendation": "discard"
+    },
+    {
+      "id": "autoskill",
+      "source_type": "documented_repo",
+      "source": "https://github.com/Samurai412/autoskill",
+      "focus_areas": [
+        "auto_skill_creation",
+        "self_improvement"
+      ],
+      "benefit": "low",
+      "risk": "high",
+      "fit": "low",
+      "notes": [
+        "automation-heavy pattern conflicts with Atlas governance-first posture"
+      ],
+      "risk_signals": [
+        "auto_modifies_skills",
+        "automation_heavy"
+      ],
+      "default_recommendation": "discard"
+    },
+    {
+      "id": "evoskill",
+      "source_type": "documented_repo",
+      "source": "https://github.com/sentient-agi/EvoSkill",
+      "focus_areas": [
+        "benchmark_driven_skill_evolution",
+        "continuous_improvement"
+      ],
+      "benefit": "medium",
+      "risk": "high",
+      "fit": "medium",
+      "notes": [
+        "valuable as inspiration for benchmark thinking",
+        "automatic evolution and runtime assumptions stay out of Atlas core"
+      ],
+      "risk_signals": [
+        "auto_modifies_skills",
+        "requires_install",
+        "global_factory_surface_change"
+      ],
+      "default_recommendation": "watchlist"
+    }
+  ]
+}

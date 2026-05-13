@@ -11,6 +11,7 @@ from tools.atlas_governance_check import (
     _read_text,
     _load_skill_lifecycle_rules,
     _load_skill_improvement_review_rules,
+    _load_market_research_benchmark_rules,
     _load_visual_intent_contract,
     _load_brand_profile_schema,
     _load_ui_pre_return_audit_rules,
@@ -19,6 +20,7 @@ from tools.atlas_governance_check import (
     _validate_docs_search_catalog,
     _validate_skill_lifecycle_rules,
     _validate_skill_improvement_review_rules,
+    _validate_market_research_benchmark_rules,
     _validate_visual_intent_contract,
     _validate_brand_profile_schema,
     _validate_ui_pre_return_audit_rules,
@@ -89,6 +91,28 @@ def test_skill_improvement_review_rules_require_scoring_fields():
 
     assert any(
         finding.startswith("skill_improvement_review_rules_missing_scoring_fields:")
+        for finding in findings
+    )
+
+
+def test_market_research_benchmark_rules_require_recommendations_and_sources():
+    findings = []
+    invalid_rules = _load_market_research_benchmark_rules(ROOT)
+    invalid_rules["recommendation_types"] = ["adapt_now"]
+    invalid_rules["allowed_source_types"] = ["local_reference_clone"]
+
+    with patch(
+        "tools.atlas_governance_check._load_market_research_benchmark_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_market_research_benchmark_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("market_research_benchmark_rules_missing_recommendations:")
+        for finding in findings
+    )
+    assert any(
+        finding.startswith("market_research_benchmark_rules_missing_source_types:")
         for finding in findings
     )
 

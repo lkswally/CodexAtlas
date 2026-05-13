@@ -1,0 +1,55 @@
+{
+  "name": "market-research-benchmark",
+  "intent_keywords": [
+    "market research benchmark",
+    "reference repo comparison",
+    "benchmark atlas",
+    "compare against claude-vibecoding",
+    "radar repo review",
+    "reference pattern benchmark"
+  ],
+  "agent": "reality_checker",
+  "workflow": "market_research_benchmark",
+  "model_profile": "deep_reasoning",
+  "risk_level": "medium",
+  "requires_human_approval": false,
+  "supports_execution": true,
+  "required_inputs": [
+    "benchmark_topic",
+    "explicit_reference_payload_if_available"
+  ],
+  "execution_mode": "read_only",
+  "allowed_paths_policy": "no_filesystem_writes",
+  "expected_outputs": [
+    "benchmark comparison report",
+    "prioritized adaptation opportunities",
+    "blocked references with rationale",
+    "recommended next safe moves"
+  ],
+  "safety_limits": [
+    "do not scrape or clone external repositories automatically",
+    "do not install skills or tooling",
+    "do not modify Atlas or derived projects",
+    "keep all benchmark recommendations advisory"
+  ],
+  "forbidden_actions": [
+    "activate MCPs or browser automation from benchmark output",
+    "auto-install or auto-sync skills",
+    "treat documented repos as verified local evidence",
+    "rewrite Atlas based on benchmark output without approval"
+  ],
+  "human_approval_triggers": [
+    "the benchmark result would add a new Atlas skill or workflow",
+    "the benchmark suggests runtime-heavy or automation-heavy behavior",
+    "the benchmark recommendation widens external dependency surface"
+  ],
+  "rollback_manual": [
+    "no rollback needed because the skill is read-only"
+  ],
+  "validations": [
+    "Atlas capability coverage is tied to real local paths",
+    "documented-only references are marked with lower confidence",
+    "high-risk runtime patterns remain watchlist or discard by default",
+    "next actions stay advisory and bounded"
+  ]
+}

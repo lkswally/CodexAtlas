@@ -28,6 +28,18 @@ def test_decision_council_execution_returns_structured_report():
     assert execution["output"]["role_briefs"][-1]["role"] == "Chairman"
 
 
+def test_market_research_benchmark_execution_returns_structured_report():
+    execution = execute_skill(
+        "market-research-benchmark",
+        "Benchmark Atlas against claude-vibecoding and current radar repos.",
+    )
+    assert execution["skill"] == "market-research-benchmark"
+    assert execution["mode"] == "structured_benchmark"
+    assert execution["ok"] is True
+    assert execution["output"]["status"] in {"ok", "needs_attention"}
+    assert execution["output"]["reviewed_references"]
+
+
 def test_project_bootstrap_execution_requires_output_dir():
     execution = execute_skill("project-bootstrap", "Bootstrap a new derived project.")
     contract = get_project_bootstrap_contract()

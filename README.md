@@ -49,6 +49,7 @@ Capas principales:
 - `project-bootstrap` con preflight real, templates por perfil y salida mínima segura
 - `repo-audit` y `certify-project` en modo read-only
 - `decision-council` como capa read-only para decisiones dificiles con dissent explicito y chairman synthesis manual
+- `market-research-benchmark` como benchmark read-only contra `_reference/claude-vibecoding` y repos radar documentados
 - observabilidad append-only para routing, governance, MCPs y proyectos derivados
 - adapter interno `docs_search` con ranking, deduplicación, summary, confidence y política de frescura
 - reporte read-only del catálogo curado de documentación oficial
@@ -58,6 +59,7 @@ Capas principales:
 - `project-bootstrap`
 - `repo-audit`
 - `decision-council`
+- `market-research-benchmark`
 - `product-branding-review`
 - `visual-direction-checkpoint`
 - `anti-generic-ui-audit`
@@ -73,6 +75,7 @@ Capas principales:
 - `certify_output`
 - `decision_council_review`
 - `design_intelligence_pipeline`
+- `market_research_benchmark`
 - `orchestrator_routing`
 
 ## Cómo crear un proyecto derivado

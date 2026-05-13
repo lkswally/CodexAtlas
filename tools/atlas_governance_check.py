@@ -33,6 +33,7 @@ REQUIRED_ROOT_FILES = (
     "config/external_tool_policy.json",
     "config/skill_lifecycle_rules.json",
     "config/skill_improvement_review_rules.json",
+    "config/market_research_benchmark_rules.json",
     "config/visual_intent_contract_rules.json",
     "config/brand_profile_schema_rules.json",
     "config/ui_pre_return_audit_rules.json",
@@ -73,6 +74,7 @@ REQUIRED_ROOT_FILES = (
     "policies/external_tool_policy.md",
     "policies/skill_lifecycle_policy.md",
     "policies/skill_improvement_review_policy.md",
+    "policies/market_research_benchmark_policy.md",
     "policies/visual_intent_contract_policy.md",
     "policies/brand_profile_schema_policy.md",
     "policies/ui_pre_return_audit_policy.md",
@@ -110,6 +112,9 @@ REQUIRED_ROOT_FILES = (
     "skills/anti-generic-ui-audit/skill.md",
     "skills/anti-generic-ui-audit/skill.json",
     "skills/anti-generic-ui-audit/behavior.json",
+    "skills/market-research-benchmark/skill.md",
+    "skills/market-research-benchmark/skill.json",
+    "skills/market-research-benchmark/behavior.json",
     "skills/design-system-review/skill.md",
     "skills/design-system-review/skill.json",
     "skills/design-system-review/behavior.json",
@@ -134,6 +139,7 @@ REQUIRED_ROOT_FILES = (
     "tools/quality_gate_report.py",
     "tools/skill_evaluator.py",
     "tools/skill_improvement_review.py",
+    "tools/market_research_benchmark.py",
     "tools/brand_profile_schema.py",
     "tools/ui_pre_return_audit.py",
     "tests/test_atlas_orchestrator.py",
@@ -154,6 +160,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_quality_gate_report.py",
     "tests/test_skill_evaluator.py",
     "tests/test_skill_improvement_review.py",
+    "tests/test_market_research_benchmark.py",
     "tests/test_skill_execution.py",
     "tests/test_skill_governance.py",
     "tests/test_brand_profile_schema.py",
@@ -398,6 +405,29 @@ REQUIRED_SKILL_IMPROVEMENT_RECOMMENDATIONS = {
     "candidate_review",
     "decision_council_required",
 }
+MARKET_RESEARCH_BENCHMARK_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "primary_reference_repo",
+    "allowed_source_types",
+    "benchmark_axes",
+    "recommendation_types",
+    "required_output_sections",
+    "high_risk_signals",
+    "requires_decision_council_signals",
+    "reference_catalog",
+}
+REQUIRED_MARKET_RESEARCH_RECOMMENDATIONS = {
+    "adapt_now",
+    "design_later",
+    "watchlist",
+    "discard",
+}
+REQUIRED_MARKET_RESEARCH_SOURCE_TYPES = {
+    "local_reference_clone",
+    "documented_repo",
+    "explicit_payload",
+}
 VISUAL_INTENT_CONTRACT_REQUIRED_FIELDS = {
     "version",
     "advisory_only",
@@ -603,6 +633,10 @@ def _load_skill_lifecycle_rules(root: Path) -> Dict[str, Any]:
 
 def _load_skill_improvement_review_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "skill_improvement_review_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_market_research_benchmark_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "market_research_benchmark_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_visual_intent_contract(root: Path) -> Dict[str, Any]:
@@ -1013,6 +1047,88 @@ def _validate_skill_improvement_review_rules(root: Path, findings: List[str]) ->
         value = rules.get(field_name)
         if not isinstance(value, list) or not value:
             findings.append(f"skill_improvement_review_rules_invalid_list:{field_name}")
+
+
+def _validate_market_research_benchmark_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_market_research_benchmark_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_market_research_benchmark_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("market_research_benchmark_rules_not_object")
+        return
+
+    missing_fields = MARKET_RESEARCH_BENCHMARK_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(
+            "market_research_benchmark_rules_missing_fields:" + ",".join(sorted(missing_fields))
+        )
+
+    primary_reference = rules.get("primary_reference_repo")
+    if not isinstance(primary_reference, dict) or not primary_reference:
+        findings.append("market_research_benchmark_rules_invalid_primary_reference_repo")
+    else:
+        for field_name in ("id", "source_type", "path"):
+            if not str(primary_reference.get(field_name, "")).strip():
+                findings.append(f"market_research_benchmark_rules_missing_primary_reference_field:{field_name}")
+
+    for field_name in (
+        "allowed_source_types",
+        "benchmark_axes",
+        "recommendation_types",
+        "required_output_sections",
+        "high_risk_signals",
+        "requires_decision_council_signals",
+    ):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not value:
+            findings.append(f"market_research_benchmark_rules_invalid_list:{field_name}")
+
+    source_types = {str(item).strip() for item in rules.get("allowed_source_types", []) if str(item).strip()}
+    missing_source_types = REQUIRED_MARKET_RESEARCH_SOURCE_TYPES - source_types
+    if missing_source_types:
+        findings.append(
+            "market_research_benchmark_rules_missing_source_types:" + ",".join(sorted(missing_source_types))
+        )
+
+    recommendation_types = {str(item).strip() for item in rules.get("recommendation_types", []) if str(item).strip()}
+    missing_recommendations = REQUIRED_MARKET_RESEARCH_RECOMMENDATIONS - recommendation_types
+    if missing_recommendations:
+        findings.append(
+            "market_research_benchmark_rules_missing_recommendations:" + ",".join(sorted(missing_recommendations))
+        )
+
+    reference_catalog = rules.get("reference_catalog")
+    if not isinstance(reference_catalog, list) or not reference_catalog:
+        findings.append("market_research_benchmark_rules_invalid_reference_catalog")
+    else:
+        seen_ids: Set[str] = set()
+        for index, item in enumerate(reference_catalog, start=1):
+            if not isinstance(item, dict):
+                findings.append(f"market_research_benchmark_reference_{index}:not_object")
+                continue
+            reference_id = str(item.get("id", "")).strip()
+            if not reference_id:
+                findings.append(f"market_research_benchmark_reference_{index}:missing_id")
+            elif reference_id in seen_ids:
+                findings.append(f"market_research_benchmark_duplicate_reference_id:{reference_id}")
+            else:
+                seen_ids.add(reference_id)
+            if str(item.get("source_type", "")).strip() not in source_types:
+                findings.append(f"market_research_benchmark_reference_{index}:invalid_source_type")
+            for field_name in ("source", "benefit", "risk", "fit", "default_recommendation"):
+                if not str(item.get(field_name, "")).strip():
+                    findings.append(f"market_research_benchmark_reference_{index}:missing_field:{field_name}")
+            if not isinstance(item.get("focus_areas"), list) or not item.get("focus_areas"):
+                findings.append(f"market_research_benchmark_reference_{index}:invalid_focus_areas")
+            if not isinstance(item.get("notes"), list) or not item.get("notes"):
+                findings.append(f"market_research_benchmark_reference_{index}:invalid_notes")
+            if not isinstance(item.get("risk_signals"), list):
+                findings.append(f"market_research_benchmark_reference_{index}:invalid_risk_signals")
+            if str(item.get("default_recommendation", "")).strip() not in recommendation_types:
+                findings.append(f"market_research_benchmark_reference_{index}:invalid_default_recommendation")
 
 
 def _validate_visual_intent_contract(root: Path, findings: List[str]) -> None:
@@ -2104,6 +2220,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_external_tool_policy(root, findings)
         _validate_skill_lifecycle_rules(root, findings)
         _validate_skill_improvement_review_rules(root, findings)
+        _validate_market_research_benchmark_rules(root, findings)
         _validate_visual_intent_contract(root, findings)
         _validate_brand_profile_schema(root, findings)
         _validate_ui_pre_return_audit_rules(root, findings)

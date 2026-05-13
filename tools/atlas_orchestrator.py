@@ -18,6 +18,7 @@ try:
         visual_direction_checkpoint,
     )
     from tools.decision_council_report import build_decision_council_report
+    from tools.market_research_benchmark import build_market_research_benchmark
     from tools.model_router import recommend_model_profile
 except ModuleNotFoundError:
     from design_intelligence_audit import (  # type: ignore
@@ -26,6 +27,7 @@ except ModuleNotFoundError:
         visual_direction_checkpoint,
     )
     from decision_council_report import build_decision_council_report  # type: ignore
+    from market_research_benchmark import build_market_research_benchmark  # type: ignore
     from model_router import recommend_model_profile  # type: ignore
 
 
@@ -210,6 +212,14 @@ FALLBACK_SKILL_KEYWORDS = {
         "spacing review",
         "layout consistency",
     ),
+    "market-research-benchmark": (
+        "market research benchmark",
+        "reference repo comparison",
+        "benchmark atlas",
+        "compare against claude-vibecoding",
+        "radar repo review",
+        "reference pattern benchmark",
+    ),
     "project-bootstrap": (
         "bootstrap",
         "create project",
@@ -245,6 +255,7 @@ SKILL_PRIORITY = (
     "anti-generic-ui-audit",
     "decision-council",
     "design-system-review",
+    "market-research-benchmark",
     "visual-direction-checkpoint",
     "project-bootstrap",
     "repo-audit",
@@ -319,6 +330,7 @@ WORKFLOW_BY_SKILL = {
     "project-bootstrap": "create_project",
     "repo-audit": "audit_project",
     "product-branding-review": "atlas_project_pipeline",
+    "market-research-benchmark": "market_research_benchmark",
 }
 
 DANGEROUS_APPROVAL_KEYWORDS = (
@@ -1468,6 +1480,18 @@ def _execute_design_system_review(project: Optional[Path]) -> Dict[str, Any]:
     }
 
 
+def _execute_market_research_benchmark(task: str, root: Path) -> Dict[str, Any]:
+    report = build_market_research_benchmark(root=root, topic=task)
+    return {
+        "skill": "market-research-benchmark",
+        "mode": "structured_benchmark",
+        "ok": report.get("status") in {"ok", "needs_attention"},
+        "task": task,
+        "output": report,
+        "summary": "Returned a structured market-research benchmark report without making changes.",
+    }
+
+
 def execute_skill(
     skill_name: str,
     task: str,
@@ -1494,6 +1518,8 @@ def execute_skill(
         return _execute_anti_generic_ui_audit(project=project)
     if skill_name == "design-system-review":
         return _execute_design_system_review(project=project)
+    if skill_name == "market-research-benchmark":
+        return _execute_market_research_benchmark(task=task, root=root)
     return {"skill": skill_name, "ok": False, "error": "execution_not_supported"}
 
 
