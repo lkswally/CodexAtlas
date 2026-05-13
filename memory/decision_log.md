@@ -1,6 +1,12 @@
 # Decision Log
 
 ## 2026-05-12
+- Decision: add `component_inspiration_readiness` as a governed advisory layer before any future 21st or Context7 use
+- Reason: Atlas already had visual intent, brand profile, UI pre-return and creative readiness, but still lacked one explicit readiness layer for component-pattern inspiration that distinguishes local-first design guidance from external pattern browsing
+- Impact: Atlas can now report whether 21st Magic or Context7 look locally ready for UI-pattern inspiration, expose derivative/copy risk and fallback posture in `quality_gate_report`, and keep implementation blocked behind human approval
+- Risk: users could still confuse inspiration-readiness with permission to import generic SaaS patterns unless the posture remains advisory and differentiation-first
+- Rollback: remove `config/component_inspiration_profiles.json`, `policies/component_inspiration_readiness_policy.md`, `tools/component_inspiration_readiness.py` and the connected governance/quality-gate wiring
+
 - Decision: add a read-only `market_research_benchmark` layer after skill-improvement review, instead of jumping straight into broader research automation
 - Reason: Atlas needed a governed way to compare itself against `claude-vibecoding` and documented radar repos without scraping, cloning, syncing or auto-installing anything
 - Impact: Atlas can now benchmark current capability coverage, highlight high-fit adaptation opportunities, keep risky runtime-heavy references in watchlist posture and escalate to `decision-council` when a benchmark would widen the factory surface

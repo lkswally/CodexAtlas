@@ -16,6 +16,7 @@ from tools.atlas_governance_check import (
     _load_brand_profile_schema,
     _load_ui_pre_return_audit_rules,
     _load_creative_pipeline_profiles,
+    _load_component_inspiration_profiles,
     _validate_external_tool_policy,
     _validate_mcp_profiles,
     _validate_docs_search_catalog,
@@ -26,6 +27,7 @@ from tools.atlas_governance_check import (
     _validate_brand_profile_schema,
     _validate_ui_pre_return_audit_rules,
     _validate_creative_pipeline_profiles,
+    _validate_component_inspiration_profiles,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
@@ -174,6 +176,30 @@ def test_creative_pipeline_profiles_require_expected_profiles_and_services():
 
     assert any(finding.startswith("creative_pipeline_profiles_missing_profiles:") for finding in findings)
     assert any(finding.startswith("creative_pipeline_profiles_missing_services:") for finding in findings)
+
+
+def test_component_inspiration_profiles_require_expected_profiles_and_services():
+    findings = []
+    invalid_rules = _load_component_inspiration_profiles(ROOT)
+    invalid_rules["profiles"] = {
+        "ui_component_inspiration": invalid_rules["profiles"]["ui_component_inspiration"]
+    }
+    invalid_rules["services"] = {"twentyfirst_magic": invalid_rules["services"]["twentyfirst_magic"]}
+
+    with patch(
+        "tools.atlas_governance_check._load_component_inspiration_profiles",
+        return_value=invalid_rules,
+    ):
+        _validate_component_inspiration_profiles(ROOT, findings)
+
+    assert any(
+        finding.startswith("component_inspiration_profiles_missing_profiles:")
+        for finding in findings
+    )
+    assert any(
+        finding.startswith("component_inspiration_profiles_missing_services:")
+        for finding in findings
+    )
 
 
 def test_skill_metadata_validation_rejects_invalid_contract_fields():

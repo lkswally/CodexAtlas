@@ -79,6 +79,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Use `market-research-benchmark` before adding roadmap features that come mainly from external reference pressure rather than repeated Atlas-local need
 - Keep visual/media capability decisions advisory-only until a derived project repeatedly needs screenshot, image or video evidence that static audits cannot provide
 - Keep `creative_pipeline_readiness` advisory-only and approval-bound; readiness is not permission to generate assets or activate MCPs
+- Keep `component_inspiration_readiness` advisory-only and local-first; readiness is not permission to copy external UI, activate 21st/Context7 or treat pattern browsing as proof of quality
 - Keep external model fallback evaluation separate from Codex Desktop model routing; benchmark NVIDIA candidates manually before adding any profile or adapter
 - Keep `21st_magic` disabled until the exposed key is revoked, a fresh key is stored outside the repo, and a separate approval allows a controlled MCP test
 - Fix known public placeholder links in derived landings before treating design readiness as anything stronger than `needs_improvement`
