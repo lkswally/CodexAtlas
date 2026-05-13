@@ -10,6 +10,7 @@ from tools.atlas_governance_check import (
     _record_governance_event,
     _read_text,
     _load_skill_lifecycle_rules,
+    _load_skill_improvement_review_rules,
     _load_visual_intent_contract,
     _load_brand_profile_schema,
     _load_ui_pre_return_audit_rules,
@@ -17,6 +18,7 @@ from tools.atlas_governance_check import (
     _validate_mcp_profiles,
     _validate_docs_search_catalog,
     _validate_skill_lifecycle_rules,
+    _validate_skill_improvement_review_rules,
     _validate_visual_intent_contract,
     _validate_brand_profile_schema,
     _validate_ui_pre_return_audit_rules,
@@ -55,6 +57,40 @@ def test_skill_lifecycle_rules_reject_missing_states():
         _validate_skill_lifecycle_rules(ROOT, findings)
 
     assert any(finding.startswith("skill_lifecycle_rules_missing_states:") for finding in findings)
+
+
+def test_skill_improvement_review_rules_require_expected_recommendations():
+    findings = []
+    invalid_rules = _load_skill_improvement_review_rules(ROOT)
+    invalid_rules["recommendation_types"] = ["keep", "improve"]
+
+    with patch(
+        "tools.atlas_governance_check._load_skill_improvement_review_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_skill_improvement_review_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("skill_improvement_review_rules_missing_recommendation_types:")
+        for finding in findings
+    )
+
+
+def test_skill_improvement_review_rules_require_scoring_fields():
+    findings = []
+    invalid_rules = _load_skill_improvement_review_rules(ROOT)
+    invalid_rules["scoring_rules"] = {"base_score": 100}
+
+    with patch(
+        "tools.atlas_governance_check._load_skill_improvement_review_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_skill_improvement_review_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("skill_improvement_review_rules_missing_scoring_fields:")
+        for finding in findings
+    )
 
 
 def test_visual_intent_contract_rejects_missing_required_fields():

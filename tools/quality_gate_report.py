@@ -42,6 +42,10 @@ try:
     from tools.error_pattern_analyzer import analyze_error_patterns
 except ModuleNotFoundError:
     from error_pattern_analyzer import analyze_error_patterns
+try:
+    from tools.skill_improvement_review import review_skill_catalog
+except ModuleNotFoundError:
+    from skill_improvement_review import review_skill_catalog
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -346,6 +350,14 @@ def _run_skill_signal(
     except Exception as exc:
         return _build_failed_report("skill_evaluator", f"skill_evaluator_failed:{exc}")
     return _build_ok_report("skill_evaluator", report)
+
+
+def _run_skill_improvement_review(root: Path) -> Dict[str, Any]:
+    try:
+        report = review_skill_catalog(root=root)
+    except Exception as exc:
+        return _build_failed_report("skill_improvement_review", f"skill_improvement_review_failed:{exc}")
+    return _build_ok_report("skill_improvement_review", report)
 
 
 def _extract_certify_blockers(certify_report: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -821,6 +833,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         "top_phase_risks": phase_data.get("common_mistakes", [])[:3],
     }
     source_reports["skill_evaluator"] = _run_skill_signal(root, project, str(current_phase or ""), top_priorities, source_reports["project_intent_analyzer"])
+    source_reports["skill_improvement_review"] = _run_skill_improvement_review(root)
     source_reports["feedback_analyzer"] = feedback_report
     source_reports["model_router"] = _run_model_route(
         root,
@@ -938,6 +951,20 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "promotion_blockers": (source_reports["skill_evaluator"]["report"] or {}).get("promotion_blockers", []),
             "requires_human_approval": (source_reports["skill_evaluator"]["report"] or {}).get("requires_human_approval"),
             "requires_decision_council": (source_reports["skill_evaluator"]["report"] or {}).get("requires_decision_council"),
+        },
+        "skill_improvement_posture": {
+            "status": (source_reports["skill_improvement_review"]["report"] or {}).get("status"),
+            "reviewed_skills": (source_reports["skill_improvement_review"]["report"] or {}).get("reviewed_skills", []),
+            "weak_skills": (source_reports["skill_improvement_review"]["report"] or {}).get("weak_skills", []),
+            "duplicate_risks": (source_reports["skill_improvement_review"]["report"] or {}).get("duplicate_risks", []),
+            "lifecycle_recommendations": (source_reports["skill_improvement_review"]["report"] or {}).get("lifecycle_recommendations", []),
+            "candidate_opportunities": (source_reports["skill_improvement_review"]["report"] or {}).get("candidate_opportunities", []),
+            "blocked_candidates": (source_reports["skill_improvement_review"]["report"] or {}).get("blocked_candidates", []),
+            "requires_human_approval": bool((source_reports["skill_improvement_review"]["report"] or {}).get("requires_human_approval")),
+            "requires_decision_council": bool((source_reports["skill_improvement_review"]["report"] or {}).get("requires_decision_council")),
+            "recommended_next_actions": (source_reports["skill_improvement_review"]["report"] or {}).get("recommended_next_actions", []),
+            "why": (source_reports["skill_improvement_review"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["skill_improvement_review"]["report"] or {}).get("advisory_only", True)),
         },
         "system_learning": source_reports["error_pattern_analyzer"]["report"] if source_reports["error_pattern_analyzer"]["status"] == "ok" else None,
         "blockers": blockers,

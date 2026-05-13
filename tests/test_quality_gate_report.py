@@ -33,6 +33,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["source_reports"]["project_intent_analyzer"]["status"] == "ok"
     assert result["source_reports"]["prompt_builder"]["status"] == "ok"
     assert result["source_reports"]["skill_evaluator"]["status"] == "ok"
+    assert result["source_reports"]["skill_improvement_review"]["status"] == "ok"
     assert result["source_reports"]["feedback_analyzer"]["status"] == "ok"
     assert result["source_reports"]["model_router"]["status"] == "ok"
     assert result["source_reports"]["error_pattern_analyzer"]["status"] == "ok"
@@ -65,6 +66,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert isinstance(result["prompt_guidance"], dict)
     assert isinstance(result["skill_creation_signal"], dict)
     assert isinstance(result["skill_lifecycle_posture"], dict)
+    assert isinstance(result["skill_improvement_posture"], dict)
+    assert result["skill_improvement_posture"]["advisory_only"] is True
     assert isinstance(result["system_learning"], dict)
     assert isinstance(result["execution_plan"], list)
     assert len(result["execution_plan"]) <= 3
@@ -98,6 +101,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert "recommended_state" in result["skill_lifecycle_posture"]
     assert "lifecycle_recommendation" in result["skill_lifecycle_posture"]
     assert "promotion_blockers" in result["skill_lifecycle_posture"]
+    assert "reviewed_skills" in result["skill_improvement_posture"]
+    assert "recommended_next_actions" in result["skill_improvement_posture"]
     assert "required_fields" in result["visual_intent_posture"]
     assert "missing_fields" in result["visual_intent_posture"]
     assert "required_fields" in result["brand_profile_posture"]

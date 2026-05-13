@@ -32,6 +32,7 @@ REQUIRED_ROOT_FILES = (
     "config/phase_playbook.json",
     "config/external_tool_policy.json",
     "config/skill_lifecycle_rules.json",
+    "config/skill_improvement_review_rules.json",
     "config/visual_intent_contract_rules.json",
     "config/brand_profile_schema_rules.json",
     "config/ui_pre_return_audit_rules.json",
@@ -71,6 +72,7 @@ REQUIRED_ROOT_FILES = (
     "policies/cost_control_policy.md",
     "policies/external_tool_policy.md",
     "policies/skill_lifecycle_policy.md",
+    "policies/skill_improvement_review_policy.md",
     "policies/visual_intent_contract_policy.md",
     "policies/brand_profile_schema_policy.md",
     "policies/ui_pre_return_audit_policy.md",
@@ -131,6 +133,7 @@ REQUIRED_ROOT_FILES = (
     "tools/prompt_builder.py",
     "tools/quality_gate_report.py",
     "tools/skill_evaluator.py",
+    "tools/skill_improvement_review.py",
     "tools/brand_profile_schema.py",
     "tools/ui_pre_return_audit.py",
     "tests/test_atlas_orchestrator.py",
@@ -150,6 +153,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_prompt_builder.py",
     "tests/test_quality_gate_report.py",
     "tests/test_skill_evaluator.py",
+    "tests/test_skill_improvement_review.py",
     "tests/test_skill_execution.py",
     "tests/test_skill_governance.py",
     "tests/test_brand_profile_schema.py",
@@ -370,6 +374,30 @@ SKILL_LIFECYCLE_RULES_REQUIRED_FIELDS = {
     "human_approval_required_by_state",
     "allowed_risk_by_state",
 }
+SKILL_IMPROVEMENT_REVIEW_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "scoring_rules",
+    "maturity_signals",
+    "duplication_signals",
+    "stale_skill_signals",
+    "missing_test_signals",
+    "missing_docs_signals",
+    "external_dependency_signals",
+    "risk_scoring",
+    "recommendation_types",
+}
+REQUIRED_SKILL_IMPROVEMENT_RECOMMENDATIONS = {
+    "keep",
+    "improve",
+    "merge",
+    "split",
+    "deprecate",
+    "archive",
+    "reject",
+    "candidate_review",
+    "decision_council_required",
+}
 VISUAL_INTENT_CONTRACT_REQUIRED_FIELDS = {
     "version",
     "advisory_only",
@@ -571,6 +599,10 @@ def _load_external_tool_policy(root: Path) -> Dict[str, Any]:
 
 def _load_skill_lifecycle_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "skill_lifecycle_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_skill_improvement_review_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "skill_improvement_review_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_visual_intent_contract(root: Path) -> Dict[str, Any]:
@@ -911,6 +943,76 @@ def _validate_skill_lifecycle_rules(root: Path, findings: List[str]) -> None:
         for state, value in human_approval_by_state.items():
             if not isinstance(value, bool):
                 findings.append(f"skill_lifecycle_rules_invalid_approval_flag:{state}")
+
+
+def _validate_skill_improvement_review_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_skill_improvement_review_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_skill_improvement_review_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("skill_improvement_review_rules_not_object")
+        return
+
+    missing_fields = SKILL_IMPROVEMENT_REVIEW_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(
+            "skill_improvement_review_rules_missing_fields:" + ",".join(sorted(missing_fields))
+        )
+
+    scoring_rules = rules.get("scoring_rules")
+    if not isinstance(scoring_rules, dict) or not scoring_rules:
+        findings.append("skill_improvement_review_rules_invalid_scoring_rules")
+    else:
+        required_scoring_fields = {
+            "base_score",
+            "missing_tests_penalty",
+            "missing_docs_penalty",
+            "missing_behavior_penalty",
+            "missing_skill_json_penalty",
+            "duplicate_penalty_medium",
+            "duplicate_penalty_high",
+            "external_dependency_penalty_medium",
+            "external_dependency_penalty_high",
+            "stale_state_penalty",
+            "minimum_score_for_keep",
+            "minimum_score_for_improve",
+        }
+        missing_scoring = required_scoring_fields - set(scoring_rules.keys())
+        if missing_scoring:
+            findings.append(
+                "skill_improvement_review_rules_missing_scoring_fields:"
+                + ",".join(sorted(missing_scoring))
+            )
+
+    recommendation_types = rules.get("recommendation_types")
+    if not isinstance(recommendation_types, list) or not recommendation_types:
+        findings.append("skill_improvement_review_rules_invalid_recommendation_types")
+    else:
+        recommendation_set = {str(item).strip() for item in recommendation_types if str(item).strip()}
+        missing_recommendations = REQUIRED_SKILL_IMPROVEMENT_RECOMMENDATIONS - recommendation_set
+        if missing_recommendations:
+            findings.append(
+                "skill_improvement_review_rules_missing_recommendation_types:"
+                + ",".join(sorted(missing_recommendations))
+            )
+
+    for field_name in (
+        "maturity_signals",
+        "duplication_signals",
+        "external_dependency_signals",
+        "risk_scoring",
+    ):
+        value = rules.get(field_name)
+        if not isinstance(value, dict) or not value:
+            findings.append(f"skill_improvement_review_rules_invalid_object:{field_name}")
+
+    for field_name in ("stale_skill_signals", "missing_test_signals", "missing_docs_signals"):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not value:
+            findings.append(f"skill_improvement_review_rules_invalid_list:{field_name}")
 
 
 def _validate_visual_intent_contract(root: Path, findings: List[str]) -> None:
@@ -2001,6 +2103,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_mcp_profiles(root, findings)
         _validate_external_tool_policy(root, findings)
         _validate_skill_lifecycle_rules(root, findings)
+        _validate_skill_improvement_review_rules(root, findings)
         _validate_visual_intent_contract(root, findings)
         _validate_brand_profile_schema(root, findings)
         _validate_ui_pre_return_audit_rules(root, findings)

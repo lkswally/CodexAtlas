@@ -61,6 +61,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep `prompt_builder` phase-aware and explicit so it teaches the flow without becoming hidden automation
 - Keep `prompt_builder` tied to real priority, feedback and validation signals instead of drifting back toward generic task templates
 - Keep `skill_evaluator` conservative; it should block capability sprawl more often than it approves new reusable skills
+- Keep `skill_improvement_review` advisory and hygiene-first; it should recommend review, merge or deprecate before Atlas grows the catalog
 - Keep `visual_intent_contract` advisory and evidence-first until repeated usage proves that stronger gating would reduce generic design drift without over-blocking simple projects
 - Keep `visual_intent_contract` aligned across `project_intent_analyzer`, `visual-direction-checkpoint`, `brand_agent`, `design_intelligence_audit` and `quality_gate_report`
 - Keep `brand_profile_schema` aligned with the visual intent contract so identity, differentiation and accessibility rationale do not drift into generic branding language
@@ -98,6 +99,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Stronger docs for derived-project extraction and adapter contracts
 - A second-level orchestrator that can consume structured task metadata instead of only free text
 - Skill-aware routing with richer signals than keyword matching
+- A manual `market_research_benchmark_skill` if Atlas starts needing repeatable competitive or reference-repo comparison beyond the current scout/audit layers
 - Optional skill manifest validation inside governance check if the catalog grows
 - Controlled retirement plan for `00_SISTEMA/_meta/atlas/` once no consumers need it
 - Better release hygiene around commit cadence, ignored local research clones and validation reports

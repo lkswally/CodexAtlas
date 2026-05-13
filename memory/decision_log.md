@@ -1,6 +1,12 @@
 # Decision Log
 
 ## 2026-05-12
+- Decision: add an advisory `skill_improvement_review` layer after lifecycle, visual intent, brand profile and UI pre-return hardening
+- Reason: Atlas already knew how to evaluate a single skill candidate, but still lacked a manual catalog-health pass that can surface weak skills, duplicates, stale coverage and promising external candidates without auto-modifying anything
+- Impact: Atlas can now review its existing skill surface, recommend `keep`/`improve`/`deprecate` style actions, and surface catalog-health posture inside `quality_gate_report` while keeping human approval and decision-council boundaries explicit
+- Risk: if the review heuristics become too noisy, Atlas could over-report weak skills instead of highlighting only the most actionable catalog issues
+- Rollback: remove `config/skill_improvement_review_rules.json`, `policies/skill_improvement_review_policy.md`, `tools/skill_improvement_review.py` and the connected governance/quality-gate wiring, then fall back to lifecycle-only skill governance
+
 - Decision: add an advisory `ui_pre_return_audit` after `visual_intent_contract` and `brand_profile_schema`, before any stronger UI-ready claim
 - Reason: Atlas already had intent, brand and anti-generic checks, but still lacked one final read-only cross-check that ties those signals together before handoff or PASS language
 - Impact: design-intelligence and quality-gate outputs can now surface pre-return blockers, generic risk, brand mismatch, evidence gaps, responsive unknowns and accessibility weaknesses without touching derived projects

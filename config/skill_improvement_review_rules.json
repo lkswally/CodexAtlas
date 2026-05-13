@@ -1,0 +1,108 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "scoring_rules": {
+    "base_score": 100,
+    "missing_tests_penalty": 25,
+    "missing_docs_penalty": 20,
+    "missing_behavior_penalty": 15,
+    "missing_skill_json_penalty": 15,
+    "duplicate_penalty_medium": 20,
+    "duplicate_penalty_high": 40,
+    "external_dependency_penalty_medium": 10,
+    "external_dependency_penalty_high": 25,
+    "stale_state_penalty": 10,
+    "minimum_score_for_keep": 80,
+    "minimum_score_for_improve": 55
+  },
+  "maturity_signals": {
+    "stable": [
+      "skill_md_present",
+      "skill_json_present",
+      "behavior_present",
+      "tests_present",
+      "duplication_risk_low"
+    ],
+    "experimental": [
+      "skill_md_present",
+      "skill_json_present",
+      "behavior_present"
+    ]
+  },
+  "duplication_signals": {
+    "high": [
+      "same_or_near_identical_name",
+      "high_keyword_overlap",
+      "same_workflow_same_audience"
+    ],
+    "medium": [
+      "partial_keyword_overlap",
+      "scope_boundary_unclear"
+    ]
+  },
+  "stale_skill_signals": [
+    "declared_deprecated",
+    "declared_archived",
+    "missing_tests",
+    "missing_docs",
+    "missing_behavior"
+  ],
+  "missing_test_signals": [
+    "no_skill_specific_test_reference"
+  ],
+  "missing_docs_signals": [
+    "missing_skill_md",
+    "missing_skill_json",
+    "insufficient_documentation_headings"
+  ],
+  "external_dependency_signals": {
+    "high_terms": [
+      "mcp",
+      "playwright",
+      "install",
+      "sync",
+      "runtime",
+      "autonomous",
+      "self-heal",
+      "browser automation",
+      "secret",
+      "provider token"
+    ],
+    "medium_terms": [
+      "api",
+      "sdk",
+      "external service",
+      "github",
+      "vercel",
+      "remote docs"
+    ]
+  },
+  "risk_scoring": {
+    "low": [
+      "read_only",
+      "local_catalog_review",
+      "advisory_only"
+    ],
+    "medium": [
+      "merge_recommendation",
+      "deprecate_recommendation",
+      "external_candidate_review"
+    ],
+    "high": [
+      "decision_council_required",
+      "external_dependency_high",
+      "runtime_expansion_candidate"
+    ]
+  },
+  "recommendation_types": [
+    "keep",
+    "improve",
+    "merge",
+    "split",
+    "deprecate",
+    "archive",
+    "reject",
+    "candidate_review",
+    "decision_council_required"
+  ]
+}

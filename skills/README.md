@@ -72,7 +72,9 @@ Rules:
 - keep business-specific skills out of the Atlas core
 - skills guide decisions and outputs; they do not create hidden automation
 - lifecycle decisions are governed by `policies/skill_lifecycle_policy.md` and `config/skill_lifecycle_rules.json`
+- catalog hygiene reviews are governed by `policies/skill_improvement_review_policy.md` and `config/skill_improvement_review_rules.json`
 - a proposed skill may stay `candidate` or be rejected even if the idea sounds useful; Atlas should prefer catalog hygiene over skill sprawl
+- `skill_improvement_review` is advisory-only: it may recommend `keep`, `improve`, `merge`, `deprecate`, `archive` or external `candidate_review`, but it does not auto-install or auto-modify skills
 
 Current skills:
 - `project-bootstrap`: start a derived project safely from Atlas
