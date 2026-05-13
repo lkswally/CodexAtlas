@@ -37,6 +37,7 @@ REQUIRED_ROOT_FILES = (
     "config/visual_intent_contract_rules.json",
     "config/brand_profile_schema_rules.json",
     "config/ui_pre_return_audit_rules.json",
+    "config/creative_pipeline_profiles.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -78,6 +79,7 @@ REQUIRED_ROOT_FILES = (
     "policies/visual_intent_contract_policy.md",
     "policies/brand_profile_schema_policy.md",
     "policies/ui_pre_return_audit_policy.md",
+    "policies/creative_pipeline_readiness_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
     "memory/session_summaries.md",
@@ -142,6 +144,7 @@ REQUIRED_ROOT_FILES = (
     "tools/market_research_benchmark.py",
     "tools/brand_profile_schema.py",
     "tools/ui_pre_return_audit.py",
+    "tools/creative_pipeline_readiness.py",
     "tests/test_atlas_orchestrator.py",
     "tests/test_certify_project.py",
     "tests/test_docs_catalog_report.py",
@@ -165,6 +168,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_skill_governance.py",
     "tests/test_brand_profile_schema.py",
     "tests/test_ui_pre_return_audit.py",
+    "tests/test_creative_pipeline_readiness.py",
     "tests/test_surface_audit.py",
     "templates/project_bootstrap_profiles.md",
 )
@@ -565,6 +569,39 @@ REQUIRED_UI_PRE_RETURN_WARNING_CODES = {
     "ui_pre_return_responsive_unknown",
     "ui_pre_return_not_ready",
 }
+CREATIVE_PIPELINE_REQUIRED_PROFILES = {
+    "logo_generation",
+    "image_generation",
+    "video_generation",
+    "brand_visual_review",
+    "component_inspiration",
+    "visual_qa_watchlist",
+}
+CREATIVE_PIPELINE_REQUIRED_SERVICES = {
+    "gemini",
+    "huggingface",
+    "replicate",
+    "twentyfirst_magic",
+    "context7",
+    "playwright_visual_qa",
+}
+CREATIVE_PIPELINE_PROFILE_REQUIRED_FIELDS = {
+    "suggested_services",
+    "requirements",
+    "expected_env_vars",
+    "risk_level",
+    "initial_state",
+    "requires_human_approval",
+}
+CREATIVE_PIPELINE_SERVICE_REQUIRED_FIELDS = {
+    "display_name",
+    "expected_env_vars",
+    "related_mcp_servers",
+    "atlas_mcp_profiles",
+    "purpose",
+    "risk_level",
+}
+VALID_CREATIVE_PIPELINE_STATES = {"advisory", "approval_required", "watchlist", "blocked"}
 
 
 def _primary_registry_path(root: Path) -> Path:
@@ -649,6 +686,10 @@ def _load_brand_profile_schema(root: Path) -> Dict[str, Any]:
 
 def _load_ui_pre_return_audit_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "ui_pre_return_audit_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_creative_pipeline_profiles(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "creative_pipeline_profiles.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -1360,6 +1401,70 @@ def _validate_ui_pre_return_audit_rules(root: Path, findings: List[str]) -> None
         value = rules.get(field_name)
         if not isinstance(value, list) or not value:
             findings.append(f"ui_pre_return_audit_rules_invalid_list:{field_name}")
+
+
+def _validate_creative_pipeline_profiles(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_creative_pipeline_profiles(root)
+    except Exception as exc:
+        findings.append(f"invalid_creative_pipeline_profiles_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("creative_pipeline_profiles_not_object")
+        return
+
+    services = rules.get("services")
+    profiles = rules.get("profiles")
+    if not isinstance(services, dict) or not services:
+        findings.append("creative_pipeline_profiles_invalid_services")
+        return
+    if not isinstance(profiles, dict) or not profiles:
+        findings.append("creative_pipeline_profiles_invalid_profiles")
+        return
+
+    missing_services = CREATIVE_PIPELINE_REQUIRED_SERVICES - set(services.keys())
+    if missing_services:
+        findings.append(f"creative_pipeline_profiles_missing_services:{','.join(sorted(missing_services))}")
+    missing_profiles = CREATIVE_PIPELINE_REQUIRED_PROFILES - set(profiles.keys())
+    if missing_profiles:
+        findings.append(f"creative_pipeline_profiles_missing_profiles:{','.join(sorted(missing_profiles))}")
+
+    for service_name, service in services.items():
+        if not isinstance(service, dict):
+            findings.append(f"creative_pipeline_profiles_invalid_service:{service_name}")
+            continue
+        missing_fields = CREATIVE_PIPELINE_SERVICE_REQUIRED_FIELDS - set(service.keys())
+        if missing_fields:
+            findings.append(
+                f"creative_pipeline_profiles_missing_service_fields:{service_name}:{','.join(sorted(missing_fields))}"
+            )
+        for field_name in ("expected_env_vars", "related_mcp_servers", "atlas_mcp_profiles"):
+            value = service.get(field_name)
+            if not isinstance(value, list):
+                findings.append(f"creative_pipeline_profiles_invalid_service_list:{service_name}:{field_name}")
+        if str(service.get("risk_level", "")).strip() not in VALID_SKILL_RISK_LEVELS:
+            findings.append(f"creative_pipeline_profiles_invalid_service_risk:{service_name}")
+
+    for profile_name, profile in profiles.items():
+        if not isinstance(profile, dict):
+            findings.append(f"creative_pipeline_profiles_invalid_profile:{profile_name}")
+            continue
+        missing_fields = CREATIVE_PIPELINE_PROFILE_REQUIRED_FIELDS - set(profile.keys())
+        if missing_fields:
+            findings.append(
+                f"creative_pipeline_profiles_missing_profile_fields:{profile_name}:{','.join(sorted(missing_fields))}"
+            )
+        for field_name in ("suggested_services", "requirements", "expected_env_vars"):
+            value = profile.get(field_name)
+            if not isinstance(value, list):
+                findings.append(f"creative_pipeline_profiles_invalid_profile_list:{profile_name}:{field_name}")
+        if str(profile.get("risk_level", "")).strip() not in VALID_SKILL_RISK_LEVELS:
+            findings.append(f"creative_pipeline_profiles_invalid_profile_risk:{profile_name}")
+        if str(profile.get("initial_state", "")).strip() not in VALID_CREATIVE_PIPELINE_STATES:
+            findings.append(f"creative_pipeline_profiles_invalid_profile_state:{profile_name}")
+        if not isinstance(profile.get("requires_human_approval"), bool):
+            findings.append(f"creative_pipeline_profiles_invalid_profile_approval:{profile_name}")
 
 
 def _validate_docs_search_catalog(root: Path, findings: List[str]) -> None:
@@ -2224,6 +2329,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_visual_intent_contract(root, findings)
         _validate_brand_profile_schema(root, findings)
         _validate_ui_pre_return_audit_rules(root, findings)
+        _validate_creative_pipeline_profiles(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)

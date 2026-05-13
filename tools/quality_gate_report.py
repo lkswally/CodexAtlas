@@ -46,6 +46,10 @@ try:
     from tools.skill_improvement_review import review_skill_catalog
 except ModuleNotFoundError:
     from skill_improvement_review import review_skill_catalog
+try:
+    from tools.creative_pipeline_readiness import check_creative_pipeline_readiness
+except ModuleNotFoundError:
+    from creative_pipeline_readiness import check_creative_pipeline_readiness
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -358,6 +362,14 @@ def _run_skill_improvement_review(root: Path) -> Dict[str, Any]:
     except Exception as exc:
         return _build_failed_report("skill_improvement_review", f"skill_improvement_review_failed:{exc}")
     return _build_ok_report("skill_improvement_review", report)
+
+
+def _run_creative_pipeline_readiness(root: Path) -> Dict[str, Any]:
+    try:
+        report = check_creative_pipeline_readiness(root=root)
+    except Exception as exc:
+        return _build_failed_report("creative_pipeline_readiness", f"creative_pipeline_readiness_failed:{exc}")
+    return _build_ok_report("creative_pipeline_readiness", report)
 
 
 def _extract_certify_blockers(certify_report: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -834,6 +846,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     }
     source_reports["skill_evaluator"] = _run_skill_signal(root, project, str(current_phase or ""), top_priorities, source_reports["project_intent_analyzer"])
     source_reports["skill_improvement_review"] = _run_skill_improvement_review(root)
+    source_reports["creative_pipeline_readiness"] = _run_creative_pipeline_readiness(root)
     source_reports["feedback_analyzer"] = feedback_report
     source_reports["model_router"] = _run_model_route(
         root,
@@ -965,6 +978,21 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "recommended_next_actions": (source_reports["skill_improvement_review"]["report"] or {}).get("recommended_next_actions", []),
             "why": (source_reports["skill_improvement_review"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["skill_improvement_review"]["report"] or {}).get("advisory_only", True)),
+        },
+        "creative_pipeline_posture": {
+            "status": (source_reports["creative_pipeline_readiness"]["report"] or {}).get("status"),
+            "available_services": (source_reports["creative_pipeline_readiness"]["report"] or {}).get("available_services", []),
+            "missing_services": (source_reports["creative_pipeline_readiness"]["report"] or {}).get("missing_services", []),
+            "safe_to_use_profiles": (source_reports["creative_pipeline_readiness"]["report"] or {}).get("safe_to_use_profiles", []),
+            "watchlist_profiles": (source_reports["creative_pipeline_readiness"]["report"] or {}).get("watchlist_profiles", []),
+            "blocked_profiles": (source_reports["creative_pipeline_readiness"]["report"] or {}).get("blocked_profiles", []),
+            "required_manual_steps": (source_reports["creative_pipeline_readiness"]["report"] or {}).get("required_manual_steps", []),
+            "risks": (source_reports["creative_pipeline_readiness"]["report"] or {}).get("risks", []),
+            "requires_human_approval": bool((source_reports["creative_pipeline_readiness"]["report"] or {}).get("requires_human_approval")),
+            "requires_decision_council": bool((source_reports["creative_pipeline_readiness"]["report"] or {}).get("requires_decision_council")),
+            "recommended_next_action": (source_reports["creative_pipeline_readiness"]["report"] or {}).get("recommended_next_action"),
+            "why": (source_reports["creative_pipeline_readiness"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["creative_pipeline_readiness"]["report"] or {}).get("advisory_only", True)),
         },
         "system_learning": source_reports["error_pattern_analyzer"]["report"] if source_reports["error_pattern_analyzer"]["status"] == "ok" else None,
         "blockers": blockers,

@@ -15,6 +15,7 @@ from tools.atlas_governance_check import (
     _load_visual_intent_contract,
     _load_brand_profile_schema,
     _load_ui_pre_return_audit_rules,
+    _load_creative_pipeline_profiles,
     _validate_external_tool_policy,
     _validate_mcp_profiles,
     _validate_docs_search_catalog,
@@ -24,6 +25,7 @@ from tools.atlas_governance_check import (
     _validate_visual_intent_contract,
     _validate_brand_profile_schema,
     _validate_ui_pre_return_audit_rules,
+    _validate_creative_pipeline_profiles,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
@@ -159,6 +161,19 @@ def test_ui_pre_return_rules_reject_missing_warning_codes():
         _validate_ui_pre_return_audit_rules(ROOT, findings)
 
     assert any(finding.startswith("ui_pre_return_audit_rules_missing_warning_codes:") for finding in findings)
+
+
+def test_creative_pipeline_profiles_require_expected_profiles_and_services():
+    findings = []
+    invalid_rules = _load_creative_pipeline_profiles(ROOT)
+    invalid_rules["profiles"] = {"brand_visual_review": invalid_rules["profiles"]["brand_visual_review"]}
+    invalid_rules["services"] = {"gemini": invalid_rules["services"]["gemini"]}
+
+    with patch("tools.atlas_governance_check._load_creative_pipeline_profiles", return_value=invalid_rules):
+        _validate_creative_pipeline_profiles(ROOT, findings)
+
+    assert any(finding.startswith("creative_pipeline_profiles_missing_profiles:") for finding in findings)
+    assert any(finding.startswith("creative_pipeline_profiles_missing_services:") for finding in findings)
 
 
 def test_skill_metadata_validation_rejects_invalid_contract_fields():

@@ -68,6 +68,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert isinstance(result["skill_lifecycle_posture"], dict)
     assert isinstance(result["skill_improvement_posture"], dict)
     assert result["skill_improvement_posture"]["advisory_only"] is True
+    assert isinstance(result["creative_pipeline_posture"], dict)
+    assert result["creative_pipeline_posture"]["advisory_only"] is True
     assert isinstance(result["system_learning"], dict)
     assert isinstance(result["execution_plan"], list)
     assert len(result["execution_plan"]) <= 3
@@ -103,10 +105,20 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert "promotion_blockers" in result["skill_lifecycle_posture"]
     assert "reviewed_skills" in result["skill_improvement_posture"]
     assert "recommended_next_actions" in result["skill_improvement_posture"]
+    assert "available_services" in result["creative_pipeline_posture"]
+    assert "watchlist_profiles" in result["creative_pipeline_posture"]
     assert "required_fields" in result["visual_intent_posture"]
     assert "missing_fields" in result["visual_intent_posture"]
     assert "required_fields" in result["brand_profile_posture"]
     assert "missing_fields" in result["brand_profile_posture"]
+
+
+def test_quality_gate_report_exposes_creative_pipeline_posture():
+    result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+    assert isinstance(result["creative_pipeline_posture"], dict)
+    assert result["creative_pipeline_posture"]["advisory_only"] is True
+    assert "available_services" in result["creative_pipeline_posture"]
+    assert "blocked_profiles" in result["creative_pipeline_posture"]
 
 
 def test_quality_gate_report_uses_existing_outputs_to_mark_not_ready():

@@ -1,0 +1,178 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "services": {
+    "gemini": {
+      "display_name": "Gemini",
+      "expected_env_vars": [
+        "GEMINI_API_KEY"
+      ],
+      "related_mcp_servers": [],
+      "atlas_mcp_profiles": [],
+      "purpose": "Visual-brand review or future concept generation with manual approval",
+      "risk_level": "medium"
+    },
+    "huggingface": {
+      "display_name": "HuggingFace",
+      "expected_env_vars": [
+        "HF_TOKEN"
+      ],
+      "related_mcp_servers": [],
+      "atlas_mcp_profiles": [],
+      "purpose": "Future low-level model access for image-oriented exploration or review",
+      "risk_level": "medium"
+    },
+    "replicate": {
+      "display_name": "Replicate",
+      "expected_env_vars": [
+        "REPLICATE_API_TOKEN"
+      ],
+      "related_mcp_servers": [],
+      "atlas_mcp_profiles": [],
+      "purpose": "Future image or video generation under explicit approval",
+      "risk_level": "high"
+    },
+    "twentyfirst_magic": {
+      "display_name": "21st Magic",
+      "expected_env_vars": [
+        "TWENTYFIRST_API_KEY"
+      ],
+      "related_mcp_servers": [
+        "21st_magic",
+        "21stMagic"
+      ],
+      "atlas_mcp_profiles": [
+        "21st_magic"
+      ],
+      "purpose": "Future component inspiration and frontend pattern exploration",
+      "risk_level": "medium"
+    },
+    "context7": {
+      "display_name": "Context7",
+      "expected_env_vars": [],
+      "related_mcp_servers": [
+        "context7"
+      ],
+      "atlas_mcp_profiles": [],
+      "purpose": "Future component and documentation context grounding",
+      "risk_level": "medium"
+    },
+    "playwright_visual_qa": {
+      "display_name": "Playwright visual QA",
+      "expected_env_vars": [],
+      "related_mcp_servers": [
+        "playwright"
+      ],
+      "atlas_mcp_profiles": [],
+      "purpose": "Future screenshot-based visual QA and browser verification",
+      "risk_level": "high"
+    }
+  },
+  "profiles": {
+    "logo_generation": {
+      "suggested_services": [
+        "gemini",
+        "replicate",
+        "huggingface"
+      ],
+      "requirements": [
+        "visual_intent_contract",
+        "brand_profile_schema",
+        "manual_brand_approval"
+      ],
+      "expected_env_vars": [
+        "GEMINI_API_KEY",
+        "REPLICATE_API_TOKEN",
+        "HF_TOKEN"
+      ],
+      "risk_level": "high",
+      "initial_state": "approval_required",
+      "requires_human_approval": true
+    },
+    "image_generation": {
+      "suggested_services": [
+        "replicate",
+        "gemini",
+        "huggingface"
+      ],
+      "requirements": [
+        "visual_intent_contract",
+        "brand_profile_schema",
+        "manual_asset_scope"
+      ],
+      "expected_env_vars": [
+        "REPLICATE_API_TOKEN",
+        "GEMINI_API_KEY",
+        "HF_TOKEN"
+      ],
+      "risk_level": "high",
+      "initial_state": "approval_required",
+      "requires_human_approval": true
+    },
+    "video_generation": {
+      "suggested_services": [
+        "replicate"
+      ],
+      "requirements": [
+        "visual_intent_contract",
+        "brand_profile_schema",
+        "manual_storyboard",
+        "decision_council_if_brand_risk"
+      ],
+      "expected_env_vars": [
+        "REPLICATE_API_TOKEN"
+      ],
+      "risk_level": "high",
+      "initial_state": "watchlist",
+      "requires_human_approval": true
+    },
+    "brand_visual_review": {
+      "suggested_services": [
+        "gemini",
+        "huggingface"
+      ],
+      "requirements": [
+        "visual_intent_contract",
+        "brand_profile_schema"
+      ],
+      "expected_env_vars": [
+        "GEMINI_API_KEY",
+        "HF_TOKEN"
+      ],
+      "risk_level": "medium",
+      "initial_state": "advisory",
+      "requires_human_approval": true
+    },
+    "component_inspiration": {
+      "suggested_services": [
+        "twentyfirst_magic",
+        "context7"
+      ],
+      "requirements": [
+        "visual_intent_contract",
+        "explicit_component_goal",
+        "external_tool_policy_review"
+      ],
+      "expected_env_vars": [
+        "TWENTYFIRST_API_KEY"
+      ],
+      "risk_level": "medium",
+      "initial_state": "watchlist",
+      "requires_human_approval": true
+    },
+    "visual_qa_watchlist": {
+      "suggested_services": [
+        "playwright_visual_qa"
+      ],
+      "requirements": [
+        "ui_pre_return_audit",
+        "explicit_visual_evidence_gap",
+        "manual_browser_approval"
+      ],
+      "expected_env_vars": [],
+      "risk_level": "high",
+      "initial_state": "watchlist",
+      "requires_human_approval": true
+    }
+  }
+}

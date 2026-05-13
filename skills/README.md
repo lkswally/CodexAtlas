@@ -85,6 +85,7 @@ Current skills:
 - `design-system-review`: review typography, spacing, hierarchy and layout coherence without changing files
 - `market-research-benchmark`: benchmark Atlas against `_reference/claude-vibecoding` and documented radar repos without scraping, installing or mutating anything
 - `ui_pre_return_audit` (tool-level advisory): cross-check final UI readiness against visual intent, brand profile, CTA clarity, anti-generic risk and evidence before stronger PASS claims
+- `creative_pipeline_readiness` (tool-level advisory): report whether logo, image, video, component-inspiration or visual-brand-review paths look locally ready without generating assets or activating providers
 
 Execution model:
 - skills default to documentary guidance

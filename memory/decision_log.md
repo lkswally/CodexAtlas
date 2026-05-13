@@ -373,3 +373,10 @@
 - Impact: Atlas can now report MCP readiness as CLI availability, MCP CLI functionality, configured server names and verified functional use, while keeping 21st Magic blocked with no stored secret
 - Risk: users may still try to reuse an exposed key or manually configure MCP without a controlled approval step
 - Rollback: remove the `21st_magic` profile and revert `tools/mcp_readiness_check.py` plus its tests to the previous simpler readiness output
+
+## 2026-05-13
+- Decision: add `creative_pipeline_readiness` as a governed visual-media readiness layer without enabling generation or MCP activation
+- Reason: Atlas needed a safe way to report whether Gemini, HuggingFace, Replicate, 21st Magic, Context7 or Playwright-like future paths are even locally ready before any derived project asks for real creative execution
+- Impact: Atlas can now expose `creative_pipeline_posture` in `quality_gate_report`, validate the new policy/config/tool in governance, and keep visual-media decisions separate from actual provider use
+- Risk: users could confuse readiness with permission; the layer must remain advisory, approval-bound and explicit about derivative, ownership and external-tool risks
+- Rollback: remove `tools/creative_pipeline_readiness.py`, `config/creative_pipeline_profiles.json`, `policies/creative_pipeline_readiness_policy.md` and the related governance and quality-gate fields

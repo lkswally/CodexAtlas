@@ -55,6 +55,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Atlas now has a governed skill-lifecycle layer with explicit lifecycle policy, machine-readable lifecycle rules and advisory evaluator outputs for promotion, rejection and watchlist posture
 - Atlas now has an advisory `skill_improvement_review` layer that reviews the local skill catalog for weak coverage, duplication risk, lifecycle posture and external candidate fit without modifying skills automatically
 - Atlas now has a read-only `market_research_benchmark` layer that compares Atlas against `_reference/claude-vibecoding` and documented radar repos without scraping, installing or widening runtime surface
+- Atlas now has an advisory `creative_pipeline_readiness` layer that reports local readiness for logo, image, video, component-inspiration and brand-visual-review paths without generating assets or activating providers
 - Atlas now has a read-only `error_pattern_analyzer` that reads local Atlas logs to detect repeated blocks, ignored actions, MCP runtime failures and governance drift
 - Atlas now has a read-only `repo_improvement_scout` that evaluates `_reference/claude-vibecoding` as a structured source of safe Atlas improvements
 - Atlas now has a read-only `atlas_verify` helper that reuses governance, `audit-repo`, `surface-audit`, and optional `quality-gate-report` as one post-setup verification entrypoint
@@ -62,6 +63,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Atlas now has a read-only `mcp_readiness_check` that keeps real MCP activation blocked while the local Codex CLI still cannot be verified safely
 - `quality_gate_report` now includes intent analysis, prompt guidance and a reusable-skill creation signal alongside readiness, phase and evidence summaries
 - `quality_gate_report` now also exposes `skill_improvement_posture` so catalog-health signals stay visible without turning them into a blocking runtime gate
+- `quality_gate_report` now also exposes `creative_pipeline_posture` so visual-media readiness stays explicit without turning Atlas into an asset runtime
 - Atlas now has a read-only `priority_engine` that reduces noise and turns existing phase, intent, audit and skill signals into a short execution plan
 - `quality_gate_report` now exposes `execution_plan`, `primary_action` and `why_now` so readiness reports say what to do first instead of only listing signals
 - `quality_gate_report` now enriches each `execution_plan` step with its own model recommendation, fallback, cheaper alternative and confirmation signal without attempting any auto-switch
@@ -198,6 +200,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Atlas now treats Codex model switching as recommendation-only unless CLI or config mutation can be verified safely, and it asks for user confirmation whenever routing stays ambiguous or auto-switch remains unverified
 - Model-router outputs now expose `active_runtime_model=manual_or_unknown`, `model_switch_mode=manual_required`, `recommended_model_is_advisory=true`, explicit manual user action, and `can_auto_switch=false` with `auto_switch_method=not_available` across router, prompt guidance and quality-gate execution steps
 - Atlas now has advisory-only visual/media and external model fallback policies so image, video, branding and NVIDIA Build style fallback decisions stay explicit before any provider, MCP or runtime integration is considered
+- Atlas now keeps creative-pipeline readiness separate from actual generation: env-var presence, watchlists, rights risk and manual approval are explicit before any future media use
 
 ## Product context status
 
