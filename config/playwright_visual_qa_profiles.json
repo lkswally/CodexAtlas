@@ -1,0 +1,63 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "profiles": {
+    "landing_visual_qa": {
+      "requirements": [
+        "visual_intent_contract",
+        "brand_profile_schema",
+        "ui_pre_return_audit",
+        "manual_browser_approval"
+      ],
+      "risk_level": "medium",
+      "initial_state": "approval_required",
+      "requires_human_approval": true,
+      "fallback": "use local design-intelligence audits and explicit landing evidence notes"
+    },
+    "dashboard_visual_qa": {
+      "requirements": [
+        "brand_profile_schema",
+        "ui_pre_return_audit",
+        "manual_browser_approval"
+      ],
+      "risk_level": "medium",
+      "initial_state": "approval_required",
+      "requires_human_approval": true,
+      "fallback": "use local hierarchy, layout and state reviews without browser automation"
+    },
+    "form_flow_visual_qa": {
+      "requirements": [
+        "visual_intent_contract",
+        "ui_pre_return_audit",
+        "manual_browser_approval",
+        "state_coverage_plan"
+      ],
+      "risk_level": "medium",
+      "initial_state": "approval_required",
+      "requires_human_approval": true,
+      "fallback": "use local UX review and manual state walkthrough notes"
+    },
+    "responsive_visual_qa": {
+      "requirements": [
+        "ui_pre_return_audit",
+        "manual_browser_approval",
+        "explicit_breakpoint_scope"
+      ],
+      "risk_level": "medium",
+      "initial_state": "approval_required",
+      "requires_human_approval": true,
+      "fallback": "use local responsive expectations in design audits until browser QA is approved"
+    },
+    "regression_screenshot_watchlist": {
+      "requirements": [
+        "manual_browser_approval",
+        "stable_visual_baseline",
+        "decision_council_if_runtime_expands"
+      ],
+      "risk_level": "high",
+      "initial_state": "watchlist",
+      "requires_human_approval": true,
+      "fallback": "keep screenshot regression off and rely on local design readiness evidence"
+    }
+  }
+}

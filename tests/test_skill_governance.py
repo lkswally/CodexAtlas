@@ -17,6 +17,8 @@ from tools.atlas_governance_check import (
     _load_ui_pre_return_audit_rules,
     _load_creative_pipeline_profiles,
     _load_component_inspiration_profiles,
+    _load_playwright_visual_qa_profiles,
+    _load_design_quality_enforcement_rules,
     _validate_external_tool_policy,
     _validate_mcp_profiles,
     _validate_docs_search_catalog,
@@ -28,6 +30,8 @@ from tools.atlas_governance_check import (
     _validate_ui_pre_return_audit_rules,
     _validate_creative_pipeline_profiles,
     _validate_component_inspiration_profiles,
+    _validate_playwright_visual_qa_profiles,
+    _validate_design_quality_enforcement_rules,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
@@ -198,6 +202,49 @@ def test_component_inspiration_profiles_require_expected_profiles_and_services()
     )
     assert any(
         finding.startswith("component_inspiration_profiles_missing_services:")
+        for finding in findings
+    )
+
+
+def test_playwright_visual_qa_profiles_require_expected_profiles():
+    findings = []
+    invalid_rules = _load_playwright_visual_qa_profiles(ROOT)
+    invalid_rules["profiles"] = {
+        "landing_visual_qa": invalid_rules["profiles"]["landing_visual_qa"]
+    }
+
+    with patch(
+        "tools.atlas_governance_check._load_playwright_visual_qa_profiles",
+        return_value=invalid_rules,
+    ):
+        _validate_playwright_visual_qa_profiles(ROOT, findings)
+
+    assert any(
+        finding.startswith("playwright_visual_qa_profiles_missing_profiles:")
+        for finding in findings
+    )
+
+
+def test_design_quality_enforcement_rules_require_expected_checks():
+    findings = []
+    invalid_rules = _load_design_quality_enforcement_rules(ROOT)
+    invalid_rules["checks"] = {
+        "border_weight_excessive": invalid_rules["checks"]["border_weight_excessive"]
+    }
+    invalid_rules["warning_codes"] = ["design_quality_not_ready"]
+
+    with patch(
+        "tools.atlas_governance_check._load_design_quality_enforcement_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_design_quality_enforcement_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("design_quality_enforcement_rules_missing_checks:")
+        for finding in findings
+    )
+    assert any(
+        finding.startswith("design_quality_enforcement_rules_missing_warning_codes:")
         for finding in findings
     )
 

@@ -19,6 +19,10 @@ try:
     from tools.ui_pre_return_audit import audit_ui_pre_return
 except ModuleNotFoundError:
     from ui_pre_return_audit import audit_ui_pre_return
+try:
+    from tools.design_quality_enforcement import audit_design_quality
+except ModuleNotFoundError:
+    from design_quality_enforcement import audit_design_quality
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -433,6 +437,29 @@ def _build_ui_pre_return_recommendation_sources(review: Dict[str, Any]) -> List[
                 "originating_check": warning_code,
                 "evidence": evidence_lookup.get(warning_code, [])[:4] or [str(review.get("why", "")).strip()],
                 "severity": severity_by_warning.get(warning_code, "medium"),
+                "status": "warning",
+            }
+        )
+    return sources
+
+
+def _build_design_quality_recommendation_sources(review: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if not isinstance(review, dict):
+        return []
+
+    sources: List[Dict[str, Any]] = []
+    for item in list(review.get("blockers", [])) + list(review.get("warnings", [])):
+        if not isinstance(item, dict):
+            continue
+        recommendation = str(item.get("recommended_fix", "")).strip()
+        if not recommendation:
+            continue
+        sources.append(
+            {
+                "recommendation": recommendation,
+                "originating_check": str(item.get("check", "design_quality_enforcement")).strip(),
+                "evidence": list(item.get("evidence", []))[:4] or [str(review.get("why", "")).strip()],
+                "severity": str(item.get("severity", "medium")).strip() or "medium",
                 "status": "warning",
             }
         )
@@ -879,6 +906,19 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
         },
         root=DEFAULT_ROOT,
     )
+    design_quality_review = ui_pre_return_review.get("design_quality_review")
+    if not isinstance(design_quality_review, dict):
+        design_quality_review = audit_design_quality(
+            {
+                "project_type": "frontend_app",
+                "visual_intent_contract_review": visual_intent_contract,
+                "brand_profile_review": brand_profile_review,
+                "ui_pre_return_review": ui_pre_return_review,
+                "design_checks": checks,
+                "source_text": content_text,
+            },
+            root=DEFAULT_ROOT,
+        )
 
     evidence = [f"{check['id']}::{item}" for check in checks for item in check["evidence"][:2]]
     recommendation_sources = [
@@ -888,6 +928,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
     ]
     recommendation_sources.extend(_build_brand_profile_recommendation_sources(brand_profile_review))
     recommendation_sources.extend(_build_ui_pre_return_recommendation_sources(ui_pre_return_review))
+    recommendation_sources.extend(_build_design_quality_recommendation_sources(design_quality_review))
     skipped_checks = [check for check in checks if check["status"] == "skipped"]
     warnings = [f"{check['id']}:{check['status']}" for check in checks if check["status"] in {"warning", "skipped"}]
     warnings.extend(
@@ -896,6 +937,8 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
         if source["originating_check"].startswith("brand_profile_")
     )
     warnings.extend(list(ui_pre_return_review.get("warnings", [])))
+    if isinstance(design_quality_review, dict) and design_quality_review.get("status") in {"needs_attention", "not_ready"}:
+        warnings.append("design_quality_not_ready")
     warnings = list(dict.fromkeys(warnings))
     prioritized_problems = [
         {
@@ -925,6 +968,10 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
         if source["status"] in {"warning", "fail"} and source["originating_check"] in {"audience_explicit", "visual_direction_explicit", "originality_level", "cta_clarity"}
     ][:3]
     public_readiness, blockers = _derive_public_readiness(checks, landing_score)
+    if isinstance(design_quality_review, dict) and design_quality_review.get("status") == "not_ready" and public_readiness == "ready":
+        public_readiness = "needs_improvement"
+    if isinstance(design_quality_review, dict) and design_quality_review.get("status") == "needs_attention" and public_readiness == "ready":
+        public_readiness = "needs_improvement"
     top_priorities = [
         {
             "check": source["originating_check"],
@@ -942,6 +989,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
         "visual_intent_contract_review": visual_intent_contract,
         "brand_profile_review": brand_profile_review,
         "ui_pre_return_review": ui_pre_return_review,
+        "design_quality_review": design_quality_review,
         "blockers": blockers,
         "warnings": warnings,
         "evidence": evidence[:12],

@@ -54,6 +54,14 @@ try:
     from tools.component_inspiration_readiness import check_component_inspiration_readiness
 except ModuleNotFoundError:
     from component_inspiration_readiness import check_component_inspiration_readiness
+try:
+    from tools.playwright_visual_qa_readiness import check_playwright_visual_qa_readiness
+except ModuleNotFoundError:
+    from playwright_visual_qa_readiness import check_playwright_visual_qa_readiness
+try:
+    from tools.design_quality_enforcement import audit_design_quality
+except ModuleNotFoundError:
+    from design_quality_enforcement import audit_design_quality
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -384,6 +392,14 @@ def _run_component_inspiration_readiness(root: Path) -> Dict[str, Any]:
     return _build_ok_report("component_inspiration_readiness", report)
 
 
+def _run_playwright_visual_qa_readiness(root: Path) -> Dict[str, Any]:
+    try:
+        report = check_playwright_visual_qa_readiness(root=root)
+    except Exception as exc:
+        return _build_failed_report("playwright_visual_qa_readiness", f"playwright_visual_qa_readiness_failed:{exc}")
+    return _build_ok_report("playwright_visual_qa_readiness", report)
+
+
 def _extract_certify_blockers(certify_report: Dict[str, Any]) -> List[Dict[str, Any]]:
     report = certify_report.get("report") or {}
     result = report.get("result", {})
@@ -476,6 +492,7 @@ def _derive_overall_status(source_reports: Dict[str, Dict[str, Any]]) -> str:
     certify_report = source_reports["certify-project"]["report"]
     design_report = source_reports["design_intelligence_audit"]["report"]
     surface_report = source_reports["surface-audit"]["report"]
+    design_quality_review = design_report.get("design_quality_review") or {}
 
     if not audit_report.get("ok", False):
         return "not_ready"
@@ -485,11 +502,15 @@ def _derive_overall_status(source_reports: Dict[str, Dict[str, Any]]) -> str:
         return "not_ready"
     if design_report.get("public_readiness") == "not_ready":
         return "not_ready"
+    if isinstance(design_quality_review, dict) and design_quality_review.get("status") == "not_ready":
+        return "needs_improvement"
     if audit_report.get("result", {}).get("status") != "ok":
         return "needs_improvement"
     if surface_report.get("result", {}).get("warnings"):
         return "needs_improvement"
     if design_report.get("public_readiness") == "needs_improvement":
+        return "needs_improvement"
+    if isinstance(design_quality_review, dict) and design_quality_review.get("status") == "needs_attention":
         return "needs_improvement"
     if design_report.get("status") in {"needs_attention", "skipped"}:
         return "needs_improvement"
@@ -735,6 +756,79 @@ def _build_ui_pre_return_warnings(design_report: Optional[Dict[str, Any]]) -> Li
     return warnings
 
 
+def _build_design_quality_warnings(design_report: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not isinstance(design_report, dict):
+        return []
+    review = design_report.get("design_quality_review")
+    if not isinstance(review, dict):
+        return []
+
+    warnings: List[Dict[str, Any]] = []
+    detected = set(review.get("detected_risks", []))
+
+    if review.get("status") == "not_ready":
+        warnings.append(
+            {
+                "source": "design_quality_enforcement",
+                "check": "design_quality_not_ready",
+                "severity": "high",
+                "message": "The design may be functionally coherent, but Atlas still considers its visual quality too weak for a ready claim.",
+                "evidence": list(review.get("detected_risks", []))[:4],
+            }
+        )
+    if detected & {"weak_color_system", "typography_without_intent"}:
+        warnings.append(
+            {
+                "source": "design_quality_enforcement",
+                "check": "visual_system_weak",
+                "severity": "high",
+                "message": "The current surface still lacks a strong enough visual system for confident handoff.",
+                "evidence": sorted(detected & {"weak_color_system", "typography_without_intent", "border_weight_excessive", "shadow_style_heavy"})[:4],
+            }
+        )
+    if detected & {"weak_visual_hierarchy", "poor_spacing", "excessive_horizontal_spread"}:
+        warnings.append(
+            {
+                "source": "design_quality_enforcement",
+                "check": "hierarchy_weak",
+                "severity": "high",
+                "message": "The current surface still needs stronger hierarchy and spacing before Atlas should treat it as visually ready.",
+                "evidence": sorted(detected & {"weak_visual_hierarchy", "poor_spacing", "excessive_horizontal_spread"})[:4],
+            }
+        )
+    if detected & {"amateur_internal_tool_look", "wireframe_look", "generic_dashboard_pattern"}:
+        warnings.append(
+            {
+                "source": "design_quality_enforcement",
+                "check": "amateur_ui_risk",
+                "severity": "high",
+                "message": "The current UI still risks reading as an amateur or templated internal tool.",
+                "evidence": sorted(detected & {"amateur_internal_tool_look", "wireframe_look", "generic_dashboard_pattern"})[:4],
+            }
+        )
+    if "brutalism_misapplied" in detected:
+        warnings.append(
+            {
+                "source": "design_quality_enforcement",
+                "check": "brutalism_misapplied",
+                "severity": "high",
+                "message": "The current brutalist moves still read as under-refined rather than intentional.",
+                "evidence": ["brutalism_misapplied"],
+            }
+        )
+    if detected & {"border_weight_excessive", "shadow_style_heavy"}:
+        warnings.append(
+            {
+                "source": "design_quality_enforcement",
+                "check": "excessive_visual_weight",
+                "severity": "high",
+                "message": "Heavy borders or shadows are still dominating the interface and dragging perceived quality down.",
+                "evidence": sorted(detected & {"border_weight_excessive", "shadow_style_heavy"})[:4],
+            }
+        )
+    return warnings
+
+
 def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     root = root.resolve()
     project = project.resolve()
@@ -778,6 +872,9 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
     for item in _build_ui_pre_return_warnings(source_reports["design_intelligence_audit"].get("report")):
+        _unique_priority_append(candidate_priorities, item, candidate_seen)
+        _unique_priority_append(warnings, item, seen)
+    for item in _build_design_quality_warnings(source_reports["design_intelligence_audit"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
 
@@ -832,6 +929,18 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     visual_intent_from_design = design_report.get("visual_intent_contract_review")
     brand_profile_review = design_report.get("brand_profile_review")
     ui_pre_return_review = design_report.get("ui_pre_return_review")
+    design_quality_review = design_report.get("design_quality_review")
+    if not isinstance(design_quality_review, dict):
+        design_quality_review = audit_design_quality(
+            {
+                "project_type": str((visual_intent_from_design or {}).get("contract", {}).get("project_type", "frontend_app")).strip() or "frontend_app",
+                "design_checks": design_report.get("checks", []),
+                "visual_intent_contract_review": visual_intent_from_design,
+                "brand_profile_review": brand_profile_review,
+                "ui_pre_return_review": ui_pre_return_review,
+            },
+            root=root,
+        )
     external_tool_posture = _derive_external_tool_posture(
         source_reports=source_reports,
         blockers=blockers,
@@ -860,6 +969,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     source_reports["skill_improvement_review"] = _run_skill_improvement_review(root)
     source_reports["creative_pipeline_readiness"] = _run_creative_pipeline_readiness(root)
     source_reports["component_inspiration_readiness"] = _run_component_inspiration_readiness(root)
+    source_reports["playwright_visual_qa_readiness"] = _run_playwright_visual_qa_readiness(root)
     source_reports["feedback_analyzer"] = feedback_report
     source_reports["model_router"] = _run_model_route(
         root,
@@ -967,6 +1077,18 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "why": (ui_pre_return_review or {}).get("why"),
             "advisory_only": True,
         },
+        "design_quality_posture": {
+            "status": (design_quality_review or {}).get("status"),
+            "ready_for_handoff": bool((design_quality_review or {}).get("ready_for_handoff")),
+            "blockers": (design_quality_review or {}).get("blockers", []),
+            "warnings": (design_quality_review or {}).get("warnings", []),
+            "visual_quality_score": (design_quality_review or {}).get("visual_quality_score"),
+            "detected_risks": (design_quality_review or {}).get("detected_risks", []),
+            "recommended_fixes": (design_quality_review or {}).get("recommended_fixes", []),
+            "required_redesign_level": (design_quality_review or {}).get("required_redesign_level"),
+            "why": (design_quality_review or {}).get("why"),
+            "advisory_only": bool((design_quality_review or {}).get("advisory_only", True)),
+        },
         "model_routing": source_reports["model_router"]["report"] if source_reports["model_router"]["status"] == "ok" else None,
         "external_tool_posture": external_tool_posture,
         "prompt_guidance": source_reports["prompt_builder"]["report"] if source_reports["prompt_builder"]["status"] == "ok" else None,
@@ -1021,6 +1143,21 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "recommended_next_action": (source_reports["component_inspiration_readiness"]["report"] or {}).get("recommended_next_action"),
             "why": (source_reports["component_inspiration_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["component_inspiration_readiness"]["report"] or {}).get("advisory_only", True)),
+        },
+        "visual_qa_readiness_posture": {
+            "status": (source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("status"),
+            "playwright_available": bool((source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("playwright_available")),
+            "browsers_available": bool((source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("browsers_available")),
+            "safe_to_run": bool((source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("safe_to_run")),
+            "blocked_profiles": (source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("blocked_profiles", []),
+            "watchlist_profiles": (source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("watchlist_profiles", []),
+            "required_manual_steps": (source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("required_manual_steps", []),
+            "recommended_next_action": (source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("recommended_next_action"),
+            "risks": (source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("risks", []),
+            "requires_human_approval": bool((source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("requires_human_approval")),
+            "requires_decision_council": bool((source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("requires_decision_council")),
+            "why": (source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("advisory_only", True)),
         },
         "system_learning": source_reports["error_pattern_analyzer"]["report"] if source_reports["error_pattern_analyzer"]["status"] == "ok" else None,
         "blockers": blockers,

@@ -1,6 +1,18 @@
 # Decision Log
 
 ## 2026-05-12
+- Decision: add `design_quality_enforcement` as a stronger visual-quality gate before Atlas calls a UI handoff-ready
+- Reason: visual intent, brand profile and UI pre-return checks were still too advisory to stop functionally correct but visually weak interfaces from being treated as acceptable
+- Impact: Atlas can now mark a UI as `needs_improvement` when it still shows heavy borders, harsh shadows, weak hierarchy, generic dashboard defaults, poor spacing, weak color/typography systems or amateur internal-tool energy
+- Risk: if the heuristics are used without explicit design intent or brand context, Atlas could over-flag intentionally minimal surfaces
+- Rollback: remove `config/design_quality_enforcement_rules.json`, `policies/design_quality_enforcement_policy.md`, `tools/design_quality_enforcement.py` and the connected governance, design-audit, UI-pre-return and quality-gate wiring
+
+- Decision: add `playwright_visual_qa_readiness` as an advisory readiness layer before any real screenshot or browser automation
+- Reason: Atlas needed an explicit way to distinguish local design-readiness evidence from future screenshot-based proof, without turning Playwright into an implicit dependency or runtime
+- Impact: Atlas can now report whether Playwright and browser binaries look locally present, surface blocked versus watchlist QA profiles, and explain the manual approval path before any real automation
+- Risk: users may still confuse environment readiness with permission to run visual QA or may overweight screenshots versus intent, brand and accessibility evidence
+- Rollback: remove `config/playwright_visual_qa_profiles.json`, `policies/playwright_visual_qa_readiness_policy.md`, `tools/playwright_visual_qa_readiness.py` and the related governance and quality-gate wiring
+
 - Decision: add `component_inspiration_readiness` as a governed advisory layer before any future 21st or Context7 use
 - Reason: Atlas already had visual intent, brand profile, UI pre-return and creative readiness, but still lacked one explicit readiness layer for component-pattern inspiration that distinguishes local-first design guidance from external pattern browsing
 - Impact: Atlas can now report whether 21st Magic or Context7 look locally ready for UI-pattern inspiration, expose derivative/copy risk and fallback posture in `quality_gate_report`, and keep implementation blocked behind human approval

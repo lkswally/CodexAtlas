@@ -42,6 +42,7 @@ def test_anti_generic_ui_audit_returns_structured_output_for_codexatlas_web():
     assert isinstance(result["visual_intent_contract_review"], dict)
     assert isinstance(result["brand_profile_review"], dict)
     assert isinstance(result["ui_pre_return_review"], dict)
+    assert isinstance(result["design_quality_review"], dict)
     assert isinstance(result["blockers"], list)
     assert isinstance(result["warnings"], list)
     assert isinstance(result["evidence"], list)

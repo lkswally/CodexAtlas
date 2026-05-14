@@ -17,7 +17,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["project_path"] == str(WEB_ROOT)
     assert result["overall_status"] in {"ready", "needs_improvement"}
     assert result["confidence_level"] in {"medium", "high"}
-    assert result["public_readiness"] == "ready"
+    assert result["public_readiness"] in {"ready", "needs_improvement"}
     assert isinstance(result["landing_score"], int)
     assert result["phase_validity"] in {"valid", "invalid"}
     assert isinstance(result["phase_alignment"], dict)
@@ -38,6 +38,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["source_reports"]["model_router"]["status"] == "ok"
     assert result["source_reports"]["error_pattern_analyzer"]["status"] == "ok"
     assert isinstance(result["intent_analysis"], dict)
+    assert isinstance(result["design_quality_posture"], dict)
     assert isinstance(result["visual_intent_posture"], dict)
     assert result["visual_intent_posture"]["advisory_only"] is True
     assert isinstance(result["brand_profile_posture"], dict)
@@ -72,6 +73,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["creative_pipeline_posture"]["advisory_only"] is True
     assert isinstance(result["component_inspiration_posture"], dict)
     assert result["component_inspiration_posture"]["advisory_only"] is True
+    assert isinstance(result["visual_qa_readiness_posture"], dict)
+    assert result["visual_qa_readiness_posture"]["advisory_only"] is True
     assert isinstance(result["system_learning"], dict)
     assert isinstance(result["execution_plan"], list)
     assert len(result["execution_plan"]) <= 3
@@ -111,6 +114,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert "watchlist_profiles" in result["creative_pipeline_posture"]
     assert "available_services" in result["component_inspiration_posture"]
     assert "blocked_profiles" in result["component_inspiration_posture"]
+    assert "playwright_available" in result["visual_qa_readiness_posture"]
+    assert "blocked_profiles" in result["visual_qa_readiness_posture"]
     assert "required_fields" in result["visual_intent_posture"]
     assert "missing_fields" in result["visual_intent_posture"]
     assert "required_fields" in result["brand_profile_posture"]
@@ -131,6 +136,14 @@ def test_quality_gate_report_exposes_component_inspiration_posture():
     assert result["component_inspiration_posture"]["advisory_only"] is True
     assert "available_services" in result["component_inspiration_posture"]
     assert "blocked_profiles" in result["component_inspiration_posture"]
+
+
+def test_quality_gate_report_exposes_visual_qa_readiness_posture():
+    result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+    assert isinstance(result["visual_qa_readiness_posture"], dict)
+    assert result["visual_qa_readiness_posture"]["advisory_only"] is True
+    assert "playwright_available" in result["visual_qa_readiness_posture"]
+    assert "blocked_profiles" in result["visual_qa_readiness_posture"]
 
 
 def test_quality_gate_report_uses_existing_outputs_to_mark_not_ready():
@@ -716,3 +729,66 @@ def test_quality_gate_report_exposes_ui_pre_return_posture_and_warnings():
     assert "ui_pre_return_missing_evidence" in warning_codes
     assert "ui_pre_return_generic_risk" in warning_codes
     assert "ui_pre_return_not_ready" in warning_codes
+
+
+def test_quality_gate_report_downgrades_ready_when_design_quality_is_not_ready():
+    phase_report = {
+        "ok": True,
+        "result": {
+            "status": "ok",
+            "current_phase": "audit",
+            "confidence": "high",
+            "blocked_actions": [],
+            "next_valid_phases": ["certified"],
+            "recommended_actions": ["Run certify-project once audit findings are resolved."],
+        },
+    }
+    fake_audit = {"ok": True, "result": {"status": "ok", "findings": []}}
+    fake_certify = {"ok": True, "result": {"status": "ok", "blockers": [], "warnings": []}}
+    fake_surface = {"ok": True, "result": {"status": "ok", "warnings": [], "recommendations": []}}
+    fake_design = {
+        "status": "pass",
+        "public_readiness": "ready",
+        "landing_score": 95,
+        "warnings": [],
+        "quick_wins": [],
+        "checks": [],
+        "recommendation_sources": [],
+        "ui_pre_return_review": {"status": "pass", "pass_ready": True, "warnings": [], "blockers": []},
+        "design_quality_review": {
+            "status": "not_ready",
+            "ready_for_handoff": False,
+            "blockers": [{"check": "border_weight_excessive", "severity": "high", "evidence": ["heavy border"]}],
+            "warnings": [],
+            "visual_quality_score": 62,
+            "detected_risks": ["border_weight_excessive", "amateur_internal_tool_look"],
+            "recommended_fixes": ["Reduce border weight before handoff."],
+            "required_redesign_level": "visual_system_refactor",
+            "why": "Visual blockers remain.",
+            "advisory_only": True,
+        },
+    }
+
+    def fake_dispatch(command_id, root=None, project=None):
+        class _Res:
+            def __init__(self, output):
+                self.output = output
+
+        mapping = {
+            "project-phase-report": phase_report,
+            "audit-repo": fake_audit,
+            "certify-project": fake_certify,
+            "surface-audit": fake_surface,
+        }
+        return _Res(mapping[command_id])
+
+    with patch("tools.quality_gate_report._dispatch_output", side_effect=lambda command_id, root=None, project=None: fake_dispatch(command_id, root=root, project=project).output):
+        with patch("tools.quality_gate_report.anti_generic_ui_audit", return_value=fake_design):
+            result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+
+    warning_codes = {item["check"] for item in result["warnings"]}
+    assert result["overall_status"] == "needs_improvement"
+    assert result["design_quality_posture"]["status"] == "not_ready"
+    assert "design_quality_not_ready" in warning_codes
+    assert "amateur_ui_risk" in warning_codes
+    assert "excessive_visual_weight" in warning_codes

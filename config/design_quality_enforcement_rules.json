@@ -1,0 +1,134 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "required_inputs": [
+    "project_type",
+    "design_checks",
+    "visual_intent_contract_review",
+    "brand_profile_review"
+  ],
+  "required_for_project_types": [
+    "frontend_app",
+    "fullstack",
+    "internal_tool"
+  ],
+  "backend_exempt_project_types": [
+    "backend_service",
+    "ai_agent_system"
+  ],
+  "warning_codes": [
+    "design_quality_not_ready",
+    "visual_system_weak",
+    "hierarchy_weak",
+    "amateur_ui_risk",
+    "brutalism_misapplied",
+    "excessive_visual_weight"
+  ],
+  "redesign_levels": [
+    "none",
+    "minor_polish",
+    "layout_refactor",
+    "visual_system_refactor",
+    "full_redesign"
+  ],
+  "checks": {
+    "border_weight_excessive": {
+      "severity": "high",
+      "signal": "heavy or black border weight dominates the interface",
+      "why_it_matters": "Border-heavy surfaces read as wireframe or internal-tool scaffolding instead of intentional product UI.",
+      "recommended_fix": "Reduce border weight, soften framing, and move emphasis into spacing, contrast and typographic hierarchy.",
+      "blocks_ready_if_present": true
+    },
+    "shadow_style_heavy": {
+      "severity": "high",
+      "signal": "hard repeated shadows carry the visual weight",
+      "why_it_matters": "Harsh shadow repetition often makes the surface feel noisy, dated or amateur.",
+      "recommended_fix": "Use softer elevation, fewer shadow layers and clearer hierarchy between flat, raised and interactive elements.",
+      "blocks_ready_if_present": true
+    },
+    "card_repetition": {
+      "severity": "medium",
+      "signal": "too many equally weighted cards or panels",
+      "why_it_matters": "Card repetition flattens pacing and makes the surface feel templated instead of composed.",
+      "recommended_fix": "Vary section rhythm, consolidate repeated cards and create stronger differences between content zones.",
+      "blocks_ready_if_present": false
+    },
+    "weak_visual_hierarchy": {
+      "severity": "high",
+      "signal": "headline, body, CTA and section structure feel equally weighted",
+      "why_it_matters": "Without hierarchy the user can parse the interface functionally but not confidently or quickly.",
+      "recommended_fix": "Refactor layout, scale, spacing and hero structure so priority is obvious at a glance.",
+      "blocks_ready_if_present": true
+    },
+    "weak_button_hierarchy": {
+      "severity": "high",
+      "signal": "actions lack primary, secondary and tertiary intent",
+      "why_it_matters": "Button hierarchy is core to conversion clarity and product confidence.",
+      "recommended_fix": "Define stronger primary-action emphasis and reduce weight on secondary or passive actions.",
+      "blocks_ready_if_present": true
+    },
+    "poor_spacing": {
+      "severity": "high",
+      "signal": "the UI feels cramped, heavy or under-aired",
+      "why_it_matters": "Weak spacing directly lowers perceived quality and makes even good content feel amateur.",
+      "recommended_fix": "Increase breathing room, rebalance rhythm and simplify dense clusters before handoff.",
+      "blocks_ready_if_present": true
+    },
+    "weak_color_system": {
+      "severity": "high",
+      "signal": "palette choices do not form a clear system",
+      "why_it_matters": "A weak palette makes the UI look generic or inconsistent even when structure is correct.",
+      "recommended_fix": "Strengthen the color system through explicit roles, contrast notes and differentiated accent usage.",
+      "blocks_ready_if_present": true
+    },
+    "typography_without_intent": {
+      "severity": "high",
+      "signal": "type choices look default or under-directed",
+      "why_it_matters": "Typography carries tone, hierarchy and maturity; weak type makes the whole surface feel unfinished.",
+      "recommended_fix": "Choose more intentional heading/body relationships and document the rationale in the brand profile.",
+      "blocks_ready_if_present": true
+    },
+    "wireframe_look": {
+      "severity": "high",
+      "signal": "the interface looks like a placeholder wireframe rather than a finished surface",
+      "why_it_matters": "Wireframe energy can be useful in exploration, but it should not pass as finished design quality.",
+      "recommended_fix": "Move from skeleton-like framing toward an actual visual system with intentional hierarchy, tone and polish.",
+      "blocks_ready_if_present": true
+    },
+    "amateur_internal_tool_look": {
+      "severity": "high",
+      "signal": "the surface resembles an under-designed internal tool",
+      "why_it_matters": "This is a strong trust and quality risk even when the flow is functionally correct.",
+      "recommended_fix": "Refactor the visual system so the interface feels deliberate, lighter and more product-grade.",
+      "blocks_ready_if_present": true
+    },
+    "excessive_horizontal_spread": {
+      "severity": "medium",
+      "signal": "the layout spreads too widely without strong control",
+      "why_it_matters": "Overly wide compositions reduce scannability and make hierarchy harder to hold together.",
+      "recommended_fix": "Constrain widths, cluster related regions and tighten the reading path.",
+      "blocks_ready_if_present": false
+    },
+    "unclear_state_feedback": {
+      "severity": "medium",
+      "signal": "success, degraded and error states are not visually legible",
+      "why_it_matters": "Weak state representation lowers usability and makes the system feel unfinished.",
+      "recommended_fix": "Clarify the visual language for positive, warning and error states before handoff.",
+      "blocks_ready_if_present": false
+    },
+    "generic_dashboard_pattern": {
+      "severity": "medium",
+      "signal": "the UI falls back to familiar dashboard template defaults",
+      "why_it_matters": "Generic dashboard patterns erase product personality and make the output interchangeable.",
+      "recommended_fix": "Use the brand profile and visual intent to break template sameness with more explicit compositional choices.",
+      "blocks_ready_if_present": false
+    },
+    "brutalism_misapplied": {
+      "severity": "high",
+      "signal": "brutalist moves are used without coherent rationale or refinement",
+      "why_it_matters": "Poorly applied brutalism often reads as unfinished or hostile instead of intentional.",
+      "recommended_fix": "Either refine the brutalist rationale into a coherent system or simplify back toward a cleaner visual direction.",
+      "blocks_ready_if_present": true
+    }
+  }
+}

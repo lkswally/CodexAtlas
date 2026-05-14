@@ -5,6 +5,10 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    from tools.design_quality_enforcement import audit_design_quality
+except ModuleNotFoundError:
+    from design_quality_enforcement import audit_design_quality
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
 RULES_PATH = Path("config/ui_pre_return_audit_rules.json")
@@ -394,6 +398,38 @@ def audit_ui_pre_return(payload: Dict[str, Any], *, root: Path = DEFAULT_ROOT) -
         or blockers
     )
 
+    design_quality_review = audit_design_quality(
+        {
+            "project_type": project_type,
+            "design_checks": list(payload.get("design_checks", [])),
+            "visual_intent_contract_review": visual_review,
+            "brand_profile_review": brand_review,
+            "ui_pre_return_review": {
+                "warnings": warning_codes,
+                "anti_generic_risks": anti_generic_risks,
+                "accessibility_risks": accessibility_risks,
+            },
+            "visual_signals": payload.get("visual_signals", {}),
+            "source_text": payload.get("source_text", ""),
+        },
+        root=root,
+    )
+    if isinstance(design_quality_review, dict) and design_quality_review.get("status") == "not_ready":
+        blockers.append(
+            {
+                "id": "design_quality_enforcement",
+                "severity": "high",
+                "evidence": list(design_quality_review.get("detected_risks", []))[:4],
+                "blocker": str(design_quality_review.get("why", "")).strip()
+                or "Visual quality enforcement still sees a redesign-level blocker.",
+            }
+        )
+        warning_codes = _dedupe_preserve_order([*warning_codes, "ui_pre_return_not_ready"])
+    if isinstance(design_quality_review, dict) and design_quality_review.get("status") in {"needs_attention", "not_ready"}:
+        recommended_fixes.extend(list(design_quality_review.get("recommended_fixes", []))[:4])
+        requires_human_clarification = True
+    recommended_fixes = _dedupe_preserve_order(recommended_fixes)
+
     pass_ready = not blockers and not warning_codes
     status = "pass" if pass_ready else "needs_attention"
     if blockers:
@@ -423,6 +459,7 @@ def audit_ui_pre_return(payload: Dict[str, Any], *, root: Path = DEFAULT_ROOT) -
         "recommended_fixes": recommended_fixes[:6],
         "requires_human_clarification": requires_human_clarification,
         "requires_decision_council": requires_decision_council,
+        "design_quality_review": design_quality_review,
         "why": " ".join(why_parts),
         "advisory_only": bool(rules.get("advisory_only", True)),
     }

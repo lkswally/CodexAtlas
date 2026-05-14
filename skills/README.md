@@ -87,6 +87,8 @@ Current skills:
 - `ui_pre_return_audit` (tool-level advisory): cross-check final UI readiness against visual intent, brand profile, CTA clarity, anti-generic risk and evidence before stronger PASS claims
 - `creative_pipeline_readiness` (tool-level advisory): report whether logo, image, video, component-inspiration or visual-brand-review paths look locally ready without generating assets or activating providers
 - `component_inspiration_readiness` (tool-level advisory): report whether 21st/Context7-backed component inspiration looks locally ready without generating components, activating MCPs or bypassing local design direction
+- `playwright_visual_qa_readiness` (tool-level advisory): report whether Playwright and browser binaries look locally ready for future screenshot-based visual QA without opening browsers, capturing screenshots or activating automation
+- `design_quality_enforcement` (tool-level advisory): treat visually weak UI as not ready for handoff when border weight, shadows, hierarchy, palette, typography or overall polish still read as amateur or wireframe-like
 
 Execution model:
 - skills default to documentary guidance
@@ -98,6 +100,7 @@ Optional lifecycle metadata:
 - Atlas governance validates `lifecycle_state` only when it is declared; skills are not auto-promoted
 - design-facing skills should align with `policies/visual_intent_contract_policy.md` and `config/visual_intent_contract_rules.json` before stronger UX or branding claims
 - branding-facing skills should align with `policies/brand_profile_schema_policy.md` and `config/brand_profile_schema_rules.json` before stronger identity or differentiation claims
+- final UI-facing reviews should also align with `policies/design_quality_enforcement_policy.md` and `config/design_quality_enforcement_rules.json` before Atlas calls a surface visually ready
 
 Design-intelligence conventions:
 - design skills must return `status`, `warnings`, `evidence` and `next_action`

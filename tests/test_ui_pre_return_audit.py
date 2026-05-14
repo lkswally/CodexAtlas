@@ -93,6 +93,7 @@ def test_ui_pre_return_audit_passes_for_valid_payload():
     assert result["pass_ready"] is True
     assert result["warnings"] == []
     assert result["blockers"] == []
+    assert result["design_quality_review"]["status"] == "pass"
 
 
 def test_ui_pre_return_audit_flags_missing_visual_intent_contract():
@@ -174,4 +175,3 @@ def test_ui_pre_return_audit_flags_missing_evidence_and_unknown_responsive_state
     assert "ui_pre_return_missing_evidence" in result["warnings"]
     assert "ui_pre_return_responsive_unknown" in result["warnings"]
     assert "ui_pre_return_accessibility_weak" in result["warnings"]
-

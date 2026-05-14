@@ -57,6 +57,8 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Atlas now has a read-only `market_research_benchmark` layer that compares Atlas against `_reference/claude-vibecoding` and documented radar repos without scraping, installing or widening runtime surface
 - Atlas now has an advisory `creative_pipeline_readiness` layer that reports local readiness for logo, image, video, component-inspiration and brand-visual-review paths without generating assets or activating providers
 - Atlas now has an advisory `component_inspiration_readiness` layer that reports whether 21st Magic or Context7 look locally ready for UI-pattern inspiration without generating components, activating MCPs or bypassing local-first design direction
+- Atlas now has an advisory `playwright_visual_qa_readiness` layer that reports whether Playwright and browser binaries look locally ready for future screenshot-based QA without opening browsers or capturing screenshots
+- Atlas now has an advisory `design_quality_enforcement` layer that can downgrade visually weak UI from `ready` to `needs_improvement` when the surface still reads as amateur, wireframe-like, overly heavy or under-directed
 - Atlas now has a read-only `error_pattern_analyzer` that reads local Atlas logs to detect repeated blocks, ignored actions, MCP runtime failures and governance drift
 - Atlas now has a read-only `repo_improvement_scout` that evaluates `_reference/claude-vibecoding` as a structured source of safe Atlas improvements
 - Atlas now has a read-only `atlas_verify` helper that reuses governance, `audit-repo`, `surface-audit`, and optional `quality-gate-report` as one post-setup verification entrypoint
@@ -66,6 +68,8 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - `quality_gate_report` now also exposes `skill_improvement_posture` so catalog-health signals stay visible without turning them into a blocking runtime gate
 - `quality_gate_report` now also exposes `creative_pipeline_posture` so visual-media readiness stays explicit without turning Atlas into an asset runtime
 - `quality_gate_report` now also exposes `component_inspiration_posture` so external UI-pattern readiness stays explicit without turning Atlas into a component runtime
+- `quality_gate_report` now also exposes `visual_qa_readiness_posture` so browser-automation readiness stays explicit without turning Atlas into a screenshot runtime
+- `quality_gate_report` now also exposes `design_quality_posture` so visual-system weakness, hierarchy problems and amateur-ui risk remain visible before a final handoff claim
 - Atlas now has a read-only `priority_engine` that reduces noise and turns existing phase, intent, audit and skill signals into a short execution plan
 - `quality_gate_report` now exposes `execution_plan`, `primary_action` and `why_now` so readiness reports say what to do first instead of only listing signals
 - `quality_gate_report` now enriches each `execution_plan` step with its own model recommendation, fallback, cheaper alternative and confirmation signal without attempting any auto-switch

@@ -39,6 +39,8 @@ REQUIRED_ROOT_FILES = (
     "config/ui_pre_return_audit_rules.json",
     "config/creative_pipeline_profiles.json",
     "config/component_inspiration_profiles.json",
+    "config/playwright_visual_qa_profiles.json",
+    "config/design_quality_enforcement_rules.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -82,6 +84,8 @@ REQUIRED_ROOT_FILES = (
     "policies/ui_pre_return_audit_policy.md",
     "policies/creative_pipeline_readiness_policy.md",
     "policies/component_inspiration_readiness_policy.md",
+    "policies/playwright_visual_qa_readiness_policy.md",
+    "policies/design_quality_enforcement_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
     "memory/session_summaries.md",
@@ -148,6 +152,8 @@ REQUIRED_ROOT_FILES = (
     "tools/ui_pre_return_audit.py",
     "tools/creative_pipeline_readiness.py",
     "tools/component_inspiration_readiness.py",
+    "tools/playwright_visual_qa_readiness.py",
+    "tools/design_quality_enforcement.py",
     "tests/test_atlas_orchestrator.py",
     "tests/test_certify_project.py",
     "tests/test_docs_catalog_report.py",
@@ -173,6 +179,8 @@ REQUIRED_ROOT_FILES = (
     "tests/test_ui_pre_return_audit.py",
     "tests/test_creative_pipeline_readiness.py",
     "tests/test_component_inspiration_readiness.py",
+    "tests/test_playwright_visual_qa_readiness.py",
+    "tests/test_design_quality_enforcement.py",
     "tests/test_surface_audit.py",
     "templates/project_bootstrap_profiles.md",
 )
@@ -636,6 +644,69 @@ COMPONENT_INSPIRATION_SERVICE_REQUIRED_FIELDS = {
     "risk_level",
 }
 VALID_COMPONENT_INSPIRATION_STATES = {"advisory", "approval_required", "watchlist", "blocked"}
+PLAYWRIGHT_VISUAL_QA_REQUIRED_PROFILES = {
+    "landing_visual_qa",
+    "dashboard_visual_qa",
+    "form_flow_visual_qa",
+    "responsive_visual_qa",
+    "regression_screenshot_watchlist",
+}
+PLAYWRIGHT_VISUAL_QA_PROFILE_REQUIRED_FIELDS = {
+    "requirements",
+    "risk_level",
+    "initial_state",
+    "requires_human_approval",
+    "fallback",
+}
+VALID_PLAYWRIGHT_VISUAL_QA_STATES = {"advisory", "approval_required", "watchlist", "blocked"}
+DESIGN_QUALITY_ENFORCEMENT_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "required_inputs",
+    "required_for_project_types",
+    "backend_exempt_project_types",
+    "warning_codes",
+    "redesign_levels",
+    "checks",
+}
+REQUIRED_DESIGN_QUALITY_CHECKS = {
+    "border_weight_excessive",
+    "shadow_style_heavy",
+    "card_repetition",
+    "weak_visual_hierarchy",
+    "weak_button_hierarchy",
+    "poor_spacing",
+    "weak_color_system",
+    "typography_without_intent",
+    "wireframe_look",
+    "amateur_internal_tool_look",
+    "excessive_horizontal_spread",
+    "unclear_state_feedback",
+    "generic_dashboard_pattern",
+    "brutalism_misapplied",
+}
+DESIGN_QUALITY_RULE_REQUIRED_FIELDS = {
+    "severity",
+    "signal",
+    "why_it_matters",
+    "recommended_fix",
+    "blocks_ready_if_present",
+}
+REQUIRED_DESIGN_QUALITY_WARNING_CODES = {
+    "design_quality_not_ready",
+    "visual_system_weak",
+    "hierarchy_weak",
+    "amateur_ui_risk",
+    "brutalism_misapplied",
+    "excessive_visual_weight",
+}
+VALID_DESIGN_QUALITY_REDESIGN_LEVELS = {
+    "none",
+    "minor_polish",
+    "layout_refactor",
+    "visual_system_refactor",
+    "full_redesign",
+}
 
 
 def _primary_registry_path(root: Path) -> Path:
@@ -728,6 +799,14 @@ def _load_creative_pipeline_profiles(root: Path) -> Dict[str, Any]:
 
 def _load_component_inspiration_profiles(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "component_inspiration_profiles.json").read_text(encoding="utf-8"))
+
+
+def _load_playwright_visual_qa_profiles(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "playwright_visual_qa_profiles.json").read_text(encoding="utf-8"))
+
+
+def _load_design_quality_enforcement_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "design_quality_enforcement_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -1581,6 +1660,134 @@ def _validate_component_inspiration_profiles(root: Path, findings: List[str]) ->
             )
         if not str(profile.get("fallback", "")).strip():
             findings.append(f"component_inspiration_profiles_invalid_profile_fallback:{profile_name}")
+
+
+def _validate_playwright_visual_qa_profiles(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_playwright_visual_qa_profiles(root)
+    except Exception as exc:
+        findings.append(f"invalid_playwright_visual_qa_profiles_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("playwright_visual_qa_profiles_not_object")
+        return
+
+    profiles = rules.get("profiles")
+    if not isinstance(profiles, dict) or not profiles:
+        findings.append("playwright_visual_qa_profiles_invalid_profiles")
+        return
+
+    missing_profiles = PLAYWRIGHT_VISUAL_QA_REQUIRED_PROFILES - set(profiles.keys())
+    if missing_profiles:
+        findings.append(
+            f"playwright_visual_qa_profiles_missing_profiles:{','.join(sorted(missing_profiles))}"
+        )
+
+    for profile_name, profile in profiles.items():
+        if not isinstance(profile, dict):
+            findings.append(f"playwright_visual_qa_profiles_invalid_profile:{profile_name}")
+            continue
+        missing_fields = PLAYWRIGHT_VISUAL_QA_PROFILE_REQUIRED_FIELDS - set(profile.keys())
+        if missing_fields:
+            findings.append(
+                "playwright_visual_qa_profiles_missing_profile_fields:"
+                f"{profile_name}:{','.join(sorted(missing_fields))}"
+            )
+        requirements = profile.get("requirements")
+        if not isinstance(requirements, list):
+            findings.append(
+                f"playwright_visual_qa_profiles_invalid_profile_list:{profile_name}:requirements"
+            )
+        if str(profile.get("risk_level", "")).strip() not in VALID_SKILL_RISK_LEVELS:
+            findings.append(f"playwright_visual_qa_profiles_invalid_profile_risk:{profile_name}")
+        if str(profile.get("initial_state", "")).strip() not in VALID_PLAYWRIGHT_VISUAL_QA_STATES:
+            findings.append(f"playwright_visual_qa_profiles_invalid_profile_state:{profile_name}")
+        if not isinstance(profile.get("requires_human_approval"), bool):
+            findings.append(
+                f"playwright_visual_qa_profiles_invalid_profile_approval:{profile_name}"
+            )
+        if not str(profile.get("fallback", "")).strip():
+            findings.append(f"playwright_visual_qa_profiles_invalid_profile_fallback:{profile_name}")
+
+
+def _validate_design_quality_enforcement_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_design_quality_enforcement_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_design_quality_enforcement_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("design_quality_enforcement_rules_not_object")
+        return
+
+    missing_fields = DESIGN_QUALITY_ENFORCEMENT_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(f"design_quality_enforcement_rules_missing_fields:{','.join(sorted(missing_fields))}")
+
+    for field_name in ("required_inputs", "required_for_project_types", "backend_exempt_project_types"):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not value:
+            findings.append(f"design_quality_enforcement_rules_invalid_list:{field_name}")
+
+    warning_codes = rules.get("warning_codes")
+    if not isinstance(warning_codes, list) or not warning_codes:
+        findings.append("design_quality_enforcement_rules_invalid_warning_codes")
+    else:
+        warning_set = {str(item).strip() for item in warning_codes if str(item).strip()}
+        missing_warnings = REQUIRED_DESIGN_QUALITY_WARNING_CODES - warning_set
+        unknown_warnings = warning_set - REQUIRED_DESIGN_QUALITY_WARNING_CODES
+        if missing_warnings:
+            findings.append(
+                f"design_quality_enforcement_rules_missing_warning_codes:{','.join(sorted(missing_warnings))}"
+            )
+        if unknown_warnings:
+            findings.append(
+                f"design_quality_enforcement_rules_unknown_warning_codes:{','.join(sorted(unknown_warnings))}"
+            )
+
+    redesign_levels = rules.get("redesign_levels")
+    if not isinstance(redesign_levels, list) or not redesign_levels:
+        findings.append("design_quality_enforcement_rules_invalid_redesign_levels")
+    else:
+        redesign_set = {str(item).strip() for item in redesign_levels if str(item).strip()}
+        missing_levels = VALID_DESIGN_QUALITY_REDESIGN_LEVELS - redesign_set
+        unknown_levels = redesign_set - VALID_DESIGN_QUALITY_REDESIGN_LEVELS
+        if missing_levels:
+            findings.append(
+                f"design_quality_enforcement_rules_missing_redesign_levels:{','.join(sorted(missing_levels))}"
+            )
+        if unknown_levels:
+            findings.append(
+                f"design_quality_enforcement_rules_unknown_redesign_levels:{','.join(sorted(unknown_levels))}"
+            )
+
+    checks = rules.get("checks")
+    if not isinstance(checks, dict) or not checks:
+        findings.append("design_quality_enforcement_rules_invalid_checks")
+        return
+
+    missing_checks = REQUIRED_DESIGN_QUALITY_CHECKS - set(checks.keys())
+    if missing_checks:
+        findings.append(
+            f"design_quality_enforcement_rules_missing_checks:{','.join(sorted(missing_checks))}"
+        )
+
+    for check_name, rule in checks.items():
+        if not isinstance(rule, dict):
+            findings.append(f"design_quality_enforcement_rules_invalid_check:{check_name}")
+            continue
+        missing_rule_fields = DESIGN_QUALITY_RULE_REQUIRED_FIELDS - set(rule.keys())
+        if missing_rule_fields:
+            findings.append(
+                "design_quality_enforcement_rules_missing_check_fields:"
+                f"{check_name}:{','.join(sorted(missing_rule_fields))}"
+            )
+        if str(rule.get("severity", "")).strip() not in VALID_SKILL_RISK_LEVELS:
+            findings.append(f"design_quality_enforcement_rules_invalid_check_severity:{check_name}")
+        if not isinstance(rule.get("blocks_ready_if_present"), bool):
+            findings.append(f"design_quality_enforcement_rules_invalid_check_blocker_flag:{check_name}")
 
 
 def _validate_docs_search_catalog(root: Path, findings: List[str]) -> None:
@@ -2447,6 +2654,8 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_ui_pre_return_audit_rules(root, findings)
         _validate_creative_pipeline_profiles(root, findings)
         _validate_component_inspiration_profiles(root, findings)
+        _validate_playwright_visual_qa_profiles(root, findings)
+        _validate_design_quality_enforcement_rules(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)
