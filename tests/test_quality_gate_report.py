@@ -82,6 +82,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["codex_runtime_posture"]["advisory_only"] is True
     assert isinstance(result["atlas_memory_posture"], dict)
     assert result["atlas_memory_posture"]["advisory_only"] is True
+    assert isinstance(result["evidence_collector_posture"], dict)
+    assert result["evidence_collector_posture"]["advisory_only"] is True
     assert isinstance(result["system_learning"], dict)
     assert isinstance(result["execution_plan"], list)
     assert len(result["execution_plan"]) <= 3
@@ -127,6 +129,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert "recommended_model_tier" in result["model_cost_control_posture"]
     assert "configured_mcp_servers" in result["codex_runtime_posture"]
     assert "available_sources" in result["atlas_memory_posture"]
+    assert "missing_evidence" in result["evidence_collector_posture"]
     assert "required_fields" in result["visual_intent_posture"]
     assert "missing_fields" in result["visual_intent_posture"]
     assert "required_fields" in result["brand_profile_posture"]
@@ -168,6 +171,9 @@ def test_quality_gate_report_exposes_error_learning_and_codex_runtime_postures()
     assert isinstance(result["atlas_memory_posture"], dict)
     assert result["atlas_memory_posture"]["advisory_only"] is True
     assert "available_sources" in result["atlas_memory_posture"]
+    assert isinstance(result["evidence_collector_posture"], dict)
+    assert result["evidence_collector_posture"]["advisory_only"] is True
+    assert "missing_evidence" in result["evidence_collector_posture"]
 
 
 def test_quality_gate_report_uses_existing_outputs_to_mark_not_ready():

@@ -95,6 +95,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep `repo_graph_readiness` in watchlist/design-only posture until Atlas proves a local graph would reduce context materially without adding dependency or maintenance drag
 - Keep memory automation in watchlist posture; if Atlas ever revisits it, prefer a local-first summary/readiness path before any plugin, hook or auto-injection runtime
 - Keep `atlas_memory_readiness` honest about the current boundary: local files are useful continuity, not autonomous memory
+- Keep `evidence_collector_readiness` strict about strong PASS language; advisory confidence is not the same thing as proof
 - Fix known public placeholder links in derived landings before treating design readiness as anything stronger than `needs_improvement`
 - Keep `design_evidence_policy.md` aligned with landing-readiness heuristics so public-facing PASS states always have traceable proof
 
@@ -151,6 +152,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - The Windows Store Codex package continuing to expose `codex.exe` while denying CLI execution, creating false confidence that MCP setup is available locally
 - Confusing `codex_runtime_compatibility_check` or `mcp_readiness_check` with permission to mutate runtime, switch models or activate new MCPs automatically
 - Confusing `atlas_memory_readiness` with permission to add automatic memory, hidden reinjection or cross-machine sync
+- Treating `evidence_collector_readiness` as if inferred checks were equivalent to real screenshots, build proof or explicit human decision evidence
 - The docs adapter confidence signal becoming noisy if ranking and verification dates drift from the curated catalog
 - The curated docs catalog drifting because `last_verified` stops being updated or deprecated entries remain active too long
 - The catalog report becoming disconnected from adapter semantics if freshness logic changes in one place but not the other

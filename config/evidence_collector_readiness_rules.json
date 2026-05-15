@@ -1,0 +1,141 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "task_types": {
+    "frontend_ui_landing": {
+      "required_evidence": [
+        "screenshot_desktop",
+        "screenshot_mobile",
+        "responsive_check",
+        "tap_target_check",
+        "font_loading_check",
+        "link_cta_check",
+        "seo_basics",
+        "accessibility_basics",
+        "build_test_result",
+        "known_false_positives"
+      ],
+      "blocking_evidence": [
+        "responsive_check",
+        "link_cta_check",
+        "accessibility_basics",
+        "build_test_result"
+      ],
+      "advisory_evidence": [
+        "screenshot_desktop",
+        "screenshot_mobile",
+        "tap_target_check",
+        "font_loading_check",
+        "seo_basics",
+        "known_false_positives"
+      ],
+      "can_pass_with_caution_when_missing_only": [
+        "screenshot_desktop",
+        "screenshot_mobile",
+        "known_false_positives"
+      ]
+    },
+    "backend_api": {
+      "required_evidence": [
+        "tests",
+        "endpoint_contract",
+        "error_handling",
+        "migration_schema_check",
+        "relevant_logs",
+        "no_secrets"
+      ],
+      "blocking_evidence": [
+        "tests",
+        "endpoint_contract",
+        "error_handling",
+        "no_secrets"
+      ],
+      "advisory_evidence": [
+        "migration_schema_check",
+        "relevant_logs"
+      ],
+      "can_pass_with_caution_when_missing_only": [
+        "migration_schema_check",
+        "relevant_logs"
+      ]
+    },
+    "research_benchmark": {
+      "required_evidence": [
+        "sources",
+        "query_date",
+        "selection_criteria",
+        "limitations",
+        "inference_vs_data"
+      ],
+      "blocking_evidence": [
+        "sources",
+        "query_date",
+        "inference_vs_data"
+      ],
+      "advisory_evidence": [
+        "selection_criteria",
+        "limitations"
+      ],
+      "can_pass_with_caution_when_missing_only": [
+        "selection_criteria",
+        "limitations"
+      ]
+    },
+    "high_risk_decision": {
+      "required_evidence": [
+        "decision_council",
+        "alternatives_compared",
+        "tradeoffs",
+        "risks",
+        "human_approval"
+      ],
+      "blocking_evidence": [
+        "decision_council",
+        "alternatives_compared",
+        "tradeoffs",
+        "risks",
+        "human_approval"
+      ],
+      "advisory_evidence": [],
+      "can_pass_with_caution_when_missing_only": []
+    },
+    "skill_governance_change": {
+      "required_evidence": [
+        "policy",
+        "config",
+        "behavior",
+        "tests",
+        "governance_check",
+        "lifecycle_state"
+      ],
+      "blocking_evidence": [
+        "policy",
+        "config",
+        "tests",
+        "governance_check"
+      ],
+      "advisory_evidence": [
+        "behavior",
+        "lifecycle_state"
+      ],
+      "can_pass_with_caution_when_missing_only": [
+        "behavior",
+        "lifecycle_state"
+      ]
+    }
+  },
+  "project_type_map": {
+    "frontend_app": "frontend_ui_landing",
+    "fullstack": "frontend_ui_landing",
+    "internal_tool": "frontend_ui_landing",
+    "backend_service": "backend_api",
+    "backend_api": "backend_api"
+  },
+  "warning_codes": [
+    "evidence_collector_missing",
+    "evidence_collector_partial",
+    "evidence_collector_not_ready",
+    "evidence_collector_frontend_visual_gap",
+    "evidence_collector_high_risk_gap"
+  ]
+}

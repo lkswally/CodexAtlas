@@ -66,6 +66,7 @@ As of 2026-05-15, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Atlas now has an advisory `atlas_error_learning_review` layer that turns repeated UI, landing and integration mistakes into explicit readiness blockers before Atlas calls a surface ready
 - Atlas now has an advisory `codex_runtime_compatibility_check` layer that reports what Codex capabilities are actually visible on this machine without changing runtime or config
 - Atlas now has an advisory `atlas_memory_readiness` layer that reports whether local-first Atlas memory is strong enough for continuity while keeping plugin memory, auto-injection and cross-machine sync in watchlist posture
+- Atlas now has an advisory `evidence_collector_readiness` layer that makes explicit what evidence is still missing before Atlas can support a strong PASS claim across frontend, backend, research and governance work
 - Atlas now enriches `skill_improvement_review` with curated external-radar fit decisions: `adapt_now`, `design_later`, `watchlist` or `discard`
 - Atlas now has a read-only `error_pattern_analyzer` that reads local Atlas logs to detect repeated blocks, ignored actions, MCP runtime failures and governance drift
 - Atlas now has a read-only `repo_improvement_scout` that evaluates `_reference/claude-vibecoding` as a structured source of safe Atlas improvements
@@ -81,6 +82,7 @@ As of 2026-05-15, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - `quality_gate_report` now also exposes `intent_clarifier_posture`, `brand_json_v2_posture` and `frontend_auto_audit_posture` so vague briefs, inferred branding and incomplete local frontend guardrails can downgrade readiness before release
 - `quality_gate_report` now also exposes `model_cost_control_posture`, `error_learning_posture` and `codex_runtime_posture` so cost discipline, learned regression signals and real Codex capability limits stay visible before release claims
 - `quality_gate_report` now also exposes `atlas_memory_posture` so Atlas can distinguish local-first continuity from watchlist memory ambitions before claiming stronger infrastructure support
+- `quality_gate_report` now also exposes `evidence_collector_posture` so missing screenshots, proof gaps and incomplete decision evidence stay visible before strong-ready claims
 - Atlas now has a read-only `priority_engine` that reduces noise and turns existing phase, intent, audit and skill signals into a short execution plan
 - `quality_gate_report` now exposes `execution_plan`, `primary_action` and `why_now` so readiness reports say what to do first instead of only listing signals
 - `quality_gate_report` now enriches each `execution_plan` step with its own model recommendation, fallback, cheaper alternative and confirmation signal without attempting any auto-switch

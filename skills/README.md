@@ -97,6 +97,7 @@ Current skills:
 - `model_cost_control_readiness` (tool-level advisory): recommend mini/medium/strong cost posture, context trimming and split-task strategy without auto-switching models
 - `codex_runtime_compatibility_check` (tool-level advisory): report what the local Codex runtime can actually do on this machine without mutating configuration or activating MCPs
 - `atlas_memory_readiness` (tool-level advisory): report whether Atlas local-first memory artifacts are strong enough for continuity without enabling plugin memory, hooks or hidden reinjection
+- `evidence_collector_readiness` (tool-level advisory): report what proof Atlas still needs before making a strong PASS claim for frontend, backend, research, high-risk decisions or governance changes
 
 Execution model:
 - skills default to documentary guidance

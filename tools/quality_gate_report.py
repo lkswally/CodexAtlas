@@ -90,6 +90,10 @@ try:
     from tools.atlas_memory_readiness import check_atlas_memory_readiness
 except ModuleNotFoundError:
     from atlas_memory_readiness import check_atlas_memory_readiness
+try:
+    from tools.evidence_collector_readiness import review_evidence_collector_readiness
+except ModuleNotFoundError:
+    from evidence_collector_readiness import review_evidence_collector_readiness
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -510,6 +514,18 @@ def _run_atlas_memory_readiness(root: Path) -> Dict[str, Any]:
     except Exception as exc:
         return _build_failed_report("atlas_memory_readiness", f"atlas_memory_readiness_failed:{exc}")
     return _build_ok_report("atlas_memory_readiness", report)
+
+
+def _run_evidence_collector_readiness(
+    *,
+    root: Path,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    try:
+        report = review_evidence_collector_readiness(payload, root=root)
+    except Exception as exc:
+        return _build_failed_report("evidence_collector_readiness", f"evidence_collector_readiness_failed:{exc}")
+    return _build_ok_report("evidence_collector_readiness", report)
 
 
 def _run_model_cost_control(
@@ -1075,6 +1091,63 @@ def _build_error_learning_warnings(review: Optional[Dict[str, Any]]) -> List[Dic
     return warnings
 
 
+def _build_evidence_collector_warnings(review: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    review = review or {}
+    warnings: List[Dict[str, Any]] = []
+    readiness_state = str(review.get("readiness_state", "")).strip()
+    task_type = str(review.get("task_type", "")).strip() or "unknown"
+    missing_evidence = list(review.get("missing_evidence", []))
+    blocking_gaps = list(review.get("blocking_gaps", []))
+    advisory_gaps = list(review.get("advisory_gaps", []))
+
+    if readiness_state == "evidence_missing":
+        warnings.append(
+            {
+                "source": "evidence_collector_readiness",
+                "check": "evidence_collector_missing",
+                "severity": "medium",
+                "message": "Atlas still lacks the minimum evidence baseline for this task type.",
+                "evidence": [task_type, *missing_evidence[:3]],
+            }
+        )
+    elif readiness_state == "evidence_partial":
+        warnings.append(
+            {
+                "source": "evidence_collector_readiness",
+                "check": "evidence_collector_partial",
+                "severity": "medium" if not blocking_gaps else "high",
+                "message": "Atlas has some evidence, but not enough for a strong PASS claim yet.",
+                "evidence": [task_type, *(blocking_gaps[:2] or advisory_gaps[:2])],
+            }
+        )
+
+    if task_type == "frontend_ui_landing" and (
+        "screenshot_desktop" in missing_evidence or "screenshot_mobile" in missing_evidence
+    ):
+        warnings.append(
+            {
+                "source": "evidence_collector_readiness",
+                "check": "evidence_collector_frontend_visual_gap",
+                "severity": "medium",
+                "message": "Frontend evidence still lacks desktop/mobile screenshot proof, so Atlas should avoid a strong visual PASS.",
+                "evidence": [item for item in ("screenshot_desktop", "screenshot_mobile") if item in missing_evidence],
+            }
+        )
+
+    if task_type == "high_risk_decision" and blocking_gaps:
+        warnings.append(
+            {
+                "source": "evidence_collector_readiness",
+                "check": "evidence_collector_high_risk_gap",
+                "severity": "high",
+                "message": "A high-risk decision is missing proof that should exist before Atlas treats it as strong-ready.",
+                "evidence": blocking_gaps[:3],
+            }
+        )
+
+    return warnings
+
+
 def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     root = root.resolve()
     project = project.resolve()
@@ -1178,6 +1251,46 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             ],
         },
     )
+    source_reports["evidence_collector_readiness"] = _run_evidence_collector_readiness(
+        root=root,
+        payload={
+            "project_type": ((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "unknown",
+            "provided_evidence": [
+                *(
+                    ["responsive_check"]
+                    if any(
+                        str((item or {}).get("id", "")).strip() == "responsive_baseline"
+                        for item in design_report.get("checks", [])
+                        if isinstance(item, dict)
+                    )
+                    else []
+                ),
+                *(
+                    ["font_loading_check"]
+                    if any(
+                        str((item or {}).get("id", "")).strip() == "typography_coherence"
+                        for item in design_report.get("checks", [])
+                        if isinstance(item, dict)
+                    )
+                    else []
+                ),
+                *(
+                    ["link_cta_check"]
+                    if any(
+                        str((item or {}).get("id", "")).strip() in {"cta_clarity", "cta_integrity"}
+                        for item in design_report.get("checks", [])
+                        if isinstance(item, dict)
+                    )
+                    else []
+                ),
+                *(
+                    ["accessibility_basics", "tap_target_check"]
+                    if isinstance(ui_pre_return_review, dict) and ui_pre_return_review
+                    else []
+                ),
+            ],
+        },
+    )
 
     blockers = _extract_certify_blockers(source_reports["certify-project"])
     warnings: List[Dict[str, Any]] = []
@@ -1223,6 +1336,9 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     for item in _build_error_learning_warnings(source_reports["atlas_error_learning_review"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
+    for item in _build_evidence_collector_warnings(source_reports["evidence_collector_readiness"].get("report")):
+        _unique_priority_append(candidate_priorities, item, candidate_seen)
+        _unique_priority_append(warnings, item, seen)
 
     certify_report = source_reports["certify-project"].get("report") or {}
     for warning in certify_report.get("result", {}).get("warnings", []):
@@ -1264,6 +1380,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     intent_clarifier_review = source_reports["intent_clarifier_contract"].get("report") or {}
     brand_json_v2_review = source_reports["brand_json_v2_readiness"].get("report") or {}
     frontend_auto_audit_review = source_reports["frontend_auto_audit_rules"].get("report") or {}
+    evidence_collector_review = source_reports["evidence_collector_readiness"].get("report") or {}
     if overall_status == "ready":
         if str(intent_clarifier_review.get("status", "")).strip() not in {"", "ready", "skipped"}:
             overall_status = "needs_improvement"
@@ -1272,6 +1389,8 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         if str(frontend_auto_audit_review.get("status", "")).strip() == "needs_improvement":
             overall_status = "needs_improvement"
         if str((source_reports["atlas_error_learning_review"].get("report") or {}).get("status", "")).strip() == "needs_improvement":
+            overall_status = "needs_improvement"
+        if not bool(evidence_collector_review.get("can_claim_ready", False)) and str(evidence_collector_review.get("readiness_state", "")).strip() in {"evidence_missing", "evidence_partial"}:
             overall_status = "needs_improvement"
     confidence_level = _derive_confidence_level(source_reports)
     if confidence_level == "high" and overall_status == "needs_improvement":
@@ -1596,6 +1715,21 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "recommended_next_action": (source_reports["atlas_memory_readiness"]["report"] or {}).get("recommended_next_action"),
             "why": (source_reports["atlas_memory_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["atlas_memory_readiness"]["report"] or {}).get("advisory_only", True)),
+        },
+        "evidence_collector_posture": {
+            "status": (source_reports["evidence_collector_readiness"]["report"] or {}).get("status"),
+            "readiness_state": (source_reports["evidence_collector_readiness"]["report"] or {}).get("readiness_state"),
+            "task_type": (source_reports["evidence_collector_readiness"]["report"] or {}).get("task_type"),
+            "required_evidence": (source_reports["evidence_collector_readiness"]["report"] or {}).get("required_evidence", []),
+            "provided_evidence": (source_reports["evidence_collector_readiness"]["report"] or {}).get("provided_evidence", []),
+            "missing_evidence": (source_reports["evidence_collector_readiness"]["report"] or {}).get("missing_evidence", []),
+            "blocking_gaps": (source_reports["evidence_collector_readiness"]["report"] or {}).get("blocking_gaps", []),
+            "advisory_gaps": (source_reports["evidence_collector_readiness"]["report"] or {}).get("advisory_gaps", []),
+            "can_claim_ready": bool((source_reports["evidence_collector_readiness"]["report"] or {}).get("can_claim_ready")),
+            "can_claim_pass_with_caution": bool((source_reports["evidence_collector_readiness"]["report"] or {}).get("can_claim_pass_with_caution")),
+            "manual_next_steps": (source_reports["evidence_collector_readiness"]["report"] or {}).get("manual_next_steps", []),
+            "why": (source_reports["evidence_collector_readiness"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["evidence_collector_readiness"]["report"] or {}).get("advisory_only", True)),
         },
         "system_learning": source_reports["error_pattern_analyzer"]["report"] if source_reports["error_pattern_analyzer"]["status"] == "ok" else None,
         "blockers": blockers,

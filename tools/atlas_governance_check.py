@@ -48,6 +48,7 @@ REQUIRED_ROOT_FILES = (
     "config/atlas_error_learning_rules.json",
     "config/codex_runtime_compatibility_rules.json",
     "config/atlas_memory_readiness_profiles.json",
+    "config/evidence_collector_readiness_rules.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -100,6 +101,7 @@ REQUIRED_ROOT_FILES = (
     "policies/atlas_error_learning_policy.md",
     "policies/codex_runtime_compatibility_policy.md",
     "policies/atlas_memory_readiness_policy.md",
+    "policies/evidence_collector_readiness_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
     "memory/session_summaries.md",
@@ -175,6 +177,7 @@ REQUIRED_ROOT_FILES = (
     "tools/atlas_error_learning_review.py",
     "tools/codex_runtime_compatibility_check.py",
     "tools/atlas_memory_readiness.py",
+    "tools/evidence_collector_readiness.py",
     "tests/test_atlas_orchestrator.py",
     "tests/test_certify_project.py",
     "tests/test_docs_catalog_report.py",
@@ -209,6 +212,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_atlas_error_learning_review.py",
     "tests/test_codex_runtime_compatibility_check.py",
     "tests/test_atlas_memory_readiness.py",
+    "tests/test_evidence_collector_readiness.py",
     "tests/test_surface_audit.py",
     "templates/project_bootstrap_profiles.md",
 )
@@ -902,6 +906,33 @@ ATLAS_MEMORY_READINESS_REQUIRED_PROFILE_FIELDS = {
     "fallback",
 }
 ATLAS_MEMORY_READINESS_VALID_STATES = {"advisory", "approval_required", "watchlist"}
+EVIDENCE_COLLECTOR_READINESS_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "task_types",
+    "project_type_map",
+    "warning_codes",
+}
+EVIDENCE_COLLECTOR_REQUIRED_TASK_TYPES = {
+    "frontend_ui_landing",
+    "backend_api",
+    "research_benchmark",
+    "high_risk_decision",
+    "skill_governance_change",
+}
+EVIDENCE_COLLECTOR_REQUIRED_TASK_FIELDS = {
+    "required_evidence",
+    "blocking_evidence",
+    "advisory_evidence",
+    "can_pass_with_caution_when_missing_only",
+}
+EVIDENCE_COLLECTOR_REQUIRED_WARNING_CODES = {
+    "evidence_collector_missing",
+    "evidence_collector_partial",
+    "evidence_collector_not_ready",
+    "evidence_collector_frontend_visual_gap",
+    "evidence_collector_high_risk_gap",
+}
 MODEL_COST_CONTROL_REQUIRED_FIELDS = {
     "version",
     "advisory_only",
@@ -1061,6 +1092,10 @@ def _load_codex_runtime_compatibility_rules(root: Path) -> Dict[str, Any]:
 
 def _load_atlas_memory_readiness_profiles(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "atlas_memory_readiness_profiles.json").read_text(encoding="utf-8"))
+
+
+def _load_evidence_collector_readiness_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "evidence_collector_readiness_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -2451,6 +2486,64 @@ def _validate_codex_runtime_compatibility_rules(root: Path, findings: List[str])
         findings.append("codex_runtime_compatibility_rules_invalid_manual_steps")
 
 
+def _validate_evidence_collector_readiness_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_evidence_collector_readiness_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_evidence_collector_readiness_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("evidence_collector_readiness_rules_not_object")
+        return
+
+    missing_fields = EVIDENCE_COLLECTOR_READINESS_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(
+            f"evidence_collector_readiness_rules_missing_fields:{','.join(sorted(missing_fields))}"
+        )
+
+    task_types = rules.get("task_types")
+    if not isinstance(task_types, dict) or not task_types:
+        findings.append("evidence_collector_readiness_rules_invalid_task_types")
+    else:
+        missing_task_types = EVIDENCE_COLLECTOR_REQUIRED_TASK_TYPES - set(task_types.keys())
+        if missing_task_types:
+            findings.append(
+                f"evidence_collector_readiness_rules_missing_task_types:{','.join(sorted(missing_task_types))}"
+            )
+        for task_type, task_rules in task_types.items():
+            if not isinstance(task_rules, dict):
+                findings.append(f"evidence_collector_readiness_rules_invalid_task:{task_type}")
+                continue
+            missing_task_fields = EVIDENCE_COLLECTOR_REQUIRED_TASK_FIELDS - set(task_rules.keys())
+            if missing_task_fields:
+                findings.append(
+                    f"evidence_collector_readiness_rules_missing_task_fields:{task_type}:{','.join(sorted(missing_task_fields))}"
+                )
+            for field_name in EVIDENCE_COLLECTOR_REQUIRED_TASK_FIELDS:
+                value = task_rules.get(field_name)
+                if not isinstance(value, list):
+                    findings.append(
+                        f"evidence_collector_readiness_rules_invalid_task_list:{task_type}:{field_name}"
+                    )
+
+    project_type_map = rules.get("project_type_map")
+    if not isinstance(project_type_map, dict) or not project_type_map:
+        findings.append("evidence_collector_readiness_rules_invalid_project_type_map")
+
+    warning_codes = rules.get("warning_codes")
+    if not isinstance(warning_codes, list) or not warning_codes:
+        findings.append("evidence_collector_readiness_rules_invalid_warning_codes")
+    else:
+        warning_set = {str(item).strip() for item in warning_codes if str(item).strip()}
+        missing_warning_codes = EVIDENCE_COLLECTOR_REQUIRED_WARNING_CODES - warning_set
+        if missing_warning_codes:
+            findings.append(
+                f"evidence_collector_readiness_rules_missing_warning_codes:{','.join(sorted(missing_warning_codes))}"
+            )
+
+
 def _validate_docs_search_catalog(root: Path, findings: List[str]) -> None:
     try:
         catalog = _load_docs_search_catalog(root)
@@ -3324,6 +3417,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_atlas_error_learning_rules(root, findings)
         _validate_codex_runtime_compatibility_rules(root, findings)
         _validate_atlas_memory_readiness_profiles(root, findings)
+        _validate_evidence_collector_readiness_rules(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)

@@ -1,6 +1,12 @@
 # Decision Log
 
 ## 2026-05-15
+- Decision: add `evidence_collector_readiness` as a local advisory layer before Atlas communicates a strong PASS claim
+- Reason: Atlas had many useful quality guardrails, but still lacked one machine-readable contract for what proof should exist across frontend, backend, research, high-risk decisions and governance changes
+- Impact: Atlas can now distinguish evidence-ready work from evidence-partial or evidence-missing posture, and `quality_gate_report` can downgrade strong-ready claims when proof is still incomplete
+- Risk: if the layer becomes too inferential, Atlas could confuse heuristic checks with real proof instead of preserving the evidence boundary
+- Rollback: remove `config/evidence_collector_readiness_rules.json`, `policies/evidence_collector_readiness_policy.md`, `tools/evidence_collector_readiness.py` and the related governance/quality-gate/test wiring
+
 - Decision: add `atlas_memory_readiness` as a local-first advisory layer before Atlas communicates stronger memory continuity
 - Reason: Atlas already keeps useful local decision, routing and governance traces, but it still needed one explicit boundary between safe documentary continuity and riskier plugin, sync or auto-injection memory patterns inspired by external ecosystems
 - Impact: Atlas can now report which memory profiles are safely usable from existing local files, which remain blocked or watchlisted, and what manual steps are required before any stronger memory claim
