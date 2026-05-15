@@ -89,6 +89,9 @@ Current skills:
 - `component_inspiration_readiness` (tool-level advisory): report whether 21st/Context7-backed component inspiration looks locally ready without generating components, activating MCPs or bypassing local design direction
 - `playwright_visual_qa_readiness` (tool-level advisory): report whether Playwright and browser binaries look locally ready for future screenshot-based visual QA without opening browsers, capturing screenshots or activating automation
 - `design_quality_enforcement` (tool-level advisory): treat visually weak UI as not ready for handoff when border weight, shadows, hierarchy, palette, typography or overall polish still read as amateur or wireframe-like
+- `intent_clarifier_contract` (tool-level advisory): require clearer upstream answers for audience, domain, goal, style and originality before stronger design or handoff claims
+- `brand_json_v2_readiness` (tool-level advisory): require an explicit governed brand artifact posture instead of relying on inferred identity alone
+- `frontend_auto_audit_rules` (tool-level advisory): aggregate intent, brand, pre-return and design-quality guardrails before Atlas should treat a frontend as strongly ready
 
 Execution model:
 - skills default to documentary guidance
@@ -99,8 +102,11 @@ Optional lifecycle metadata:
 - `lifecycle_state`: one of `candidate`, `experimental`, `stable`, `deprecated`, `archived`, `rejected`
 - Atlas governance validates `lifecycle_state` only when it is declared; skills are not auto-promoted
 - design-facing skills should align with `policies/visual_intent_contract_policy.md` and `config/visual_intent_contract_rules.json` before stronger UX or branding claims
+- upstream-facing design work should align with `policies/intent_clarifier_contract_policy.md` and `config/intent_clarifier_contract_rules.json` before Atlas trusts a brief as directionally complete
+- stronger identity claims should align with `policies/brand_json_v2_readiness_policy.md` and `config/brand_json_v2_readiness_rules.json` before Atlas treats branding as explicit instead of inferred
 - branding-facing skills should align with `policies/brand_profile_schema_policy.md` and `config/brand_profile_schema_rules.json` before stronger identity or differentiation claims
 - final UI-facing reviews should also align with `policies/design_quality_enforcement_policy.md` and `config/design_quality_enforcement_rules.json` before Atlas calls a surface visually ready
+- final frontend readiness claims should also align with `policies/frontend_auto_audit_rules_policy.md` and `config/frontend_auto_audit_rules.json` before Atlas calls the local guardrail chain complete
 
 Design-intelligence conventions:
 - design skills must return `status`, `warnings`, `evidence` and `next_action`

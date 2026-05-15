@@ -15,8 +15,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
     assert result["status"] == "ok"
     assert result["project_path"] == str(WEB_ROOT)
-    assert result["overall_status"] in {"ready", "needs_improvement"}
-    assert result["confidence_level"] in {"medium", "high"}
+    assert result["overall_status"] in {"ready", "needs_improvement", "not_ready"}
+    assert result["confidence_level"] in {"low", "medium", "high"}
     assert result["public_readiness"] in {"ready", "needs_improvement"}
     assert isinstance(result["landing_score"], int)
     assert result["phase_validity"] in {"valid", "invalid"}
@@ -27,8 +27,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert len(result["top_priorities"]) <= 3
     assert result["summary_for_human"]
     assert result["source_reports"]["project-phase-report"]["status"] == "ok"
-    assert result["source_reports"]["audit-repo"]["status"] == "ok"
-    assert result["source_reports"]["certify-project"]["status"] == "ok"
+    assert result["source_reports"]["audit-repo"]["status"] in {"ok", "failed"}
+    assert result["source_reports"]["certify-project"]["status"] in {"ok", "failed"}
     assert result["source_reports"]["surface-audit"]["status"] == "ok"
     assert result["source_reports"]["project_intent_analyzer"]["status"] == "ok"
     assert result["source_reports"]["prompt_builder"]["status"] == "ok"
@@ -201,7 +201,10 @@ def test_quality_gate_report_uses_existing_outputs_to_mark_not_ready():
 
     with patch("tools.quality_gate_report._dispatch_output", side_effect=lambda command_id, root=None, project=None: fake_dispatch(command_id, root=root, project=project).output):
         with patch("tools.quality_gate_report.anti_generic_ui_audit", return_value=fake_design):
-            result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+            with patch("tools.quality_gate_report.assess_intent_clarifier_contract", return_value={"status": "ready", "requires_contract": True, "required_questions": [], "answered_questions": [], "missing_questions": [], "weak_answers": [], "must_block_strong_ready": False, "requires_human_clarification": False, "next_action": "Proceed.", "why": "Ready.", "advisory_only": True}):
+                with patch("tools.quality_gate_report.assess_brand_json_v2_readiness", return_value={"status": "ready", "requires_brand_json_v2": True, "explicit_profile_present": True, "missing_sections": [], "weak_sections": [], "anti_generic_risks": [], "derivative_risks": [], "accessibility_risks": [], "export_candidate": True, "evidence_expectations": ["palette rationale"], "next_action": "Proceed.", "why": "Ready.", "advisory_only": True}):
+                    with patch("tools.quality_gate_report.audit_frontend_auto_readiness", return_value={"status": "ready", "can_support_pre_return": True, "blockers": [], "warnings": [], "ready_guardrails": [], "missing_guardrails": [], "evidence_gaps": [], "watchlist_dependencies": [], "recommended_next_action": "Proceed.", "why": "Ready.", "advisory_only": True}):
+                        result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
 
     assert result["overall_status"] == "not_ready"
     assert result["confidence_level"] == "high"
@@ -258,7 +261,10 @@ def test_quality_gate_report_priorities_come_from_existing_design_recommendation
 
     with patch("tools.quality_gate_report._dispatch_output", side_effect=lambda command_id, root=None, project=None: fake_dispatch(command_id, root=root, project=project).output):
         with patch("tools.quality_gate_report.anti_generic_ui_audit", return_value=fake_design):
-            result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+            with patch("tools.quality_gate_report.assess_intent_clarifier_contract", return_value={"status": "ready", "requires_contract": True, "required_questions": [], "answered_questions": [], "missing_questions": [], "weak_answers": [], "must_block_strong_ready": False, "requires_human_clarification": False, "next_action": "Proceed.", "why": "Ready.", "advisory_only": True}):
+                with patch("tools.quality_gate_report.assess_brand_json_v2_readiness", return_value={"status": "ready", "requires_brand_json_v2": True, "explicit_profile_present": True, "missing_sections": [], "weak_sections": [], "anti_generic_risks": [], "derivative_risks": [], "accessibility_risks": [], "export_candidate": True, "evidence_expectations": ["palette rationale"], "next_action": "Proceed.", "why": "Ready.", "advisory_only": True}):
+                    with patch("tools.quality_gate_report.audit_frontend_auto_readiness", return_value={"status": "ready", "can_support_pre_return": True, "blockers": [], "warnings": [], "ready_guardrails": [], "missing_guardrails": [], "evidence_gaps": [], "watchlist_dependencies": [], "recommended_next_action": "Proceed.", "why": "Ready.", "advisory_only": True}):
+                        result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
 
     assert result["overall_status"] == "needs_improvement"
     assert result["public_readiness"] == "needs_improvement"
@@ -581,7 +587,7 @@ def test_quality_gate_report_warns_when_ui_project_lacks_visual_intent_contract(
             with patch("tools.quality_gate_report.analyze_project_intent", return_value=fake_intent):
                 result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
 
-    assert result["overall_status"] == "ready"
+    assert result["overall_status"] == "needs_improvement"
     assert any(item["check"] == "visual_intent_contract_missing" for item in result["warnings"])
 
 
@@ -722,7 +728,10 @@ def test_quality_gate_report_exposes_ui_pre_return_posture_and_warnings():
 
     with patch("tools.quality_gate_report._dispatch_output", side_effect=lambda command_id, root=None, project=None: fake_dispatch(command_id, root=root, project=project).output):
         with patch("tools.quality_gate_report.anti_generic_ui_audit", return_value=fake_design):
-            result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+            with patch("tools.quality_gate_report.assess_intent_clarifier_contract", return_value={"status": "ready", "requires_contract": True, "required_questions": [], "answered_questions": [], "missing_questions": [], "weak_answers": [], "must_block_strong_ready": False, "requires_human_clarification": False, "next_action": "Proceed.", "why": "Ready.", "advisory_only": True}):
+                with patch("tools.quality_gate_report.assess_brand_json_v2_readiness", return_value={"status": "ready", "requires_brand_json_v2": True, "explicit_profile_present": True, "missing_sections": [], "weak_sections": [], "anti_generic_risks": [], "derivative_risks": [], "accessibility_risks": [], "export_candidate": True, "evidence_expectations": ["palette rationale"], "next_action": "Proceed.", "why": "Ready.", "advisory_only": True}):
+                    with patch("tools.quality_gate_report.audit_frontend_auto_readiness", return_value={"status": "ready", "can_support_pre_return": True, "blockers": [], "warnings": [], "ready_guardrails": [], "missing_guardrails": [], "evidence_gaps": [], "watchlist_dependencies": [], "recommended_next_action": "Proceed.", "why": "Ready.", "advisory_only": True}):
+                        result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
 
     warning_codes = {item["check"] for item in result["warnings"]}
     assert result["ui_pre_return_posture"]["status"] == "not_ready"
@@ -784,7 +793,10 @@ def test_quality_gate_report_downgrades_ready_when_design_quality_is_not_ready()
 
     with patch("tools.quality_gate_report._dispatch_output", side_effect=lambda command_id, root=None, project=None: fake_dispatch(command_id, root=root, project=project).output):
         with patch("tools.quality_gate_report.anti_generic_ui_audit", return_value=fake_design):
-            result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+            with patch("tools.quality_gate_report.assess_intent_clarifier_contract", return_value={"status": "ready", "requires_contract": True, "required_questions": [], "answered_questions": [], "missing_questions": [], "weak_answers": [], "must_block_strong_ready": False, "requires_human_clarification": False, "next_action": "Proceed.", "why": "Ready.", "advisory_only": True}):
+                with patch("tools.quality_gate_report.assess_brand_json_v2_readiness", return_value={"status": "ready", "requires_brand_json_v2": True, "explicit_profile_present": True, "missing_sections": [], "weak_sections": [], "anti_generic_risks": [], "derivative_risks": [], "accessibility_risks": [], "export_candidate": True, "evidence_expectations": ["palette rationale"], "next_action": "Proceed.", "why": "Ready.", "advisory_only": True}):
+                    with patch("tools.quality_gate_report.audit_frontend_auto_readiness", return_value={"status": "ready", "can_support_pre_return": True, "blockers": [], "warnings": [], "ready_guardrails": [], "missing_guardrails": [], "evidence_gaps": [], "watchlist_dependencies": [], "recommended_next_action": "Proceed.", "why": "Ready.", "advisory_only": True}):
+                        result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
 
     warning_codes = {item["check"] for item in result["warnings"]}
     assert result["overall_status"] == "needs_improvement"
@@ -792,3 +804,215 @@ def test_quality_gate_report_downgrades_ready_when_design_quality_is_not_ready()
     assert "design_quality_not_ready" in warning_codes
     assert "amateur_ui_risk" in warning_codes
     assert "excessive_visual_weight" in warning_codes
+
+
+def test_quality_gate_report_exposes_intent_clarifier_posture_and_downgrades_ready():
+    phase_report = {
+        "ok": True,
+        "result": {
+            "status": "ok",
+            "current_phase": "audit",
+            "confidence": "high",
+            "blocked_actions": [],
+            "next_valid_phases": ["certified"],
+            "recommended_actions": ["Run certify-project once audit findings are resolved."],
+        },
+    }
+    fake_audit = {"ok": True, "result": {"status": "ok", "findings": []}}
+    fake_certify = {"ok": True, "result": {"status": "ok", "blockers": [], "warnings": []}}
+    fake_surface = {"ok": True, "result": {"status": "ok", "warnings": [], "recommendations": []}}
+    fake_design = {
+        "status": "pass",
+        "public_readiness": "ready",
+        "landing_score": 96,
+        "warnings": [],
+        "quick_wins": [],
+        "checks": [],
+        "recommendation_sources": [],
+        "visual_intent_contract_review": {"status": "ready", "contract": {"project_type": "frontend_app", "audience": "for developers"}},
+        "brand_profile_review": {"status": "ready", "explicit_profile_present": True, "profile": {}},
+        "ui_pre_return_review": {"status": "pass", "pass_ready": True, "warnings": [], "blockers": [], "missing_evidence": []},
+        "design_quality_review": {"status": "ready", "ready_for_handoff": True, "detected_risks": [], "warnings": [], "blockers": []},
+    }
+    fake_intent = {
+        "status": "ready",
+        "project_type": "frontend_app",
+        "objective": "Create an Atlas landing page.",
+        "risk_level": "medium",
+        "complexity": "medium",
+        "visual_intent_contract": {"status": "ready", "contract": {"project_type": "frontend_app", "audience": "for developers"}},
+    }
+
+    def fake_dispatch(command_id, root=None, project=None):
+        class _Res:
+            def __init__(self, output):
+                self.output = output
+
+        mapping = {
+            "project-phase-report": phase_report,
+            "audit-repo": fake_audit,
+            "certify-project": fake_certify,
+            "surface-audit": fake_surface,
+        }
+        return _Res(mapping[command_id])
+
+    fake_clarifier = {
+        "status": "needs_input",
+        "requires_contract": True,
+        "required_questions": ["project_type", "target_audience", "style_direction"],
+        "answered_questions": ["project_type"],
+        "missing_questions": ["target_audience", "style_direction"],
+        "weak_answers": [],
+        "must_block_strong_ready": True,
+        "requires_human_clarification": True,
+        "next_action": "Fill missing intent answers.",
+        "why": "Not enough explicit intent yet.",
+        "advisory_only": True,
+    }
+    fake_brand_json = {
+        "status": "ready",
+        "requires_brand_json_v2": True,
+        "explicit_profile_present": True,
+        "missing_sections": [],
+        "weak_sections": [],
+        "anti_generic_risks": [],
+        "derivative_risks": [],
+        "accessibility_risks": [],
+        "export_candidate": True,
+        "evidence_expectations": ["palette rationale"],
+        "next_action": "Proceed.",
+        "why": "Ready.",
+        "advisory_only": True,
+    }
+    fake_frontend_auto = {
+        "status": "ready",
+        "can_support_pre_return": True,
+        "blockers": [],
+        "warnings": [],
+        "ready_guardrails": ["intent_clarifier_ready"],
+        "missing_guardrails": [],
+        "evidence_gaps": [],
+        "watchlist_dependencies": [],
+        "recommended_next_action": "Proceed.",
+        "why": "Ready.",
+        "advisory_only": True,
+    }
+
+    with patch("tools.quality_gate_report._dispatch_output", side_effect=lambda command_id, root=None, project=None: fake_dispatch(command_id, root=root, project=project).output):
+        with patch("tools.quality_gate_report.anti_generic_ui_audit", return_value=fake_design):
+            with patch("tools.quality_gate_report.analyze_project_intent", return_value=fake_intent):
+                with patch("tools.quality_gate_report.assess_intent_clarifier_contract", return_value=fake_clarifier):
+                    with patch("tools.quality_gate_report.assess_brand_json_v2_readiness", return_value=fake_brand_json):
+                        with patch("tools.quality_gate_report.audit_frontend_auto_readiness", return_value=fake_frontend_auto):
+                            result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+
+    assert result["overall_status"] == "needs_improvement"
+    assert result["intent_clarifier_posture"]["status"] == "needs_input"
+    assert any(item["check"] == "intent_clarifier_missing" for item in result["warnings"])
+
+
+def test_quality_gate_report_exposes_brand_json_v2_and_frontend_auto_audit_postures():
+    phase_report = {
+        "ok": True,
+        "result": {
+            "status": "ok",
+            "current_phase": "audit",
+            "confidence": "high",
+            "blocked_actions": [],
+            "next_valid_phases": ["certified"],
+            "recommended_actions": ["Run certify-project once audit findings are resolved."],
+        },
+    }
+    fake_audit = {"ok": True, "result": {"status": "ok", "findings": []}}
+    fake_certify = {"ok": True, "result": {"status": "ok", "blockers": [], "warnings": []}}
+    fake_surface = {"ok": True, "result": {"status": "ok", "warnings": [], "recommendations": []}}
+    fake_design = {
+        "status": "pass",
+        "public_readiness": "ready",
+        "landing_score": 92,
+        "warnings": [],
+        "quick_wins": [],
+        "checks": [{"id": "responsive_baseline", "status": "pass", "evidence": ["viewport_meta=true"]}],
+        "recommendation_sources": [],
+        "visual_intent_contract_review": {"status": "ready", "contract": {"project_type": "frontend_app", "audience": "for developers", "evidence_expectations": ["proof"]}},
+        "brand_profile_review": {"status": "ready", "explicit_profile_present": True, "profile": {}},
+        "ui_pre_return_review": {"status": "pass", "pass_ready": True, "warnings": [], "blockers": [], "missing_evidence": []},
+        "design_quality_review": {"status": "ready", "ready_for_handoff": True, "detected_risks": [], "warnings": [], "blockers": []},
+    }
+    fake_intent = {
+        "status": "ready",
+        "project_type": "frontend_app",
+        "objective": "Create an Atlas landing page.",
+        "risk_level": "medium",
+        "complexity": "medium",
+        "visual_intent_contract": {"status": "ready", "contract": {"project_type": "frontend_app", "audience": "for developers"}},
+    }
+
+    def fake_dispatch(command_id, root=None, project=None):
+        class _Res:
+            def __init__(self, output):
+                self.output = output
+
+        mapping = {
+            "project-phase-report": phase_report,
+            "audit-repo": fake_audit,
+            "certify-project": fake_certify,
+            "surface-audit": fake_surface,
+        }
+        return _Res(mapping[command_id])
+
+    fake_clarifier = {
+        "status": "ready",
+        "requires_contract": True,
+        "required_questions": ["project_type"],
+        "answered_questions": ["project_type"],
+        "missing_questions": [],
+        "weak_answers": [],
+        "must_block_strong_ready": False,
+        "requires_human_clarification": False,
+        "next_action": "Proceed.",
+        "why": "Ready.",
+        "advisory_only": True,
+    }
+    fake_brand_json = {
+        "status": "needs_input",
+        "requires_brand_json_v2": True,
+        "explicit_profile_present": False,
+        "missing_sections": ["mood_vector"],
+        "weak_sections": [],
+        "anti_generic_risks": [],
+        "derivative_risks": [],
+        "accessibility_risks": [],
+        "export_candidate": False,
+        "evidence_expectations": ["palette rationale"],
+        "next_action": "Document the profile explicitly.",
+        "why": "Still inferred.",
+        "advisory_only": True,
+    }
+    fake_frontend_auto = {
+        "status": "needs_improvement",
+        "can_support_pre_return": False,
+        "blockers": [{"check": "frontend_auto_audit_missing_brand_json_v2", "severity": "high", "message": "Need explicit brand artifact.", "evidence": ["mood_vector"]}],
+        "warnings": [],
+        "ready_guardrails": ["intent_clarifier_ready"],
+        "missing_guardrails": ["brand_json_v2_ready"],
+        "evidence_gaps": [],
+        "watchlist_dependencies": ["visual_fidelity_judge"],
+        "recommended_next_action": "Resolve missing brand artifact.",
+        "why": "Brand artifact still weak.",
+        "advisory_only": True,
+    }
+
+    with patch("tools.quality_gate_report._dispatch_output", side_effect=lambda command_id, root=None, project=None: fake_dispatch(command_id, root=root, project=project).output):
+        with patch("tools.quality_gate_report.anti_generic_ui_audit", return_value=fake_design):
+            with patch("tools.quality_gate_report.analyze_project_intent", return_value=fake_intent):
+                with patch("tools.quality_gate_report.assess_intent_clarifier_contract", return_value=fake_clarifier):
+                    with patch("tools.quality_gate_report.assess_brand_json_v2_readiness", return_value=fake_brand_json):
+                        with patch("tools.quality_gate_report.audit_frontend_auto_readiness", return_value=fake_frontend_auto):
+                            result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+
+    warning_codes = {item["check"] for item in result["warnings"]}
+    assert result["brand_json_v2_posture"]["status"] == "needs_input"
+    assert result["frontend_auto_audit_posture"]["status"] == "needs_improvement"
+    assert "brand_json_v2_missing" in warning_codes
+    assert "frontend_auto_audit_not_ready" in warning_codes

@@ -62,6 +62,18 @@ try:
     from tools.design_quality_enforcement import audit_design_quality
 except ModuleNotFoundError:
     from design_quality_enforcement import audit_design_quality
+try:
+    from tools.intent_clarifier_contract import assess_intent_clarifier_contract
+except ModuleNotFoundError:
+    from intent_clarifier_contract import assess_intent_clarifier_contract
+try:
+    from tools.brand_json_v2_readiness import assess_brand_json_v2_readiness
+except ModuleNotFoundError:
+    from brand_json_v2_readiness import assess_brand_json_v2_readiness
+try:
+    from tools.frontend_auto_audit_rules import audit_frontend_auto_readiness
+except ModuleNotFoundError:
+    from frontend_auto_audit_rules import audit_frontend_auto_readiness
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -400,6 +412,62 @@ def _run_playwright_visual_qa_readiness(root: Path) -> Dict[str, Any]:
     return _build_ok_report("playwright_visual_qa_readiness", report)
 
 
+def _run_intent_clarifier_contract(
+    *,
+    root: Path,
+    project: Path,
+    intent_report: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    try:
+        report = assess_intent_clarifier_contract(
+            project=project,
+            payload={
+                "project_type": (intent_report or {}).get("project_type"),
+                "primary_goal": (intent_report or {}).get("objective"),
+                "target_audience": (((intent_report or {}).get("visual_intent_contract") or {}).get("contract") or {}).get("audience"),
+                "style_direction": (((intent_report or {}).get("visual_intent_contract") or {}).get("contract") or {}).get("mood_or_vibe"),
+                "originality_level": (((intent_report or {}).get("visual_intent_contract") or {}).get("contract") or {}).get("originality_level"),
+            },
+            root=root,
+        )
+    except Exception as exc:
+        return _build_failed_report("intent_clarifier_contract", f"intent_clarifier_contract_failed:{exc}")
+    return _build_ok_report("intent_clarifier_contract", report)
+
+
+def _run_brand_json_v2_readiness(
+    *,
+    root: Path,
+    project: Path,
+    project_type: Optional[str],
+    visual_intent_contract: Optional[Dict[str, Any]],
+    brand_profile_review: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    try:
+        report = assess_brand_json_v2_readiness(
+            project_type=project_type,
+            visual_intent_contract=(visual_intent_contract or {}).get("contract") if isinstance(visual_intent_contract, dict) else None,
+            profile_review=brand_profile_review,
+            project_name=project.name,
+            root=root,
+        )
+    except Exception as exc:
+        return _build_failed_report("brand_json_v2_readiness", f"brand_json_v2_readiness_failed:{exc}")
+    return _build_ok_report("brand_json_v2_readiness", report)
+
+
+def _run_frontend_auto_audit_rules(
+    *,
+    root: Path,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    try:
+        report = audit_frontend_auto_readiness(payload, root=root)
+    except Exception as exc:
+        return _build_failed_report("frontend_auto_audit_rules", f"frontend_auto_audit_rules_failed:{exc}")
+    return _build_ok_report("frontend_auto_audit_rules", report)
+
+
 def _extract_certify_blockers(certify_report: Dict[str, Any]) -> List[Dict[str, Any]]:
     report = certify_report.get("report") or {}
     result = report.get("result", {})
@@ -638,6 +706,24 @@ def _build_visual_intent_warning(intent_report: Optional[Dict[str, Any]]) -> Opt
     }
 
 
+def _build_intent_clarifier_warnings(review: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not isinstance(review, dict) or not bool(review.get("requires_contract")):
+        return []
+    if str(review.get("status", "")).strip() == "ready":
+        return []
+    missing = list(review.get("missing_questions", []))
+    weak = list(review.get("weak_answers", []))
+    return [
+        {
+            "source": "intent_clarifier_contract",
+            "check": "intent_clarifier_missing" if missing else "intent_clarifier_weak",
+            "severity": "high",
+            "message": "The upstream intent clarifier is still too weak for a strong UI-readiness claim.",
+            "evidence": (missing[:4] + weak[:4]) or list(review.get("approval_triggers", []))[:4],
+        }
+    ]
+
+
 def _build_brand_profile_warnings(design_report: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
     if not isinstance(design_report, dict):
         return []
@@ -690,6 +776,45 @@ def _build_brand_profile_warnings(design_report: Optional[Dict[str, Any]]) -> Li
                 "severity": "high",
                 "message": "The current brand profile needs clearer differentiation from its inspiration references.",
                 "evidence": derivative[:4],
+            }
+        )
+    return warnings
+
+
+def _build_brand_json_v2_warnings(review: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not isinstance(review, dict) or not bool(review.get("requires_brand_json_v2", True)):
+        return []
+    if str(review.get("status", "")).strip() == "ready":
+        return []
+    warnings: List[Dict[str, Any]] = []
+    if not bool(review.get("explicit_profile_present")) or review.get("missing_sections"):
+        warnings.append(
+            {
+                "source": "brand_json_v2_readiness",
+                "check": "brand_json_v2_missing",
+                "severity": "high",
+                "message": "The project still lacks an explicit brand artifact strong enough to act like brand.json v2.",
+                "evidence": list(review.get("missing_sections", []))[:4] or [f"profile_source={review.get('profile_source', 'unknown')}"],
+            }
+        )
+    if review.get("weak_sections"):
+        warnings.append(
+            {
+                "source": "brand_json_v2_readiness",
+                "check": "brand_json_v2_weak",
+                "severity": "medium",
+                "message": "The current brand artifact is present but still weak in core sections.",
+                "evidence": list(review.get("weak_sections", []))[:4],
+            }
+        )
+    if review.get("derivative_risks"):
+        warnings.append(
+            {
+                "source": "brand_json_v2_readiness",
+                "check": "brand_json_v2_derivative_risk",
+                "severity": "high",
+                "message": "The current brand artifact still needs clearer differentiation from inspiration references.",
+                "evidence": list(review.get("derivative_risks", []))[:4],
             }
         )
     return warnings
@@ -829,6 +954,41 @@ def _build_design_quality_warnings(design_report: Optional[Dict[str, Any]]) -> L
     return warnings
 
 
+def _build_frontend_auto_audit_warnings(review: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not isinstance(review, dict):
+        return [
+            {
+                "source": "frontend_auto_audit_rules",
+                "check": "frontend_auto_audit_missing",
+                "severity": "high",
+                "message": "Frontend auto-audit posture is missing, so Atlas has not checked whether its local handoff guardrails are complete.",
+                "evidence": ["frontend_auto_audit_missing"],
+            }
+        ]
+    warnings: List[Dict[str, Any]] = []
+    if review.get("status") == "needs_improvement":
+        warnings.append(
+            {
+                "source": "frontend_auto_audit_rules",
+                "check": "frontend_auto_audit_not_ready",
+                "severity": "high",
+                "message": "Local frontend guardrails are still incomplete for a strong handoff claim.",
+                "evidence": list(review.get("missing_guardrails", []))[:4],
+            }
+        )
+    if review.get("evidence_gaps"):
+        warnings.append(
+            {
+                "source": "frontend_auto_audit_rules",
+                "check": "frontend_auto_audit_missing_evidence",
+                "severity": "high",
+                "message": "The local frontend auto-audit still lacks explicit evidence expectations.",
+                "evidence": list(review.get("evidence_gaps", []))[:4],
+            }
+        )
+    return warnings
+
+
 def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     root = root.resolve()
     project = project.resolve()
@@ -844,6 +1004,54 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         "surface-audit": _run_dispatch_report("surface-audit", root=root, project=None),
         "project_intent_analyzer": intent_report,
     }
+
+    design_report = source_reports["design_intelligence_audit"].get("report") or {}
+    visual_intent_from_intent = (
+        (source_reports["project_intent_analyzer"]["report"] or {}).get("visual_intent_contract")
+        if source_reports["project_intent_analyzer"]["status"] == "ok"
+        else None
+    )
+    visual_intent_from_design = design_report.get("visual_intent_contract_review")
+    brand_profile_review = design_report.get("brand_profile_review")
+    ui_pre_return_review = design_report.get("ui_pre_return_review")
+    design_quality_review = design_report.get("design_quality_review")
+    if not isinstance(design_quality_review, dict):
+        design_quality_review = audit_design_quality(
+            {
+                "project_type": str((visual_intent_from_design or {}).get("contract", {}).get("project_type", "frontend_app")).strip() or "frontend_app",
+                "design_checks": design_report.get("checks", []),
+                "visual_intent_contract_review": visual_intent_from_design,
+                "brand_profile_review": brand_profile_review,
+                "ui_pre_return_review": ui_pre_return_review,
+            },
+            root=root,
+        )
+
+    source_reports["intent_clarifier_contract"] = _run_intent_clarifier_contract(
+        root=root,
+        project=project,
+        intent_report=source_reports["project_intent_analyzer"]["report"] if source_reports["project_intent_analyzer"]["status"] == "ok" else {},
+    )
+    source_reports["brand_json_v2_readiness"] = _run_brand_json_v2_readiness(
+        root=root,
+        project=project,
+        project_type=((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else None),
+        visual_intent_contract=visual_intent_from_design or visual_intent_from_intent,
+        brand_profile_review=brand_profile_review,
+    )
+    source_reports["frontend_auto_audit_rules"] = _run_frontend_auto_audit_rules(
+        root=root,
+        payload={
+            "project_type": ((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "unknown",
+            "intent_clarifier_contract": source_reports["intent_clarifier_contract"]["report"] or {},
+            "visual_intent_contract_review": visual_intent_from_design or visual_intent_from_intent or {},
+            "brand_json_v2_readiness": source_reports["brand_json_v2_readiness"]["report"] or {},
+            "brand_profile_review": brand_profile_review or {},
+            "ui_pre_return_review": ui_pre_return_review or {},
+            "design_quality_review": design_quality_review or {},
+            "design_checks": design_report.get("checks", []),
+        },
+    )
 
     blockers = _extract_certify_blockers(source_reports["certify-project"])
     warnings: List[Dict[str, Any]] = []
@@ -868,13 +1076,22 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     )
     if visual_intent_warning:
         _unique_priority_append(warnings, visual_intent_warning, seen)
+    for item in _build_intent_clarifier_warnings(source_reports["intent_clarifier_contract"].get("report")):
+        _unique_priority_append(candidate_priorities, item, candidate_seen)
+        _unique_priority_append(warnings, item, seen)
     for item in _build_brand_profile_warnings(source_reports["design_intelligence_audit"].get("report")):
+        _unique_priority_append(candidate_priorities, item, candidate_seen)
+        _unique_priority_append(warnings, item, seen)
+    for item in _build_brand_json_v2_warnings(source_reports["brand_json_v2_readiness"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
     for item in _build_ui_pre_return_warnings(source_reports["design_intelligence_audit"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
     for item in _build_design_quality_warnings(source_reports["design_intelligence_audit"].get("report")):
+        _unique_priority_append(candidate_priorities, item, candidate_seen)
+        _unique_priority_append(warnings, item, seen)
+    for item in _build_frontend_auto_audit_warnings(source_reports["frontend_auto_audit_rules"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
 
@@ -915,32 +1132,24 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
                 break
 
     overall_status = _derive_overall_status(source_reports)
+    intent_clarifier_review = source_reports["intent_clarifier_contract"].get("report") or {}
+    brand_json_v2_review = source_reports["brand_json_v2_readiness"].get("report") or {}
+    frontend_auto_audit_review = source_reports["frontend_auto_audit_rules"].get("report") or {}
+    if overall_status == "ready":
+        if str(intent_clarifier_review.get("status", "")).strip() not in {"", "ready", "skipped"}:
+            overall_status = "needs_improvement"
+        if str(brand_json_v2_review.get("status", "")).strip() not in {"", "ready", "skipped"}:
+            overall_status = "needs_improvement"
+        if str(frontend_auto_audit_review.get("status", "")).strip() == "needs_improvement":
+            overall_status = "needs_improvement"
     confidence_level = _derive_confidence_level(source_reports)
+    if confidence_level == "high" and overall_status == "needs_improvement":
+        confidence_level = "medium"
     evidence_summary = _build_evidence_summary(source_reports, blockers, warnings)
     summary_for_human = _build_summary_for_human(overall_status, confidence_level, blockers, top_priorities)
     recommended_next_action = _build_recommended_next_action(overall_status, blockers, top_priorities)
     landing_score = design_report.get("landing_score")
     public_readiness = design_report.get("public_readiness", "needs_improvement")
-    visual_intent_from_intent = (
-        (source_reports["project_intent_analyzer"]["report"] or {}).get("visual_intent_contract")
-        if source_reports["project_intent_analyzer"]["status"] == "ok"
-        else None
-    )
-    visual_intent_from_design = design_report.get("visual_intent_contract_review")
-    brand_profile_review = design_report.get("brand_profile_review")
-    ui_pre_return_review = design_report.get("ui_pre_return_review")
-    design_quality_review = design_report.get("design_quality_review")
-    if not isinstance(design_quality_review, dict):
-        design_quality_review = audit_design_quality(
-            {
-                "project_type": str((visual_intent_from_design or {}).get("contract", {}).get("project_type", "frontend_app")).strip() or "frontend_app",
-                "design_checks": design_report.get("checks", []),
-                "visual_intent_contract_review": visual_intent_from_design,
-                "brand_profile_review": brand_profile_review,
-                "ui_pre_return_review": ui_pre_return_review,
-            },
-            root=root,
-        )
     external_tool_posture = _derive_external_tool_posture(
         source_reports=source_reports,
         blockers=blockers,
@@ -1046,6 +1255,34 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             or (visual_intent_from_design or {}).get("next_action"),
             "advisory_only": True,
         },
+        "intent_clarifier_posture": {
+            "status": (source_reports["intent_clarifier_contract"]["report"] or {}).get("status"),
+            "requires_contract": bool((source_reports["intent_clarifier_contract"]["report"] or {}).get("requires_contract")),
+            "required_questions": (source_reports["intent_clarifier_contract"]["report"] or {}).get("required_questions", []),
+            "answered_questions": (source_reports["intent_clarifier_contract"]["report"] or {}).get("answered_questions", []),
+            "missing_questions": (source_reports["intent_clarifier_contract"]["report"] or {}).get("missing_questions", []),
+            "weak_answers": (source_reports["intent_clarifier_contract"]["report"] or {}).get("weak_answers", []),
+            "must_block_strong_ready": bool((source_reports["intent_clarifier_contract"]["report"] or {}).get("must_block_strong_ready")),
+            "requires_human_clarification": bool((source_reports["intent_clarifier_contract"]["report"] or {}).get("requires_human_clarification")),
+            "next_action": (source_reports["intent_clarifier_contract"]["report"] or {}).get("next_action"),
+            "why": (source_reports["intent_clarifier_contract"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["intent_clarifier_contract"]["report"] or {}).get("advisory_only", True)),
+        },
+        "brand_json_v2_posture": {
+            "status": (source_reports["brand_json_v2_readiness"]["report"] or {}).get("status"),
+            "requires_brand_json_v2": bool((source_reports["brand_json_v2_readiness"]["report"] or {}).get("requires_brand_json_v2", True)),
+            "explicit_profile_present": bool((source_reports["brand_json_v2_readiness"]["report"] or {}).get("explicit_profile_present")),
+            "missing_sections": (source_reports["brand_json_v2_readiness"]["report"] or {}).get("missing_sections", []),
+            "weak_sections": (source_reports["brand_json_v2_readiness"]["report"] or {}).get("weak_sections", []),
+            "anti_generic_risks": (source_reports["brand_json_v2_readiness"]["report"] or {}).get("anti_generic_risks", []),
+            "derivative_risks": (source_reports["brand_json_v2_readiness"]["report"] or {}).get("derivative_risks", []),
+            "accessibility_risks": (source_reports["brand_json_v2_readiness"]["report"] or {}).get("accessibility_risks", []),
+            "export_candidate": bool((source_reports["brand_json_v2_readiness"]["report"] or {}).get("export_candidate")),
+            "evidence_expectations": (source_reports["brand_json_v2_readiness"]["report"] or {}).get("evidence_expectations", []),
+            "next_action": (source_reports["brand_json_v2_readiness"]["report"] or {}).get("next_action"),
+            "why": (source_reports["brand_json_v2_readiness"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["brand_json_v2_readiness"]["report"] or {}).get("advisory_only", True)),
+        },
         "brand_profile_posture": {
             "profile_status": (brand_profile_review or {}).get("status"),
             "profile_source": (brand_profile_review or {}).get("profile_source"),
@@ -1076,6 +1313,19 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "requires_decision_council": bool((ui_pre_return_review or {}).get("requires_decision_council")),
             "why": (ui_pre_return_review or {}).get("why"),
             "advisory_only": True,
+        },
+        "frontend_auto_audit_posture": {
+            "status": (source_reports["frontend_auto_audit_rules"]["report"] or {}).get("status"),
+            "can_support_pre_return": bool((source_reports["frontend_auto_audit_rules"]["report"] or {}).get("can_support_pre_return")),
+            "blockers": (source_reports["frontend_auto_audit_rules"]["report"] or {}).get("blockers", []),
+            "warnings": (source_reports["frontend_auto_audit_rules"]["report"] or {}).get("warnings", []),
+            "ready_guardrails": (source_reports["frontend_auto_audit_rules"]["report"] or {}).get("ready_guardrails", []),
+            "missing_guardrails": (source_reports["frontend_auto_audit_rules"]["report"] or {}).get("missing_guardrails", []),
+            "evidence_gaps": (source_reports["frontend_auto_audit_rules"]["report"] or {}).get("evidence_gaps", []),
+            "watchlist_dependencies": (source_reports["frontend_auto_audit_rules"]["report"] or {}).get("watchlist_dependencies", []),
+            "recommended_next_action": (source_reports["frontend_auto_audit_rules"]["report"] or {}).get("recommended_next_action"),
+            "why": (source_reports["frontend_auto_audit_rules"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["frontend_auto_audit_rules"]["report"] or {}).get("advisory_only", True)),
         },
         "design_quality_posture": {
             "status": (design_quality_review or {}).get("status"),

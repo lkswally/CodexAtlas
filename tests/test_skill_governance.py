@@ -12,8 +12,11 @@ from tools.atlas_governance_check import (
     _load_skill_lifecycle_rules,
     _load_skill_improvement_review_rules,
     _load_market_research_benchmark_rules,
+    _load_intent_clarifier_contract_rules,
     _load_visual_intent_contract,
+    _load_brand_json_v2_readiness_rules,
     _load_brand_profile_schema,
+    _load_frontend_auto_audit_rules,
     _load_ui_pre_return_audit_rules,
     _load_creative_pipeline_profiles,
     _load_component_inspiration_profiles,
@@ -25,8 +28,11 @@ from tools.atlas_governance_check import (
     _validate_skill_lifecycle_rules,
     _validate_skill_improvement_review_rules,
     _validate_market_research_benchmark_rules,
+    _validate_intent_clarifier_contract_rules,
     _validate_visual_intent_contract,
+    _validate_brand_json_v2_readiness_rules,
     _validate_brand_profile_schema,
+    _validate_frontend_auto_audit_rules,
     _validate_ui_pre_return_audit_rules,
     _validate_creative_pipeline_profiles,
     _validate_component_inspiration_profiles,
@@ -125,6 +131,23 @@ def test_market_research_benchmark_rules_require_recommendations_and_sources():
     )
 
 
+def test_intent_clarifier_contract_rules_require_core_fields():
+    findings = []
+    invalid_rules = _load_intent_clarifier_contract_rules(ROOT)
+    invalid_rules["required_fields"] = ["project_type", "primary_goal"]
+
+    with patch(
+        "tools.atlas_governance_check._load_intent_clarifier_contract_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_intent_clarifier_contract_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("intent_clarifier_contract_rules_missing_required_fields:")
+        for finding in findings
+    )
+
+
 def test_visual_intent_contract_rejects_missing_required_fields():
     findings = []
     invalid_contract = _load_visual_intent_contract(ROOT)
@@ -147,6 +170,23 @@ def test_brand_profile_schema_rejects_missing_required_fields():
     assert any(finding.startswith("brand_profile_schema_missing_required_fields:") for finding in findings)
 
 
+def test_brand_json_v2_rules_require_core_sections():
+    findings = []
+    invalid_rules = _load_brand_json_v2_readiness_rules(ROOT)
+    invalid_rules["required_sections"] = ["brand_name", "audience"]
+
+    with patch(
+        "tools.atlas_governance_check._load_brand_json_v2_readiness_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_brand_json_v2_readiness_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("brand_json_v2_readiness_rules_missing_required_sections:")
+        for finding in findings
+    )
+
+
 def test_ui_pre_return_rules_reject_missing_checks():
     findings = []
     invalid_rules = _load_ui_pre_return_audit_rules(ROOT)
@@ -167,6 +207,30 @@ def test_ui_pre_return_rules_reject_missing_warning_codes():
         _validate_ui_pre_return_audit_rules(ROOT, findings)
 
     assert any(finding.startswith("ui_pre_return_audit_rules_missing_warning_codes:") for finding in findings)
+
+
+def test_frontend_auto_audit_rules_require_expected_checks():
+    findings = []
+    invalid_rules = _load_frontend_auto_audit_rules(ROOT)
+    invalid_rules["checks"] = {
+        "intent_clarifier_ready": invalid_rules["checks"]["intent_clarifier_ready"]
+    }
+    invalid_rules["warning_codes"] = ["frontend_auto_audit_not_ready"]
+
+    with patch(
+        "tools.atlas_governance_check._load_frontend_auto_audit_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_frontend_auto_audit_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("frontend_auto_audit_rules_missing_checks:")
+        for finding in findings
+    )
+    assert any(
+        finding.startswith("frontend_auto_audit_rules_missing_warning_codes:")
+        for finding in findings
+    )
 
 
 def test_creative_pipeline_profiles_require_expected_profiles_and_services():

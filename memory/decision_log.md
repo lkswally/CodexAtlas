@@ -1,5 +1,12 @@
 # Decision Log
 
+## 2026-05-14
+- Decision: add `intent_clarifier_contract`, `brand_json_v2_readiness`, and `frontend_auto_audit_rules` as executable advisory guardrails before Atlas treats frontend work as strongly ready
+- Reason: Atlas already had visual intent, brand profile, UI pre-return and design-quality layers, but a recent external audit showed that vague upstream intent, inferred brand structure and missing local pre-release checks could still leak weak frontend quality into production
+- Impact: `quality_gate_report` can now downgrade UI readiness when the upstream brief is too vague, the brand artifact is still inferred, or the local frontend guardrail bundle remains incomplete
+- Risk: if these contracts are applied without project-type boundaries, they could over-block intentionally simple or backend-only work
+- Rollback: remove the three new policy/config/tool layers and their governance/quality-gate/test wiring, then fall back to the previous visual-intent + brand-profile + pre-return chain
+
 ## 2026-05-12
 - Decision: add `design_quality_enforcement` as a stronger visual-quality gate before Atlas calls a UI handoff-ready
 - Reason: visual intent, brand profile and UI pre-return checks were still too advisory to stop functionally correct but visually weak interfaces from being treated as acceptable

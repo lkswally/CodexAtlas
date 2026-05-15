@@ -1,0 +1,79 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "required_fields": [
+    "project_type",
+    "domain_context",
+    "target_audience",
+    "primary_goal"
+  ],
+  "ui_required_fields": [
+    "style_direction",
+    "originality_level"
+  ],
+  "recommended_fields": [
+    "reference_direction",
+    "success_criteria",
+    "constraints"
+  ],
+  "required_for_project_types": [
+    "frontend_app",
+    "fullstack",
+    "internal_tool"
+  ],
+  "backend_exempt_project_types": [
+    "backend_service"
+  ],
+  "minimum_ready_fields": 6,
+  "weak_answer_patterns": [
+    "modern",
+    "professional",
+    "clean",
+    "nice ui",
+    "look good",
+    "something useful",
+    "best practice",
+    "standard dashboard",
+    "generic saas"
+  ],
+  "approval_triggers": [
+    "project_type_unknown",
+    "missing_target_audience",
+    "missing_primary_goal",
+    "missing_style_direction",
+    "missing_originality_level",
+    "mostly_inferred_contract"
+  ],
+  "domain_signals": {
+    "developer_tools": [
+      "developer",
+      "developers",
+      "engineering",
+      "codex",
+      "factory",
+      "tooling"
+    ],
+    "operations_workflows": [
+      "operations",
+      "workflow",
+      "backoffice",
+      "auditor",
+      "internal tool",
+      "admin"
+    ],
+    "marketing_positioning": [
+      "landing",
+      "marketing",
+      "homepage",
+      "public site",
+      "brand"
+    ],
+    "ai_systems": [
+      "agent",
+      "orchestrator",
+      "routing",
+      "governance",
+      "ai system"
+    ]
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "version": "2.0",
+  "advisory_only": true,
+  "required_sections": [
+    "brand_name",
+    "audience",
+    "project_type",
+    "mood_vector",
+    "color_strategy",
+    "typography_strategy",
+    "layout_principles",
+    "motion_principles",
+    "visual_density",
+    "originality_level",
+    "anti_patterns_to_avoid",
+    "differentiation_notes",
+    "accessibility_notes",
+    "evidence_expectations"
+  ],
+  "recommended_sections": [
+    "personality_traits",
+    "inspiration_references"
+  ],
+  "required_for_project_types": [
+    "frontend_app",
+    "fullstack",
+    "internal_tool"
+  ],
+  "backend_exempt_project_types": [
+    "backend_service"
+  ],
+  "mood_vector_dimensions": [
+    "premium",
+    "playful",
+    "technical",
+    "editorial",
+    "minimalist",
+    "bold",
+    "warm",
+    "futuristic"
+  ],
+  "explicit_profile_required_for_ready": true,
+  "minimum_evidence_expectations": [
+    "palette rationale",
+    "typography rationale",
+    "differentiation note"
+  ]
+}

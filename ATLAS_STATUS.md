@@ -45,10 +45,13 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Atlas now has a governed `phase_playbook` that explains the right next steps and common mistakes for each lifecycle phase without adding automation
 - Atlas now has a read-only `project_intent_analyzer` adapted from Intent Clarifier to infer project type, objective, risk, complexity and missing definition
 - Atlas now has a governed `visual_intent_contract` that makes audience, promise, mood, originality, hero direction, CTA intent, anti-patterns and evidence expectations explicit before stronger design claims
+- Atlas now has an advisory `intent_clarifier_contract` that checks whether upstream audience, domain, goal, style and originality inputs are explicit enough before Atlas should trust later design guidance
 - Atlas now has a dedicated read-only `visual_intent_contract` validator with machine-readable rules for UI-facing intent quality
+- Atlas now has an advisory `brand_json_v2_readiness` layer that treats inferred identity structure as helpful but not strong enough for a final governed brand artifact claim
 - Atlas now has a governed `brand_profile_schema` that turns visual intent into explicit identity metadata for mood vector, palette, typography, differentiation and accessibility review
 - Design and quality-gate outputs now expose `brand_profile_review` / `brand_profile_posture` so missing, generic or derivative identity signals are visible before stronger PASS claims
 - Atlas now has an advisory `ui_pre_return_audit` that cross-checks visual intent, brand profile, CTA clarity, hierarchy, anti-generic signals, evidence expectations, responsive readiness and accessibility basics before a stronger UI-ready claim
+- Atlas now has an advisory `frontend_auto_audit_rules` layer that aggregates intent, brand, pre-return and design-quality guardrails before Atlas should call a frontend strongly ready
 - Atlas now has a configurable read-only `model_router` that recommends the real Codex Desktop models available on this machine and reports `not_available` for auto-switch while CLI verification remains blocked
 - Atlas now has a read-only `prompt_builder` that turns current phase plus project intent into explicit next-step prompts instead of hidden workflow logic
 - Atlas now has a read-only `skill_evaluator` that helps reject low-value reusable-skill ideas before Atlas grows new capability surface
@@ -70,6 +73,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - `quality_gate_report` now also exposes `component_inspiration_posture` so external UI-pattern readiness stays explicit without turning Atlas into a component runtime
 - `quality_gate_report` now also exposes `visual_qa_readiness_posture` so browser-automation readiness stays explicit without turning Atlas into a screenshot runtime
 - `quality_gate_report` now also exposes `design_quality_posture` so visual-system weakness, hierarchy problems and amateur-ui risk remain visible before a final handoff claim
+- `quality_gate_report` now also exposes `intent_clarifier_posture`, `brand_json_v2_posture` and `frontend_auto_audit_posture` so vague briefs, inferred branding and incomplete local frontend guardrails can downgrade readiness before release
 - Atlas now has a read-only `priority_engine` that reduces noise and turns existing phase, intent, audit and skill signals into a short execution plan
 - `quality_gate_report` now exposes `execution_plan`, `primary_action` and `why_now` so readiness reports say what to do first instead of only listing signals
 - `quality_gate_report` now enriches each `execution_plan` step with its own model recommendation, fallback, cheaper alternative and confirmation signal without attempting any auto-switch

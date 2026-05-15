@@ -34,8 +34,11 @@ REQUIRED_ROOT_FILES = (
     "config/skill_lifecycle_rules.json",
     "config/skill_improvement_review_rules.json",
     "config/market_research_benchmark_rules.json",
+    "config/intent_clarifier_contract_rules.json",
     "config/visual_intent_contract_rules.json",
+    "config/brand_json_v2_readiness_rules.json",
     "config/brand_profile_schema_rules.json",
+    "config/frontend_auto_audit_rules.json",
     "config/ui_pre_return_audit_rules.json",
     "config/creative_pipeline_profiles.json",
     "config/component_inspiration_profiles.json",
@@ -79,8 +82,11 @@ REQUIRED_ROOT_FILES = (
     "policies/skill_lifecycle_policy.md",
     "policies/skill_improvement_review_policy.md",
     "policies/market_research_benchmark_policy.md",
+    "policies/intent_clarifier_contract_policy.md",
     "policies/visual_intent_contract_policy.md",
+    "policies/brand_json_v2_readiness_policy.md",
     "policies/brand_profile_schema_policy.md",
+    "policies/frontend_auto_audit_rules_policy.md",
     "policies/ui_pre_return_audit_policy.md",
     "policies/creative_pipeline_readiness_policy.md",
     "policies/component_inspiration_readiness_policy.md",
@@ -135,6 +141,7 @@ REQUIRED_ROOT_FILES = (
     "tools/docs_catalog_report.py",
     "tools/project_phase_resolver.py",
     "tools/project_intent_analyzer.py",
+    "tools/intent_clarifier_contract.py",
     "tools/priority_engine.py",
     "tools/decision_feedback.py",
     "tools/feedback_analyzer.py",
@@ -149,6 +156,8 @@ REQUIRED_ROOT_FILES = (
     "tools/skill_improvement_review.py",
     "tools/market_research_benchmark.py",
     "tools/brand_profile_schema.py",
+    "tools/brand_json_v2_readiness.py",
+    "tools/frontend_auto_audit_rules.py",
     "tools/ui_pre_return_audit.py",
     "tools/creative_pipeline_readiness.py",
     "tools/component_inspiration_readiness.py",
@@ -160,6 +169,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_design_intelligence_audit.py",
     "tests/test_mcp_manager.py",
     "tests/test_project_intent.py",
+    "tests/test_intent_clarifier_contract.py",
     "tests/test_project_phase.py",
     "tests/test_priority_engine.py",
     "tests/test_decision_feedback.py",
@@ -176,6 +186,8 @@ REQUIRED_ROOT_FILES = (
     "tests/test_skill_execution.py",
     "tests/test_skill_governance.py",
     "tests/test_brand_profile_schema.py",
+    "tests/test_brand_json_v2_readiness.py",
+    "tests/test_frontend_auto_audit_rules.py",
     "tests/test_ui_pre_return_audit.py",
     "tests/test_creative_pipeline_readiness.py",
     "tests/test_component_inspiration_readiness.py",
@@ -444,6 +456,29 @@ REQUIRED_MARKET_RESEARCH_SOURCE_TYPES = {
     "documented_repo",
     "explicit_payload",
 }
+INTENT_CLARIFIER_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "required_fields",
+    "ui_required_fields",
+    "recommended_fields",
+    "required_for_project_types",
+    "backend_exempt_project_types",
+    "minimum_ready_fields",
+    "weak_answer_patterns",
+    "approval_triggers",
+    "domain_signals",
+}
+REQUIRED_INTENT_CLARIFIER_FIELDS = {
+    "project_type",
+    "domain_context",
+    "target_audience",
+    "primary_goal",
+}
+REQUIRED_INTENT_CLARIFIER_UI_FIELDS = {
+    "style_direction",
+    "originality_level",
+}
 VISUAL_INTENT_CONTRACT_REQUIRED_FIELDS = {
     "version",
     "advisory_only",
@@ -534,6 +569,33 @@ REQUIRED_BRAND_TYPOGRAPHY_FIELDS = {
     "contrast_rationale",
     "forbidden_font_patterns",
 }
+BRAND_JSON_V2_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "required_sections",
+    "recommended_sections",
+    "required_for_project_types",
+    "backend_exempt_project_types",
+    "mood_vector_dimensions",
+    "explicit_profile_required_for_ready",
+    "minimum_evidence_expectations",
+}
+REQUIRED_BRAND_JSON_V2_SECTIONS = {
+    "brand_name",
+    "audience",
+    "project_type",
+    "mood_vector",
+    "color_strategy",
+    "typography_strategy",
+    "layout_principles",
+    "motion_principles",
+    "visual_density",
+    "originality_level",
+    "anti_patterns_to_avoid",
+    "differentiation_notes",
+    "accessibility_notes",
+    "evidence_expectations",
+}
 UI_PRE_RETURN_AUDIT_REQUIRED_FIELDS = {
     "version",
     "advisory_only",
@@ -580,6 +642,44 @@ REQUIRED_UI_PRE_RETURN_WARNING_CODES = {
     "ui_pre_return_accessibility_weak",
     "ui_pre_return_responsive_unknown",
     "ui_pre_return_not_ready",
+}
+FRONTEND_AUTO_AUDIT_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "required_for_project_types",
+    "backend_exempt_project_types",
+    "required_inputs",
+    "checks",
+    "warning_codes",
+    "watchlist_dependencies",
+}
+REQUIRED_FRONTEND_AUTO_AUDIT_INPUTS = {
+    "intent_clarifier_contract",
+    "visual_intent_contract_review",
+    "brand_json_v2_readiness",
+    "brand_profile_review",
+    "ui_pre_return_review",
+    "design_quality_review",
+    "design_checks",
+}
+REQUIRED_FRONTEND_AUTO_AUDIT_CHECKS = {
+    "intent_clarifier_ready",
+    "visual_intent_contract_ready",
+    "brand_json_v2_ready",
+    "ui_pre_return_ready",
+    "design_quality_ready",
+    "responsive_baseline_present",
+    "evidence_expectations_defined",
+}
+REQUIRED_FRONTEND_AUTO_AUDIT_WARNING_CODES = {
+    "frontend_auto_audit_missing",
+    "frontend_auto_audit_missing_intent_clarifier",
+    "frontend_auto_audit_missing_brand_json_v2",
+    "frontend_auto_audit_missing_evidence",
+    "frontend_auto_audit_not_ready",
+    "frontend_auto_audit_watchlist_screenshots",
+    "frontend_auto_audit_watchlist_visual_fidelity",
+    "frontend_auto_audit_watchlist_reality_check",
 }
 CREATIVE_PIPELINE_REQUIRED_PROFILES = {
     "logo_generation",
@@ -708,7 +808,6 @@ VALID_DESIGN_QUALITY_REDESIGN_LEVELS = {
     "full_redesign",
 }
 
-
 def _primary_registry_path(root: Path) -> Path:
     return root / "commands" / "atomic_command_registry.json"
 
@@ -761,6 +860,7 @@ def _load_model_routing_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "model_routing_rules.json").read_text(encoding="utf-8"))
 
 
+
 def _load_mcp_profiles(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "mcp_profiles.json").read_text(encoding="utf-8"))
 
@@ -781,12 +881,24 @@ def _load_market_research_benchmark_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "market_research_benchmark_rules.json").read_text(encoding="utf-8"))
 
 
+def _load_intent_clarifier_contract_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "intent_clarifier_contract_rules.json").read_text(encoding="utf-8"))
+
+
 def _load_visual_intent_contract(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "visual_intent_contract_rules.json").read_text(encoding="utf-8"))
 
 
+def _load_brand_json_v2_readiness_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "brand_json_v2_readiness_rules.json").read_text(encoding="utf-8"))
+
+
 def _load_brand_profile_schema(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "brand_profile_schema_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_frontend_auto_audit_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "frontend_auto_audit_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_ui_pre_return_audit_rules(root: Path) -> Dict[str, Any]:
@@ -962,6 +1074,7 @@ def _validate_model_routing_rules(root: Path, findings: List[str]) -> None:
 
         if not isinstance(rule.get("requires_confirmation_when_ambiguous"), bool):
             findings.append(f"model_routing_rule_invalid_confirmation_flag:{index}")
+
 
 
 def _validate_mcp_profiles(root: Path, findings: List[str]) -> None:
@@ -1287,6 +1400,57 @@ def _validate_market_research_benchmark_rules(root: Path, findings: List[str]) -
                 findings.append(f"market_research_benchmark_reference_{index}:invalid_risk_signals")
             if str(item.get("default_recommendation", "")).strip() not in recommendation_types:
                 findings.append(f"market_research_benchmark_reference_{index}:invalid_default_recommendation")
+
+
+def _validate_intent_clarifier_contract_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_intent_clarifier_contract_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_intent_clarifier_contract_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("intent_clarifier_contract_rules_not_object")
+        return
+
+    missing_fields = INTENT_CLARIFIER_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(f"intent_clarifier_contract_rules_missing_fields:{','.join(sorted(missing_fields))}")
+
+    for field_name in (
+        "required_fields",
+        "ui_required_fields",
+        "recommended_fields",
+        "required_for_project_types",
+        "backend_exempt_project_types",
+        "weak_answer_patterns",
+        "approval_triggers",
+    ):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not value:
+            findings.append(f"intent_clarifier_contract_rules_invalid_list:{field_name}")
+
+    if not isinstance(rules.get("domain_signals"), dict) or not rules.get("domain_signals"):
+        findings.append("intent_clarifier_contract_rules_invalid_domain_signals")
+
+    required_fields = {str(item).strip() for item in rules.get("required_fields", []) if str(item).strip()}
+    missing_required = REQUIRED_INTENT_CLARIFIER_FIELDS - required_fields
+    if missing_required:
+        findings.append(
+            f"intent_clarifier_contract_rules_missing_required_fields:{','.join(sorted(missing_required))}"
+        )
+
+    ui_required_fields = {str(item).strip() for item in rules.get("ui_required_fields", []) if str(item).strip()}
+    missing_ui_required = REQUIRED_INTENT_CLARIFIER_UI_FIELDS - ui_required_fields
+    if missing_ui_required:
+        findings.append(
+            f"intent_clarifier_contract_rules_missing_ui_required_fields:{','.join(sorted(missing_ui_required))}"
+        )
+
+    if not isinstance(rules.get("advisory_only"), bool):
+        findings.append("intent_clarifier_contract_rules_invalid_advisory_only")
+    if not isinstance(rules.get("minimum_ready_fields"), int):
+        findings.append("intent_clarifier_contract_rules_invalid_minimum_ready_fields")
 
 
 def _validate_visual_intent_contract(root: Path, findings: List[str]) -> None:
@@ -1709,6 +1873,118 @@ def _validate_playwright_visual_qa_profiles(root: Path, findings: List[str]) -> 
             )
         if not str(profile.get("fallback", "")).strip():
             findings.append(f"playwright_visual_qa_profiles_invalid_profile_fallback:{profile_name}")
+
+
+def _validate_brand_json_v2_readiness_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_brand_json_v2_readiness_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_brand_json_v2_readiness_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("brand_json_v2_readiness_rules_not_object")
+        return
+
+    missing_fields = BRAND_JSON_V2_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(f"brand_json_v2_readiness_rules_missing_fields:{','.join(sorted(missing_fields))}")
+
+    for field_name in (
+        "required_sections",
+        "recommended_sections",
+        "required_for_project_types",
+        "backend_exempt_project_types",
+        "mood_vector_dimensions",
+        "minimum_evidence_expectations",
+    ):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not value:
+            findings.append(f"brand_json_v2_readiness_rules_invalid_list:{field_name}")
+
+    required_sections = {str(item).strip() for item in rules.get("required_sections", []) if str(item).strip()}
+    missing_sections = REQUIRED_BRAND_JSON_V2_SECTIONS - required_sections
+    if missing_sections:
+        findings.append(
+            f"brand_json_v2_readiness_rules_missing_required_sections:{','.join(sorted(missing_sections))}"
+        )
+
+    mood_dimensions = {str(item).strip() for item in rules.get("mood_vector_dimensions", []) if str(item).strip()}
+    missing_dimensions = REQUIRED_BRAND_MOOD_VECTOR_DIMENSIONS - mood_dimensions
+    if missing_dimensions:
+        findings.append(
+            f"brand_json_v2_readiness_rules_missing_mood_vector_dimensions:{','.join(sorted(missing_dimensions))}"
+        )
+
+    if not isinstance(rules.get("advisory_only"), bool):
+        findings.append("brand_json_v2_readiness_rules_invalid_advisory_only")
+    if not isinstance(rules.get("explicit_profile_required_for_ready"), bool):
+        findings.append("brand_json_v2_readiness_rules_invalid_explicit_profile_required_for_ready")
+
+
+def _validate_frontend_auto_audit_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_frontend_auto_audit_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_frontend_auto_audit_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("frontend_auto_audit_rules_not_object")
+        return
+
+    missing_fields = FRONTEND_AUTO_AUDIT_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(f"frontend_auto_audit_rules_missing_fields:{','.join(sorted(missing_fields))}")
+
+    for field_name in (
+        "required_for_project_types",
+        "backend_exempt_project_types",
+        "required_inputs",
+        "warning_codes",
+        "watchlist_dependencies",
+    ):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not value:
+            findings.append(f"frontend_auto_audit_rules_invalid_list:{field_name}")
+
+    required_inputs = {str(item).strip() for item in rules.get("required_inputs", []) if str(item).strip()}
+    missing_inputs = REQUIRED_FRONTEND_AUTO_AUDIT_INPUTS - required_inputs
+    if missing_inputs:
+        findings.append(
+            f"frontend_auto_audit_rules_missing_required_inputs:{','.join(sorted(missing_inputs))}"
+        )
+
+    checks = rules.get("checks")
+    if not isinstance(checks, dict) or not checks:
+        findings.append("frontend_auto_audit_rules_invalid_checks")
+    else:
+        missing_checks = REQUIRED_FRONTEND_AUTO_AUDIT_CHECKS - set(checks.keys())
+        if missing_checks:
+            findings.append(f"frontend_auto_audit_rules_missing_checks:{','.join(sorted(missing_checks))}")
+        for check_id, rule in checks.items():
+            if not isinstance(rule, dict):
+                findings.append(f"frontend_auto_audit_rules_invalid_check:{check_id}")
+                continue
+            missing_rule_fields = {"severity", "signal", "why_it_matters", "recommended_fix", "blocks_ready_if_present"} - set(rule.keys())
+            if missing_rule_fields:
+                findings.append(
+                    f"frontend_auto_audit_rules_missing_check_fields:{check_id}:{','.join(sorted(missing_rule_fields))}"
+                )
+            if str(rule.get("severity", "")).strip() not in VALID_SKILL_RISK_LEVELS:
+                findings.append(f"frontend_auto_audit_rules_invalid_check_severity:{check_id}")
+            if not isinstance(rule.get("blocks_ready_if_present"), bool):
+                findings.append(f"frontend_auto_audit_rules_invalid_check_blocking:{check_id}")
+
+    warning_codes = {str(item).strip() for item in rules.get("warning_codes", []) if str(item).strip()}
+    missing_warning_codes = REQUIRED_FRONTEND_AUTO_AUDIT_WARNING_CODES - warning_codes
+    if missing_warning_codes:
+        findings.append(
+            f"frontend_auto_audit_rules_missing_warning_codes:{','.join(sorted(missing_warning_codes))}"
+        )
+
+    if not isinstance(rules.get("advisory_only"), bool):
+        findings.append("frontend_auto_audit_rules_invalid_advisory_only")
 
 
 def _validate_design_quality_enforcement_rules(root: Path, findings: List[str]) -> None:
@@ -2649,8 +2925,11 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_skill_lifecycle_rules(root, findings)
         _validate_skill_improvement_review_rules(root, findings)
         _validate_market_research_benchmark_rules(root, findings)
+        _validate_intent_clarifier_contract_rules(root, findings)
         _validate_visual_intent_contract(root, findings)
+        _validate_brand_json_v2_readiness_rules(root, findings)
         _validate_brand_profile_schema(root, findings)
+        _validate_frontend_auto_audit_rules(root, findings)
         _validate_ui_pre_return_audit_rules(root, findings)
         _validate_creative_pipeline_profiles(root, findings)
         _validate_component_inspiration_profiles(root, findings)

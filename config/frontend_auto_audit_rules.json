@@ -1,0 +1,87 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "required_for_project_types": [
+    "frontend_app",
+    "fullstack",
+    "internal_tool"
+  ],
+  "backend_exempt_project_types": [
+    "backend_service"
+  ],
+  "required_inputs": [
+    "intent_clarifier_contract",
+    "visual_intent_contract_review",
+    "brand_json_v2_readiness",
+    "brand_profile_review",
+    "ui_pre_return_review",
+    "design_quality_review",
+    "design_checks"
+  ],
+  "checks": {
+    "intent_clarifier_ready": {
+      "severity": "high",
+      "signal": "intent clarifier contract status is ready",
+      "why_it_matters": "Weak upstream intent tends to cascade into generic layout and branding choices.",
+      "recommended_fix": "Clarify audience, domain, goal, style direction and originality level before stronger handoff claims.",
+      "blocks_ready_if_present": true
+    },
+    "visual_intent_contract_ready": {
+      "severity": "high",
+      "signal": "visual intent contract status is ready",
+      "why_it_matters": "UI work should not reach final readiness without an explicit visual direction contract.",
+      "recommended_fix": "Complete the visual intent contract before stronger visual readiness claims.",
+      "blocks_ready_if_present": true
+    },
+    "brand_json_v2_ready": {
+      "severity": "high",
+      "signal": "brand json v2 readiness status is ready",
+      "why_it_matters": "Identity and differentiation should be explicit before final UI handoff.",
+      "recommended_fix": "Document an explicit brand profile strong enough to act as a governed brand artifact.",
+      "blocks_ready_if_present": true
+    },
+    "ui_pre_return_ready": {
+      "severity": "high",
+      "signal": "ui pre-return review is ready",
+      "why_it_matters": "Atlas should not skip the final local pre-return UI check.",
+      "recommended_fix": "Resolve the pre-return blockers before claiming the UI is ready.",
+      "blocks_ready_if_present": true
+    },
+    "design_quality_ready": {
+      "severity": "high",
+      "signal": "design quality review is ready for handoff",
+      "why_it_matters": "Functionally correct but visually weak work should not pass a final UI gate.",
+      "recommended_fix": "Address visual-system and hierarchy problems before handoff.",
+      "blocks_ready_if_present": true
+    },
+    "responsive_baseline_present": {
+      "severity": "medium",
+      "signal": "responsive baseline check is present and passing",
+      "why_it_matters": "Frontend handoff claims need at least one explicit responsive signal.",
+      "recommended_fix": "Capture a passing responsive baseline check before final handoff.",
+      "blocks_ready_if_present": false
+    },
+    "evidence_expectations_defined": {
+      "severity": "high",
+      "signal": "evidence expectations are defined",
+      "why_it_matters": "Without explicit proof expectations, Atlas risks giving unsupported PASS claims.",
+      "recommended_fix": "Declare the minimum evidence expected before PASS.",
+      "blocks_ready_if_present": true
+    }
+  },
+  "warning_codes": [
+    "frontend_auto_audit_missing",
+    "frontend_auto_audit_missing_intent_clarifier",
+    "frontend_auto_audit_missing_brand_json_v2",
+    "frontend_auto_audit_missing_evidence",
+    "frontend_auto_audit_not_ready",
+    "frontend_auto_audit_watchlist_screenshots",
+    "frontend_auto_audit_watchlist_visual_fidelity",
+    "frontend_auto_audit_watchlist_reality_check"
+  ],
+  "watchlist_dependencies": [
+    "evidence_collector_screenshots",
+    "visual_fidelity_judge",
+    "final_reality_checker"
+  ]
+}
