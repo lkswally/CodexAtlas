@@ -195,6 +195,7 @@ def test_skill_improvement_review_external_candidate_can_require_human_approval(
 
         assert result["candidate_opportunities"]
         assert result["requires_human_approval"] is True
+        assert result["candidate_opportunities"][0]["atlas_fit_decision"] in {"adapt_now", "design_later"}
     finally:
         shutil.rmtree(root.parent, ignore_errors=True)
 
@@ -219,5 +220,31 @@ def test_skill_improvement_review_external_high_risk_candidate_is_blocked():
         assert result["blocked_candidates"]
         assert result["requires_decision_council"] is True
         assert result["blocked_candidates"][0]["recommendation"] == "decision_council_required"
+        assert result["blocked_candidates"][0]["atlas_fit_decision"] == "watchlist"
     finally:
         shutil.rmtree(root, ignore_errors=True)
+
+
+def test_skill_improvement_review_discards_claude_only_candidate():
+    root = _make_workspace_root()
+    try:
+        _make_skill(root, "repo-audit", intent_keywords=["repo audit", "surface review"], skill_md="# Skill\n\n## When to Use\nUse it.\n\n## Steps\n1. Review.\n")
+        _add_test_reference(root, "repo-audit")
+
+        result = review_skill_catalog(
+            root=root,
+            external_candidates=[
+                {
+                    "candidate_name": "claude-hook-sync",
+                    "problem_statement": "Need Claude-specific hooks and CLAUDE.md runtime glue for automatic workflow injection.",
+                    "source": "claude-only-radar",
+                    "claude_only": True,
+                }
+            ],
+        )
+
+        assert result["blocked_candidates"]
+        assert result["blocked_candidates"][0]["atlas_fit_decision"] == "discard"
+        assert result["blocked_candidates"][0]["recommendation"] == "reject"
+    finally:
+        shutil.rmtree(root.parent, ignore_errors=True)

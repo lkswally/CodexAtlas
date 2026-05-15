@@ -440,16 +440,22 @@ def _review_external_candidates(
             "requires_decision_council": bool(evaluation.get("requires_decision_council")),
             "why": evaluation.get("why"),
         }
+        atlas_fit_decision, atlas_fit_reason = _atlas_fit_decision(candidate, evaluation)
+        entry["atlas_fit_decision"] = atlas_fit_decision
+        entry["atlas_fit_reason"] = atlas_fit_reason
         requires_human_approval = requires_human_approval or bool(entry["requires_human_approval"])
         requires_decision_council = requires_decision_council or bool(entry["requires_decision_council"])
 
-        if entry["requires_decision_council"]:
+        if atlas_fit_decision == "discard":
+            entry["recommendation"] = "reject"
+            blocked.append(entry)
+        elif entry["requires_decision_council"] or atlas_fit_decision == "watchlist":
             entry["recommendation"] = "decision_council_required"
             blocked.append(entry)
-        elif entry["lifecycle_recommendation"] == "promote_to_experimental":
+        elif atlas_fit_decision == "adapt_now" or entry["lifecycle_recommendation"] == "promote_to_experimental":
             entry["recommendation"] = "candidate_review"
             opportunities.append(entry)
-        elif entry["lifecycle_recommendation"] == "hold_as_candidate":
+        elif atlas_fit_decision == "design_later" or entry["lifecycle_recommendation"] == "hold_as_candidate":
             entry["recommendation"] = "candidate_review"
             opportunities.append(entry)
         else:
@@ -457,6 +463,27 @@ def _review_external_candidates(
             blocked.append(entry)
 
     return opportunities, blocked, requires_human_approval, requires_decision_council
+
+
+def _atlas_fit_decision(candidate: Dict[str, Any], evaluation: Dict[str, Any]) -> Tuple[str, str]:
+    claude_only = bool(candidate.get("claude_only"))
+    requires_runtime = bool(candidate.get("requires_runtime"))
+    requires_secrets = bool(candidate.get("requires_secrets"))
+    duplication_risk = str(evaluation.get("duplication_risk", "low")).strip()
+    dependency_risk = str(evaluation.get("external_dependency_risk", "low")).strip()
+    lifecycle = str(evaluation.get("lifecycle_recommendation", "")).strip()
+
+    if claude_only:
+        return "discard", "candidate_is_claude_only_or_runtime_locked"
+    if duplication_risk == "high":
+        return "discard", "candidate_overlaps_existing_atlas_capability"
+    if requires_runtime or requires_secrets or dependency_risk == "high" or bool(evaluation.get("requires_decision_council")):
+        return "watchlist", "candidate_requires_runtime_or_secret_surface"
+    if lifecycle == "promote_to_experimental" and not bool(evaluation.get("requires_human_approval")):
+        return "adapt_now", "candidate_fits_atlas_without_new_runtime_surface"
+    if lifecycle in {"promote_to_experimental", "hold_as_candidate"}:
+        return "design_later", "candidate_has_potential_but_needs_human_review"
+    return "discard", "candidate_does_not_improve_atlas_enough"
 
 
 def _build_next_actions(
