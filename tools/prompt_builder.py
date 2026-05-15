@@ -8,11 +8,13 @@ from typing import Any, Dict, List, Optional
 
 try:
     from tools.feedback_analyzer import analyze_feedback
+    from tools.model_cost_control_readiness import assess_model_cost_control
     from tools.model_router import recommend_model_profile
     from tools.project_intent_analyzer import analyze_project_intent
     from tools.project_phase_resolver import resolve_project_phase
 except ModuleNotFoundError:
     from feedback_analyzer import analyze_feedback
+    from model_cost_control_readiness import assess_model_cost_control
     from model_router import recommend_model_profile
     from project_intent_analyzer import analyze_project_intent
     from project_phase_resolver import resolve_project_phase
@@ -72,6 +74,7 @@ def _prompt_lines(
     phase_report: Dict[str, Any],
     intent: Dict[str, Any],
     model_route: Dict[str, Any],
+    model_cost_control: Optional[Dict[str, Any]],
     priority_bundle: Optional[Dict[str, Any]],
     feedback_analysis: Optional[Dict[str, Any]],
     include_research_guidance: bool,
@@ -181,6 +184,20 @@ def _prompt_lines(
         lines.append(f"CuÃ¡ndo usar el modelo fuerte: {stronger_hint}")
     if bool(model_route.get("requires_user_confirmation")):
         lines.append(f"ConfirmaciÃ³n pendiente: {model_route.get('question_for_user')}")
+    if isinstance(model_cost_control, dict):
+        tier = str(model_cost_control.get("recommended_model_tier", "")).strip()
+        cost_saver = str(model_cost_control.get("cost_saver_strategy", "")).strip()
+        context_reduction = str(model_cost_control.get("context_reduction_strategy", "")).strip()
+        if tier:
+            lines.append(f"Tier de costo sugerido: `{tier}`.")
+        if cost_saver:
+            lines.append(f"Estrategia de ahorro de costo: {cost_saver}")
+        if context_reduction:
+            lines.append(f"Estrategia de reducciÃ³n de contexto: {context_reduction}")
+        if bool(model_cost_control.get("split_task_recommended")):
+            lines.append("Atlas recomienda dividir la tarea antes de ampliar contexto o subir de tier.")
+        if bool(model_cost_control.get("requires_user_confirmation")):
+            lines.append("Cost control sugiere confirmaciÃ³n humana antes de una escalada costosa o ambigua.")
     if recommended_command:
         lines.append(f"Comando Atlas más alineado ahora: `{recommended_command}`.")
     lines.append("Quiero un informe final breve con lo hecho, lo validado y los riesgos residuales.")
@@ -301,6 +318,13 @@ def build_prompt(
         complexity=str(intent.get("complexity", "low")).strip(),
         project_type=str(intent.get("project_type", "unknown")).strip(),
     )
+    model_cost_control = assess_model_cost_control(
+        root=root,
+        task=(str(intent.get("objective", "")).strip() or brief or ""),
+        risk_level=str(intent.get("risk_level", "low")).strip(),
+        complexity=str(intent.get("complexity", "low")).strip(),
+        current_phase=current_phase,
+    )
     prompt = "\n".join(
         _prompt_lines(
             project=project,
@@ -311,6 +335,7 @@ def build_prompt(
             phase_report=phase_report,
             intent=intent,
             model_route=model_route,
+            model_cost_control=model_cost_control,
             priority_bundle=priority_bundle,
             feedback_analysis=feedback_analysis,
             include_research_guidance=_requires_research_guidance(
@@ -340,6 +365,7 @@ def build_prompt(
         "missing_definition": intent.get("missing_definition", []),
         "prompt": prompt,
         "model_profile_recommendation": model_route,
+        "model_cost_control_posture": model_cost_control,
         "active_runtime_model": model_route.get("active_runtime_model", "manual_or_unknown"),
         "model_switch_mode": model_route.get("model_switch_mode", "manual_required"),
         "recommended_model_is_advisory": bool(model_route.get("recommended_model_is_advisory", True)),

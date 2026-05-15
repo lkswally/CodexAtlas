@@ -39,6 +39,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["source_reports"]["error_pattern_analyzer"]["status"] == "ok"
     assert isinstance(result["intent_analysis"], dict)
     assert isinstance(result["design_quality_posture"], dict)
+    assert isinstance(result["model_cost_control_posture"], dict)
     assert isinstance(result["visual_intent_posture"], dict)
     assert result["visual_intent_posture"]["advisory_only"] is True
     assert isinstance(result["brand_profile_posture"], dict)
@@ -116,6 +117,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert "blocked_profiles" in result["component_inspiration_posture"]
     assert "playwright_available" in result["visual_qa_readiness_posture"]
     assert "blocked_profiles" in result["visual_qa_readiness_posture"]
+    assert "recommended_model_tier" in result["model_cost_control_posture"]
     assert "required_fields" in result["visual_intent_posture"]
     assert "missing_fields" in result["visual_intent_posture"]
     assert "required_fields" in result["brand_profile_posture"]
@@ -144,7 +146,6 @@ def test_quality_gate_report_exposes_visual_qa_readiness_posture():
     assert result["visual_qa_readiness_posture"]["advisory_only"] is True
     assert "playwright_available" in result["visual_qa_readiness_posture"]
     assert "blocked_profiles" in result["visual_qa_readiness_posture"]
-
 
 def test_quality_gate_report_uses_existing_outputs_to_mark_not_ready():
     phase_report = {

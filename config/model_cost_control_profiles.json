@@ -1,0 +1,140 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "tiers": {
+    "strong": {
+      "description": "Use only when risk, complexity or ambiguity justify the cost.",
+      "preferred_for_task_types": [
+        "planning",
+        "architecture",
+        "audit_review",
+        "security_review",
+        "design_reasoning"
+      ],
+      "preferred_for_risk_levels": [
+        "high"
+      ],
+      "preferred_for_complexity_levels": [
+        "high"
+      ],
+      "default_cost_saver_strategy": "use_strong_model_only_for_decision_points_then_downshift",
+      "default_context_reduction_strategy": "summarize_prior_evidence_before_escalation"
+    },
+    "medium": {
+      "description": "Use for bounded implementation, review and follow-up work.",
+      "preferred_for_task_types": [
+        "code_execution",
+        "audit_review",
+        "documentation",
+        "design_reasoning"
+      ],
+      "preferred_for_risk_levels": [
+        "medium"
+      ],
+      "preferred_for_complexity_levels": [
+        "medium"
+      ],
+      "default_cost_saver_strategy": "start_with_mid_tier_and_escalate_only_if_blocked",
+      "default_context_reduction_strategy": "trim_background_to_relevant_files_and_findings"
+    },
+    "mini": {
+      "description": "Use for low-risk triage, summarization and lightweight edits.",
+      "preferred_for_task_types": [
+        "documentation",
+        "triage",
+        "lightweight_editing"
+      ],
+      "preferred_for_risk_levels": [
+        "low"
+      ],
+      "preferred_for_complexity_levels": [
+        "low"
+      ],
+      "default_cost_saver_strategy": "use_mini_for_triage_or_summary_before_any_upgrade",
+      "default_context_reduction_strategy": "keep_scope_tight_and_remove_nonessential_background"
+    }
+  },
+  "context_thresholds": {
+    "small_chars": 240,
+    "medium_chars": 1200,
+    "large_chars": 3200
+  },
+  "split_task_rules": {
+    "large_context_requires_split": true,
+    "mixed_planning_and_execution_requires_split": true,
+    "high_risk_plus_high_complexity_requires_split": true
+  },
+  "confirmation_triggers": {
+    "strong_tier_requires_confirmation": true,
+    "ambiguous_task_type_requires_confirmation": true,
+    "large_context_requires_confirmation": true,
+    "cost_vs_quality_unclear_requires_confirmation": true
+  },
+  "task_type_hints": {
+    "planning": [
+      "plan",
+      "roadmap",
+      "strategy",
+      "next steps"
+    ],
+    "architecture": [
+      "architecture",
+      "boundary",
+      "system design",
+      "contracts"
+    ],
+    "code_execution": [
+      "implement",
+      "fix",
+      "edit",
+      "refactor"
+    ],
+    "audit_review": [
+      "audit",
+      "review",
+      "quality gate",
+      "validate"
+    ],
+    "documentation": [
+      "readme",
+      "docs",
+      "documentation",
+      "status"
+    ],
+    "design_reasoning": [
+      "design",
+      "branding",
+      "ux",
+      "visual"
+    ],
+    "security_review": [
+      "security",
+      "secret",
+      "auth",
+      "permission"
+    ],
+    "lightweight_editing": [
+      "small",
+      "minor",
+      "quick",
+      "lightweight"
+    ],
+    "triage": [
+      "summarize",
+      "classify",
+      "list",
+      "triage"
+    ]
+  },
+  "risk_signals": {
+    "token_waste": [
+      "oversized_context_for_low_risk_task",
+      "strong_tier_for_low_risk_task",
+      "mixed_task_without_split"
+    ],
+    "clarity": [
+      "ambiguous_task_type",
+      "cost_vs_quality_not_explicit"
+    ]
+  }
+}

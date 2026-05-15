@@ -27,6 +27,7 @@ REQUIRED_ROOT_FILES = (
     "README.md",
     "config/model_profiles.json",
     "config/model_routing_rules.json",
+    "config/model_cost_control_profiles.json",
     "config/mcp_profiles.json",
     "config/docs_search_catalog.json",
     "config/phase_playbook.json",
@@ -76,6 +77,7 @@ REQUIRED_ROOT_FILES = (
     "policies/template_quality_check_policy.md",
     "policies/mcp_connector_policy.md",
     "policies/model_routing_policy.md",
+    "policies/model_cost_control_policy.md",
     "policies/mcp_routing_policy.md",
     "policies/cost_control_policy.md",
     "policies/external_tool_policy.md",
@@ -147,6 +149,7 @@ REQUIRED_ROOT_FILES = (
     "tools/feedback_analyzer.py",
     "tools/model_router.py",
     "tools/model_router_core.py",
+    "tools/model_cost_control_readiness.py",
     "tools/error_pattern_analyzer.py",
     "tools/repo_improvement_scout.py",
     "tools/mcp_readiness_check.py",
@@ -175,6 +178,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_decision_feedback.py",
     "tests/test_feedback_analyzer.py",
     "tests/test_model_router.py",
+    "tests/test_model_cost_control_readiness.py",
     "tests/test_error_pattern_analyzer.py",
     "tests/test_repo_improvement_scout.py",
     "tests/test_mcp_readiness_check.py",
@@ -807,6 +811,38 @@ VALID_DESIGN_QUALITY_REDESIGN_LEVELS = {
     "visual_system_refactor",
     "full_redesign",
 }
+MODEL_COST_CONTROL_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "tiers",
+    "context_thresholds",
+    "split_task_rules",
+    "confirmation_triggers",
+    "task_type_hints",
+    "risk_signals",
+}
+MODEL_COST_CONTROL_REQUIRED_TIERS = {"strong", "medium", "mini"}
+MODEL_COST_CONTROL_TIER_REQUIRED_FIELDS = {
+    "description",
+    "preferred_for_task_types",
+    "preferred_for_risk_levels",
+    "preferred_for_complexity_levels",
+    "default_cost_saver_strategy",
+    "default_context_reduction_strategy",
+}
+MODEL_COST_CONTROL_REQUIRED_CONTEXT_THRESHOLDS = {"small_chars", "medium_chars", "large_chars"}
+MODEL_COST_CONTROL_REQUIRED_SPLIT_RULES = {
+    "large_context_requires_split",
+    "mixed_planning_and_execution_requires_split",
+    "high_risk_plus_high_complexity_requires_split",
+}
+MODEL_COST_CONTROL_REQUIRED_CONFIRMATION_TRIGGERS = {
+    "strong_tier_requires_confirmation",
+    "ambiguous_task_type_requires_confirmation",
+    "large_context_requires_confirmation",
+    "cost_vs_quality_unclear_requires_confirmation",
+}
+
 
 def _primary_registry_path(root: Path) -> Path:
     return root / "commands" / "atomic_command_registry.json"
@@ -859,6 +895,9 @@ def _load_model_profiles(root: Path) -> Dict[str, Any]:
 def _load_model_routing_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "model_routing_rules.json").read_text(encoding="utf-8"))
 
+
+def _load_model_cost_control_profiles(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "model_cost_control_profiles.json").read_text(encoding="utf-8"))
 
 
 def _load_mcp_profiles(root: Path) -> Dict[str, Any]:
@@ -1076,6 +1115,80 @@ def _validate_model_routing_rules(root: Path, findings: List[str]) -> None:
             findings.append(f"model_routing_rule_invalid_confirmation_flag:{index}")
 
 
+def _validate_model_cost_control_profiles(root: Path, findings: List[str]) -> None:
+    try:
+        config = _load_model_cost_control_profiles(root)
+    except Exception as exc:
+        findings.append(f"invalid_model_cost_control_profiles_json:{exc}")
+        return
+
+    if not isinstance(config, dict):
+        findings.append("model_cost_control_profiles_not_object")
+        return
+
+    missing_fields = MODEL_COST_CONTROL_REQUIRED_FIELDS - set(config.keys())
+    if missing_fields:
+        findings.append(f"model_cost_control_profiles_missing_fields:{','.join(sorted(missing_fields))}")
+
+    tiers = config.get("tiers")
+    if not isinstance(tiers, dict) or not tiers:
+        findings.append("model_cost_control_profiles_invalid_tiers")
+    else:
+        missing_tiers = MODEL_COST_CONTROL_REQUIRED_TIERS - set(tiers.keys())
+        if missing_tiers:
+            findings.append(f"model_cost_control_profiles_missing_tiers:{','.join(sorted(missing_tiers))}")
+        for tier_name, tier in tiers.items():
+            if not isinstance(tier, dict):
+                findings.append(f"model_cost_control_profiles_invalid_tier:{tier_name}")
+                continue
+            missing_tier_fields = MODEL_COST_CONTROL_TIER_REQUIRED_FIELDS - set(tier.keys())
+            if missing_tier_fields:
+                findings.append(
+                    f"model_cost_control_profiles_missing_tier_fields:{tier_name}:{','.join(sorted(missing_tier_fields))}"
+                )
+            for field_name in (
+                "preferred_for_task_types",
+                "preferred_for_risk_levels",
+                "preferred_for_complexity_levels",
+            ):
+                value = tier.get(field_name)
+                if not isinstance(value, list) or not value:
+                    findings.append(f"model_cost_control_profiles_invalid_tier_list:{tier_name}:{field_name}")
+
+    context_thresholds = config.get("context_thresholds")
+    if not isinstance(context_thresholds, dict) or not context_thresholds:
+        findings.append("model_cost_control_profiles_invalid_context_thresholds")
+    else:
+        missing_thresholds = MODEL_COST_CONTROL_REQUIRED_CONTEXT_THRESHOLDS - set(context_thresholds.keys())
+        if missing_thresholds:
+            findings.append(
+                f"model_cost_control_profiles_missing_context_thresholds:{','.join(sorted(missing_thresholds))}"
+            )
+
+    split_task_rules = config.get("split_task_rules")
+    if not isinstance(split_task_rules, dict) or not split_task_rules:
+        findings.append("model_cost_control_profiles_invalid_split_task_rules")
+    else:
+        missing_split_rules = MODEL_COST_CONTROL_REQUIRED_SPLIT_RULES - set(split_task_rules.keys())
+        if missing_split_rules:
+            findings.append(
+                f"model_cost_control_profiles_missing_split_task_rules:{','.join(sorted(missing_split_rules))}"
+            )
+
+    confirmation_triggers = config.get("confirmation_triggers")
+    if not isinstance(confirmation_triggers, dict) or not confirmation_triggers:
+        findings.append("model_cost_control_profiles_invalid_confirmation_triggers")
+    else:
+        missing_confirmation = MODEL_COST_CONTROL_REQUIRED_CONFIRMATION_TRIGGERS - set(confirmation_triggers.keys())
+        if missing_confirmation:
+            findings.append(
+                f"model_cost_control_profiles_missing_confirmation_triggers:{','.join(sorted(missing_confirmation))}"
+            )
+
+    for field_name in ("task_type_hints", "risk_signals"):
+        value = config.get(field_name)
+        if not isinstance(value, dict) or not value:
+            findings.append(f"model_cost_control_profiles_invalid_dict:{field_name}")
 
 def _validate_mcp_profiles(root: Path, findings: List[str]) -> None:
     try:
@@ -2920,6 +3033,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
             findings.append("project_state_invalid_legacy_compatibility")
 
         _validate_model_routing_rules(root, findings)
+        _validate_model_cost_control_profiles(root, findings)
         _validate_mcp_profiles(root, findings)
         _validate_external_tool_policy(root, findings)
         _validate_skill_lifecycle_rules(root, findings)

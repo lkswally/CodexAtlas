@@ -74,6 +74,10 @@ try:
     from tools.frontend_auto_audit_rules import audit_frontend_auto_readiness
 except ModuleNotFoundError:
     from frontend_auto_audit_rules import audit_frontend_auto_readiness
+try:
+    from tools.model_cost_control_readiness import assess_model_cost_control
+except ModuleNotFoundError:
+    from model_cost_control_readiness import assess_model_cost_control
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -466,6 +470,29 @@ def _run_frontend_auto_audit_rules(
     except Exception as exc:
         return _build_failed_report("frontend_auto_audit_rules", f"frontend_auto_audit_rules_failed:{exc}")
     return _build_ok_report("frontend_auto_audit_rules", report)
+
+
+def _run_model_cost_control(
+    *,
+    root: Path,
+    intent_report: Optional[Dict[str, Any]],
+    current_phase: Optional[str],
+    top_priorities: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    objective = str((intent_report or {}).get("objective", "")).strip()
+    priority_messages = [str(item.get("message", "")).strip() for item in top_priorities if str(item.get("message", "")).strip()]
+    task = objective or ". ".join(priority_messages[:2]) or "Atlas quality gate follow-up."
+    try:
+        report = assess_model_cost_control(
+            root=root,
+            task=task,
+            risk_level=str((intent_report or {}).get("risk_level", "medium")).strip() or "medium",
+            complexity=str((intent_report or {}).get("complexity", "medium")).strip() or "medium",
+            current_phase=str(current_phase or "").strip() or None,
+        )
+    except Exception as exc:
+        return _build_failed_report("model_cost_control_readiness", f"model_cost_control_readiness_failed:{exc}")
+    return _build_ok_report("model_cost_control_readiness", report)
 
 
 def _extract_certify_blockers(certify_report: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -1052,7 +1079,6 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "design_checks": design_report.get("checks", []),
         },
     )
-
     blockers = _extract_certify_blockers(source_reports["certify-project"])
     warnings: List[Dict[str, Any]] = []
     seen: set[Tuple[str, str]] = set()
@@ -1094,7 +1120,6 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     for item in _build_frontend_auto_audit_warnings(source_reports["frontend_auto_audit_rules"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
-
     certify_report = source_reports["certify-project"].get("report") or {}
     for warning in certify_report.get("result", {}).get("warnings", []):
         if not isinstance(warning, dict):
@@ -1185,6 +1210,12 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         project,
         phase_report=phase_data,
         intent_report=source_reports["project_intent_analyzer"]["report"] if source_reports["project_intent_analyzer"]["status"] == "ok" else {},
+    )
+    source_reports["model_cost_control_readiness"] = _run_model_cost_control(
+        root=root,
+        intent_report=source_reports["project_intent_analyzer"]["report"] if source_reports["project_intent_analyzer"]["status"] == "ok" else {},
+        current_phase=current_phase,
+        top_priorities=top_priorities,
     )
     priority_bundle = build_execution_plan(
         phase_guidance=phase_guidance,
@@ -1338,6 +1369,18 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "required_redesign_level": (design_quality_review or {}).get("required_redesign_level"),
             "why": (design_quality_review or {}).get("why"),
             "advisory_only": bool((design_quality_review or {}).get("advisory_only", True)),
+        },
+        "model_cost_control_posture": {
+            "status": (source_reports["model_cost_control_readiness"]["report"] or {}).get("status"),
+            "recommended_model_tier": (source_reports["model_cost_control_readiness"]["report"] or {}).get("recommended_model_tier"),
+            "cost_saver_strategy": (source_reports["model_cost_control_readiness"]["report"] or {}).get("cost_saver_strategy"),
+            "context_reduction_strategy": (source_reports["model_cost_control_readiness"]["report"] or {}).get("context_reduction_strategy"),
+            "split_task_recommended": bool((source_reports["model_cost_control_readiness"]["report"] or {}).get("split_task_recommended")),
+            "requires_user_confirmation": bool((source_reports["model_cost_control_readiness"]["report"] or {}).get("requires_user_confirmation")),
+            "risks": (source_reports["model_cost_control_readiness"]["report"] or {}).get("risks", []),
+            "manual_action_required": (source_reports["model_cost_control_readiness"]["report"] or {}).get("manual_action_required"),
+            "why": (source_reports["model_cost_control_readiness"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["model_cost_control_readiness"]["report"] or {}).get("advisory_only", True)),
         },
         "model_routing": source_reports["model_router"]["report"] if source_reports["model_router"]["status"] == "ok" else None,
         "external_tool_posture": external_tool_posture,
