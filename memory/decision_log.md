@@ -1,6 +1,12 @@
 # Decision Log
 
 ## 2026-05-15
+- Decision: add `atlas_memory_readiness` as a local-first advisory layer before Atlas communicates stronger memory continuity
+- Reason: Atlas already keeps useful local decision, routing and governance traces, but it still needed one explicit boundary between safe documentary continuity and riskier plugin, sync or auto-injection memory patterns inspired by external ecosystems
+- Impact: Atlas can now report which memory profiles are safely usable from existing local files, which remain blocked or watchlisted, and what manual steps are required before any stronger memory claim
+- Risk: users could still confuse local continuity with autonomous memory if the advisory boundary is not kept explicit in quality gates and roadmap docs
+- Rollback: remove `config/atlas_memory_readiness_profiles.json`, `policies/atlas_memory_readiness_policy.md`, `tools/atlas_memory_readiness.py` and the related governance/quality-gate/test wiring
+
 - Decision: add `atlas_error_learning_review` as a local advisory layer before Atlas calls a UI, landing or integration ready
 - Reason: repeated failures showed that existing visual and readiness guardrails were still too easy to bypass or communicate too optimistically
 - Impact: Atlas can now downgrade readiness when known regressions reappear, including missing visual evidence, CTA/onboarding failure, landing-as-README drift or integrations claimed as active before they are truly ready

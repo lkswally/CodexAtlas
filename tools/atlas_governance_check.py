@@ -47,6 +47,7 @@ REQUIRED_ROOT_FILES = (
     "config/design_quality_enforcement_rules.json",
     "config/atlas_error_learning_rules.json",
     "config/codex_runtime_compatibility_rules.json",
+    "config/atlas_memory_readiness_profiles.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -98,6 +99,7 @@ REQUIRED_ROOT_FILES = (
     "policies/design_quality_enforcement_policy.md",
     "policies/atlas_error_learning_policy.md",
     "policies/codex_runtime_compatibility_policy.md",
+    "policies/atlas_memory_readiness_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
     "memory/session_summaries.md",
@@ -172,6 +174,7 @@ REQUIRED_ROOT_FILES = (
     "tools/design_quality_enforcement.py",
     "tools/atlas_error_learning_review.py",
     "tools/codex_runtime_compatibility_check.py",
+    "tools/atlas_memory_readiness.py",
     "tests/test_atlas_orchestrator.py",
     "tests/test_certify_project.py",
     "tests/test_docs_catalog_report.py",
@@ -205,6 +208,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_design_quality_enforcement.py",
     "tests/test_atlas_error_learning_review.py",
     "tests/test_codex_runtime_compatibility_check.py",
+    "tests/test_atlas_memory_readiness.py",
     "tests/test_surface_audit.py",
     "templates/project_bootstrap_profiles.md",
 )
@@ -874,6 +878,30 @@ CODEX_RUNTIME_COMPATIBILITY_REQUIRED_LIMITATIONS = {
     "config_visibility_can_be_partial",
     "runtime_probe_is_not_execution_proof",
 }
+ATLAS_MEMORY_READINESS_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "risk_categories",
+    "local_sources",
+    "profiles",
+}
+ATLAS_MEMORY_READINESS_REQUIRED_PROFILES = {
+    "local_session_summary",
+    "cross_session_factory_memory",
+    "derived_project_memory",
+    "plugin_memory_watchlist",
+    "auto_injection_watchlist",
+    "cross_machine_sync_watchlist",
+}
+ATLAS_MEMORY_READINESS_REQUIRED_PROFILE_FIELDS = {
+    "description",
+    "required_sources",
+    "risk_level",
+    "initial_state",
+    "requires_human_approval",
+    "fallback",
+}
+ATLAS_MEMORY_READINESS_VALID_STATES = {"advisory", "approval_required", "watchlist"}
 MODEL_COST_CONTROL_REQUIRED_FIELDS = {
     "version",
     "advisory_only",
@@ -1029,6 +1057,10 @@ def _load_atlas_error_learning_rules(root: Path) -> Dict[str, Any]:
 
 def _load_codex_runtime_compatibility_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "codex_runtime_compatibility_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_atlas_memory_readiness_profiles(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "atlas_memory_readiness_profiles.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -1260,6 +1292,78 @@ def _validate_model_cost_control_profiles(root: Path, findings: List[str]) -> No
         value = config.get(field_name)
         if not isinstance(value, dict) or not value:
             findings.append(f"model_cost_control_profiles_invalid_dict:{field_name}")
+
+
+def _validate_atlas_memory_readiness_profiles(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_atlas_memory_readiness_profiles(root)
+    except Exception as exc:
+        findings.append(f"invalid_atlas_memory_readiness_profiles_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("atlas_memory_readiness_profiles_not_object")
+        return
+
+    missing_fields = ATLAS_MEMORY_READINESS_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(
+            f"atlas_memory_readiness_profiles_missing_fields:{','.join(sorted(missing_fields))}"
+        )
+
+    local_sources = rules.get("local_sources")
+    if not isinstance(local_sources, dict) or not local_sources:
+        findings.append("atlas_memory_readiness_profiles_invalid_local_sources")
+    else:
+        for source_name, source in local_sources.items():
+            if not isinstance(source, dict):
+                findings.append(f"atlas_memory_readiness_profiles_invalid_source:{source_name}")
+                continue
+            for field_name in ("path", "requires_content", "purpose"):
+                if field_name not in source:
+                    findings.append(
+                        f"atlas_memory_readiness_profiles_missing_source_field:{source_name}:{field_name}"
+                    )
+            if not isinstance(source.get("requires_content"), bool):
+                findings.append(
+                    f"atlas_memory_readiness_profiles_invalid_source_requires_content:{source_name}"
+                )
+
+    profiles = rules.get("profiles")
+    if not isinstance(profiles, dict) or not profiles:
+        findings.append("atlas_memory_readiness_profiles_invalid_profiles")
+    else:
+        missing_profiles = ATLAS_MEMORY_READINESS_REQUIRED_PROFILES - set(profiles.keys())
+        if missing_profiles:
+            findings.append(
+                f"atlas_memory_readiness_profiles_missing_profiles:{','.join(sorted(missing_profiles))}"
+            )
+        for profile_name, profile in profiles.items():
+            if not isinstance(profile, dict):
+                findings.append(f"atlas_memory_readiness_profiles_invalid_profile:{profile_name}")
+                continue
+            missing_profile_fields = ATLAS_MEMORY_READINESS_REQUIRED_PROFILE_FIELDS - set(profile.keys())
+            if missing_profile_fields:
+                findings.append(
+                    f"atlas_memory_readiness_profiles_missing_profile_fields:{profile_name}:{','.join(sorted(missing_profile_fields))}"
+                )
+            if not isinstance(profile.get("required_sources"), list):
+                findings.append(
+                    f"atlas_memory_readiness_profiles_invalid_required_sources:{profile_name}"
+                )
+            initial_state = str(profile.get("initial_state", "")).strip()
+            if initial_state not in ATLAS_MEMORY_READINESS_VALID_STATES:
+                findings.append(
+                    f"atlas_memory_readiness_profiles_invalid_initial_state:{profile_name}:{initial_state}"
+                )
+            if not isinstance(profile.get("requires_human_approval"), bool):
+                findings.append(
+                    f"atlas_memory_readiness_profiles_invalid_approval_flag:{profile_name}"
+                )
+
+    risk_categories = rules.get("risk_categories")
+    if not isinstance(risk_categories, list) or not risk_categories:
+        findings.append("atlas_memory_readiness_profiles_invalid_risk_categories")
 
 
 def _validate_mcp_profiles(root: Path, findings: List[str]) -> None:
@@ -3219,6 +3323,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_design_quality_enforcement_rules(root, findings)
         _validate_atlas_error_learning_rules(root, findings)
         _validate_codex_runtime_compatibility_rules(root, findings)
+        _validate_atlas_memory_readiness_profiles(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)

@@ -1,0 +1,108 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "risk_categories": [
+    "stale_context_risk",
+    "hidden_reinjection_risk",
+    "cross_machine_drift_risk",
+    "secret_capture_risk",
+    "runtime_coupling_risk"
+  ],
+  "local_sources": {
+    "decision_log": {
+      "path": "memory/decision_log.md",
+      "requires_content": true,
+      "purpose": "Canonical human-readable Atlas decisions and rollbacks."
+    },
+    "project_state": {
+      "path": "memory/project_state.json",
+      "requires_content": true,
+      "purpose": "Current Atlas mode, restrictions and executable/documentary surface."
+    },
+    "derived_projects": {
+      "path": "memory/derived_projects.json",
+      "requires_content": true,
+      "purpose": "Derived-project continuity without mutating derived runtimes."
+    },
+    "routing_log": {
+      "path": "memory/routing_log.jsonl",
+      "requires_content": true,
+      "purpose": "Append-only routing evidence for repeated decision patterns."
+    },
+    "governance_events": {
+      "path": "memory/governance_events.jsonl",
+      "requires_content": true,
+      "purpose": "Append-only governance validation history."
+    },
+    "decision_feedback": {
+      "path": "memory/decision_feedback.jsonl",
+      "requires_content": false,
+      "purpose": "Optional human follow-up signal over Atlas recommendations."
+    },
+    "session_summaries": {
+      "path": "memory/session_summaries.md",
+      "requires_content": false,
+      "purpose": "Optional concise continuity notes across longer Atlas sessions."
+    }
+  },
+  "profiles": {
+    "local_session_summary": {
+      "description": "Use explicit local summaries and state files to resume Atlas work safely.",
+      "required_sources": [
+        "decision_log",
+        "project_state"
+      ],
+      "risk_level": "low",
+      "initial_state": "advisory",
+      "requires_human_approval": false,
+      "fallback": "Use `ATLAS_STATUS.md`, `ATLAS_NEXT_STEPS.md` and the current repo diff manually."
+    },
+    "cross_session_factory_memory": {
+      "description": "Use local append-only Atlas logs to understand repeated routing and governance patterns.",
+      "required_sources": [
+        "decision_log",
+        "routing_log",
+        "governance_events"
+      ],
+      "risk_level": "medium",
+      "initial_state": "advisory",
+      "requires_human_approval": false,
+      "fallback": "Rely on current validation outputs and decision log until richer history is justified."
+    },
+    "derived_project_memory": {
+      "description": "Use Atlas-local derived-project metadata to preserve continuity without writing into derived repos.",
+      "required_sources": [
+        "derived_projects",
+        "project_state"
+      ],
+      "risk_level": "medium",
+      "initial_state": "advisory",
+      "requires_human_approval": false,
+      "fallback": "Treat each derived-project audit as mostly fresh and evidence-first."
+    },
+    "plugin_memory_watchlist": {
+      "description": "Any plugin, MCP or service-backed memory remains blocked until separately approved and verified.",
+      "required_sources": [],
+      "risk_level": "high",
+      "initial_state": "watchlist",
+      "requires_human_approval": true,
+      "fallback": "Stay local-first and documentary."
+    },
+    "auto_injection_watchlist": {
+      "description": "Automatic prompt reinjection or hidden context shaping remains blocked.",
+      "required_sources": [],
+      "risk_level": "high",
+      "initial_state": "watchlist",
+      "requires_human_approval": true,
+      "fallback": "Ask for explicit files, summaries or prior decisions instead."
+    },
+    "cross_machine_sync_watchlist": {
+      "description": "Cross-machine memory sync remains blocked until security, provenance and failure modes are reviewed.",
+      "required_sources": [],
+      "risk_level": "high",
+      "initial_state": "watchlist",
+      "requires_human_approval": true,
+      "fallback": "Move summaries manually if continuity is truly needed."
+    }
+  }
+}

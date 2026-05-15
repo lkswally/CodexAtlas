@@ -65,6 +65,7 @@ As of 2026-05-15, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Atlas now has an advisory `model_cost_control_readiness` layer that recommends lite vs full model tiers, context trimming and task splitting without auto-switching the runtime model
 - Atlas now has an advisory `atlas_error_learning_review` layer that turns repeated UI, landing and integration mistakes into explicit readiness blockers before Atlas calls a surface ready
 - Atlas now has an advisory `codex_runtime_compatibility_check` layer that reports what Codex capabilities are actually visible on this machine without changing runtime or config
+- Atlas now has an advisory `atlas_memory_readiness` layer that reports whether local-first Atlas memory is strong enough for continuity while keeping plugin memory, auto-injection and cross-machine sync in watchlist posture
 - Atlas now enriches `skill_improvement_review` with curated external-radar fit decisions: `adapt_now`, `design_later`, `watchlist` or `discard`
 - Atlas now has a read-only `error_pattern_analyzer` that reads local Atlas logs to detect repeated blocks, ignored actions, MCP runtime failures and governance drift
 - Atlas now has a read-only `repo_improvement_scout` that evaluates `_reference/claude-vibecoding` as a structured source of safe Atlas improvements
@@ -79,6 +80,7 @@ As of 2026-05-15, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - `quality_gate_report` now also exposes `design_quality_posture` so visual-system weakness, hierarchy problems and amateur-ui risk remain visible before a final handoff claim
 - `quality_gate_report` now also exposes `intent_clarifier_posture`, `brand_json_v2_posture` and `frontend_auto_audit_posture` so vague briefs, inferred branding and incomplete local frontend guardrails can downgrade readiness before release
 - `quality_gate_report` now also exposes `model_cost_control_posture`, `error_learning_posture` and `codex_runtime_posture` so cost discipline, learned regression signals and real Codex capability limits stay visible before release claims
+- `quality_gate_report` now also exposes `atlas_memory_posture` so Atlas can distinguish local-first continuity from watchlist memory ambitions before claiming stronger infrastructure support
 - Atlas now has a read-only `priority_engine` that reduces noise and turns existing phase, intent, audit and skill signals into a short execution plan
 - `quality_gate_report` now exposes `execution_plan`, `primary_action` and `why_now` so readiness reports say what to do first instead of only listing signals
 - `quality_gate_report` now enriches each `execution_plan` step with its own model recommendation, fallback, cheaper alternative and confirmation signal without attempting any auto-switch
@@ -212,6 +214,7 @@ As of 2026-05-15, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Decision feedback is now tracked only inside Atlas memory and never written back into derived projects
 - Atlas can now read decision feedback back into its ranking layer to reduce repeated ignored recommendations and reinforce consistently accepted ones
 - Atlas can now combine phase, intent, model routing, model-cost discipline, feedback history, runtime compatibility and error-learning evidence without activating hidden runtime or touching derived projects
+- Atlas can now communicate memory continuity as local-first and evidence-backed, without implying plugin memory, cross-machine sync or hidden prompt reinjection
 - Atlas now treats Codex model switching as recommendation-only unless CLI or config mutation can be verified safely, and it asks for user confirmation whenever routing stays ambiguous or auto-switch remains unverified
 - Model-router outputs now expose `active_runtime_model=manual_or_unknown`, `model_switch_mode=manual_required`, `recommended_model_is_advisory=true`, explicit manual user action, and `can_auto_switch=false` with `auto_switch_method=not_available` across router, prompt guidance and quality-gate execution steps
 - Atlas now has advisory-only visual/media and external model fallback policies so image, video, branding and NVIDIA Build style fallback decisions stay explicit before any provider, MCP or runtime integration is considered

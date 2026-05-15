@@ -24,6 +24,7 @@ from tools.atlas_governance_check import (
     _load_design_quality_enforcement_rules,
     _load_atlas_error_learning_rules,
     _load_codex_runtime_compatibility_rules,
+    _load_atlas_memory_readiness_profiles,
     _validate_external_tool_policy,
     _validate_mcp_profiles,
     _validate_docs_search_catalog,
@@ -42,6 +43,7 @@ from tools.atlas_governance_check import (
     _validate_design_quality_enforcement_rules,
     _validate_atlas_error_learning_rules,
     _validate_codex_runtime_compatibility_rules,
+    _validate_atlas_memory_readiness_profiles,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
@@ -131,6 +133,25 @@ def test_market_research_benchmark_rules_require_recommendations_and_sources():
     )
     assert any(
         finding.startswith("market_research_benchmark_rules_missing_source_types:")
+        for finding in findings
+    )
+
+
+def test_atlas_memory_readiness_profiles_require_expected_profiles():
+    findings = []
+    invalid_rules = _load_atlas_memory_readiness_profiles(ROOT)
+    invalid_rules["profiles"] = {
+        "local_session_summary": invalid_rules["profiles"]["local_session_summary"]
+    }
+
+    with patch(
+        "tools.atlas_governance_check._load_atlas_memory_readiness_profiles",
+        return_value=invalid_rules,
+    ):
+        _validate_atlas_memory_readiness_profiles(ROOT, findings)
+
+    assert any(
+        finding.startswith("atlas_memory_readiness_profiles_missing_profiles:")
         for finding in findings
     )
 

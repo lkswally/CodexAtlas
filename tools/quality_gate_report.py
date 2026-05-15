@@ -86,6 +86,10 @@ try:
     from tools.codex_runtime_compatibility_check import check_codex_runtime_compatibility
 except ModuleNotFoundError:
     from codex_runtime_compatibility_check import check_codex_runtime_compatibility
+try:
+    from tools.atlas_memory_readiness import check_atlas_memory_readiness
+except ModuleNotFoundError:
+    from atlas_memory_readiness import check_atlas_memory_readiness
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -498,6 +502,14 @@ def _run_codex_runtime_compatibility(root: Path) -> Dict[str, Any]:
     except Exception as exc:
         return _build_failed_report("codex_runtime_compatibility_check", f"codex_runtime_compatibility_check_failed:{exc}")
     return _build_ok_report("codex_runtime_compatibility_check", report)
+
+
+def _run_atlas_memory_readiness(root: Path) -> Dict[str, Any]:
+    try:
+        report = check_atlas_memory_readiness(root=root)
+    except Exception as exc:
+        return _build_failed_report("atlas_memory_readiness", f"atlas_memory_readiness_failed:{exc}")
+    return _build_ok_report("atlas_memory_readiness", report)
 
 
 def _run_model_cost_control(
@@ -1128,6 +1140,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     )
     source_reports["playwright_visual_qa_readiness"] = _run_playwright_visual_qa_readiness(root)
     source_reports["codex_runtime_compatibility_check"] = _run_codex_runtime_compatibility(root)
+    source_reports["atlas_memory_readiness"] = _run_atlas_memory_readiness(root)
     source_reports["atlas_error_learning_review"] = _run_atlas_error_learning_review(
         root=root,
         payload={
@@ -1568,6 +1581,21 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "manual_steps": (source_reports["codex_runtime_compatibility_check"]["report"] or {}).get("manual_steps", []),
             "why": (source_reports["codex_runtime_compatibility_check"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["codex_runtime_compatibility_check"]["report"] or {}).get("advisory_only", True)),
+        },
+        "atlas_memory_posture": {
+            "status": (source_reports["atlas_memory_readiness"]["report"] or {}).get("status"),
+            "available_sources": (source_reports["atlas_memory_readiness"]["report"] or {}).get("available_sources", []),
+            "missing_sources": (source_reports["atlas_memory_readiness"]["report"] or {}).get("missing_sources", []),
+            "safe_to_use_profiles": (source_reports["atlas_memory_readiness"]["report"] or {}).get("safe_to_use_profiles", []),
+            "watchlist_profiles": (source_reports["atlas_memory_readiness"]["report"] or {}).get("watchlist_profiles", []),
+            "blocked_profiles": (source_reports["atlas_memory_readiness"]["report"] or {}).get("blocked_profiles", []),
+            "required_manual_steps": (source_reports["atlas_memory_readiness"]["report"] or {}).get("required_manual_steps", []),
+            "risks": (source_reports["atlas_memory_readiness"]["report"] or {}).get("risks", []),
+            "requires_human_approval": bool((source_reports["atlas_memory_readiness"]["report"] or {}).get("requires_human_approval")),
+            "requires_decision_council": bool((source_reports["atlas_memory_readiness"]["report"] or {}).get("requires_decision_council")),
+            "recommended_next_action": (source_reports["atlas_memory_readiness"]["report"] or {}).get("recommended_next_action"),
+            "why": (source_reports["atlas_memory_readiness"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["atlas_memory_readiness"]["report"] or {}).get("advisory_only", True)),
         },
         "system_learning": source_reports["error_pattern_analyzer"]["report"] if source_reports["error_pattern_analyzer"]["status"] == "ok" else None,
         "blockers": blockers,
