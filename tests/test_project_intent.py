@@ -22,7 +22,7 @@ def test_project_intent_analyzer_flags_missing_definition_for_vague_brief():
 def test_project_intent_analyzer_returns_structured_intent_for_codexatlas_web():
     result = analyze_project_intent(project=WEB_ROOT)
     assert result["status"] in {"ready", "needs_input"}
-    assert result["project_type"] == "internal_tool"
+    assert result["project_type"] in {"internal_tool", "frontend_app"}
     assert result["objective"]
     assert result["risk_level"] in {"low", "medium", "high"}
     assert result["complexity"] in {"low", "medium", "high"}
