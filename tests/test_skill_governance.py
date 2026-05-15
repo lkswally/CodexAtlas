@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import ATLAS_ROOT
 from tools.atlas_governance_check import (
     _find_forbidden_canonical_root_artifacts,
     _record_governance_event,
@@ -57,7 +58,7 @@ from tools.atlas_governance_check import (
 from tools.atlas_orchestrator import get_project_bootstrap_contract, get_skill_execution_behavior_specs
 
 
-ROOT = Path(r"C:\Proyectos\Codex-Atlas")
+ROOT = ATLAS_ROOT
 
 
 def test_current_skill_catalog_passes_governance():

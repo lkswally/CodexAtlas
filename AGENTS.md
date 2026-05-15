@@ -60,7 +60,7 @@ Every phase must leave explicit outputs, and risky work must keep a human approv
 
 ## Canonical Boundaries
 
-- Canonical Atlas core lives in `C:\Proyectos\Codex-Atlas`.
+- Canonical Atlas core lives in the current repository root (`<atlas_root>`).
 - REYESOFT is a derived project and may consume Atlas through adapters or copied templates.
 - If the same concept exists in both places, Atlas is the source of truth unless the file is explicitly a REYESOFT adapter.
 - Root-level directories are the primary Codex-native home of Atlas.

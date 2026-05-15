@@ -6,10 +6,8 @@ This document captures the next safe moves after the post-Level 3B stabilization
 
 1. Use the current baseline for the first real project bootstrap test
 2. Consolidate the documentary core and keep it current with real decisions
-3. Remove blocked deprecated flat skill pointers once filesystem access allows deletion
-4. Remove blocked test residue folders once filesystem access allows deletion
-5. Evolve the suggestive orchestrator carefully before adding any autonomy
-6. Use the new skill lifecycle layer before approving any new reusable Atlas skill
+3. Evolve the suggestive orchestrator carefully before adding any autonomy
+4. Use the new skill lifecycle layer before approving any new reusable Atlas skill
 
 ## Review before building
 
@@ -186,7 +184,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - If routing proves stable, consider a structured task input schema for the orchestrator
 - Consider a small skill metadata index if the skill set grows
 - Decide whether the next step is richer skill matching or validator coverage for skill metadata
-- If the filesystem is unlocked later, remove `skills/_legacy_flat/`, `tests/tmpik5_anpo`, `tests/_tmp_bootstrap_case`, `tests/_tmp_bootstrap_tests`, `tests/_tmp_template_validation` and the three deprecated flat skill `.md` files
+- Keep inaccessible local temp residue out of commits if the filesystem recreates blocked `pytest-cache-files-*` or similar directories
 - If the skill catalog grows, decide whether governance should validate cross-field consistency between `execution_mode`, `allowed_paths_policy` and actual execution helpers
 - If behavior metadata grows more complex, consider a shared schema or validator helper for `behavior.json`
 - If skill execution contracts keep growing, consider a shared schema or validator helper for `bootstrap_contract.json` and similar future skill contracts

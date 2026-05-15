@@ -3,10 +3,10 @@ from pathlib import Path
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import ATLAS_ROOT
 from tools.ui_pre_return_audit import audit_ui_pre_return
 
 
-ATLAS_ROOT = Path(r"C:\Proyectos\Codex-Atlas")
 
 
 def _design_check(check_id, status="pass", recommendation=None, evidence=None):

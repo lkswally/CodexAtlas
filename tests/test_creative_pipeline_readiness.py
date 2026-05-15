@@ -4,10 +4,11 @@ from unittest.mock import patch
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import ATLAS_ROOT
 from tools.creative_pipeline_readiness import check_creative_pipeline_readiness
 
 
-ROOT = Path(r"C:\Proyectos\Codex-Atlas")
+ROOT = ATLAS_ROOT
 
 
 def _fake_mcp_readiness(servers=None):

@@ -6,13 +6,13 @@ from pathlib import Path
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import ATLAS_ROOT, WEB_ROOT, TEMP_ROOT
 from tools.atlas_dispatcher import dispatch
 from tools.project_phase_resolver import build_project_phase_report
 from tools.quality_gate_report import build_quality_gate_report
 
 
-ROOT = Path(r"C:\Proyectos\Codex-Atlas")
-WEB_ROOT = Path(r"C:\Proyectos\CodexAtlas-Web")
+ROOT = ATLAS_ROOT
 TMP_ROOT = ROOT / "tests" / "_tmp_phase_guidance"
 
 
@@ -68,7 +68,7 @@ def test_phase_guidance_output_is_consistent_with_resolver():
 
 
 def test_blocked_command_returns_guidance_message():
-    fake_project = Path(r"C:\Temp\atlas_phase_guidance_demo")
+    fake_project = TEMP_ROOT / "atlas_phase_guidance_demo"
     phase = {
         "status": "ok",
         "current_phase": "bootstrap",

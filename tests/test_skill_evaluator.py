@@ -3,12 +3,10 @@ from pathlib import Path
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import ATLAS_ROOT, WEB_ROOT
 from tools.atlas_dispatcher import dispatch
 from tools.skill_evaluator import evaluate_skill_candidate
 
-
-ATLAS_ROOT = Path(r"C:\Proyectos\Codex-Atlas")
-WEB_ROOT = Path(r"C:\Proyectos\CodexAtlas-Web")
 
 
 def test_skill_evaluator_rejects_candidate_that_overlaps_existing_skill():

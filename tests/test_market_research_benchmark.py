@@ -6,10 +6,11 @@ from uuid import uuid4
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import ATLAS_ROOT
 from tools.market_research_benchmark import build_market_research_benchmark
 
 
-ROOT = Path(r"C:\Proyectos\Codex-Atlas")
+ROOT = ATLAS_ROOT
 
 
 def test_market_research_benchmark_returns_structured_report_for_current_atlas():

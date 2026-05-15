@@ -4,11 +4,9 @@ from unittest.mock import patch
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import ATLAS_ROOT, WEB_ROOT
 from tools.atlas_verify import build_verify_report
 
-
-ATLAS_ROOT = Path(r"C:\Proyectos\Codex-Atlas")
-WEB_ROOT = Path(r"C:\Proyectos\CodexAtlas-Web")
 
 
 def test_atlas_verify_returns_real_read_only_summary_for_atlas_root():

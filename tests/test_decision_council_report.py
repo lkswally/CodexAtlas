@@ -3,11 +3,9 @@ from pathlib import Path
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import ATLAS_ROOT, WEB_ROOT
 from tools.decision_council_report import build_decision_council_report
 
-
-ATLAS_ROOT = Path(r"C:\Proyectos\Codex-Atlas")
-WEB_ROOT = Path(r"C:\Proyectos\CodexAtlas-Web")
 
 
 def test_decision_council_recommends_review_for_architecture_and_external_tool_topics():

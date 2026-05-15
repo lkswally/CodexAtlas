@@ -99,8 +99,8 @@ Local findings on this machine:
 - `codex mcp --help` fails with `Access is denied`
 - `codex mcp list` fails with `Access is denied`
 - direct execution of the full binary path also fails with `Access is denied`
-- `C:\Users\Lucas\.codex\config.toml` exists, but it has no `mcp_servers.openaiDeveloperDocs` entry
-- `C:\Proyectos\Codex-Atlas\.codex\config.toml` does not exist today
+- The user-level Codex config (`~/.codex/config.toml`) exists, but it has no `mcp_servers.openaiDeveloperDocs` entry
+- The project-scoped Codex config (`<atlas_root>/.codex/config.toml`) does not exist today
 
 Interpretation:
 

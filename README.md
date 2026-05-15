@@ -1,6 +1,6 @@
 # Codex-Atlas
 
-`C:\Proyectos\Codex-Atlas` es la fuente de verdad canónica de ATLAS: una configuración madre de Codex para crear, gobernar, auditar y certificar proyectos derivados sin mezclar el core reusable con runtimes de producto.
+`<atlas_root>` es la fuente de verdad canónica de ATLAS: una configuración madre de Codex para crear, gobernar, auditar y certificar proyectos derivados sin mezclar el core reusable con runtimes de producto.
 
 REYESOFT es un derivado separado. Atlas opera sobre derivados desde afuera y no debe volver a vivir dentro de ellos.
 
@@ -105,25 +105,25 @@ Flujo sugerido:
 
 ## Cómo auditar o certificar un proyecto
 
-Auditar Atlas:
+Auditar Atlas desde la raíz del repo:
 
 ```powershell
-python C:\Proyectos\Codex-Atlas\tools\atlas_governance_check.py
-python C:\Proyectos\Codex-Atlas\tools\atlas_dispatcher.py audit-repo
-python C:\Proyectos\Codex-Atlas\tools\atlas_dispatcher.py surface-audit
+python tools/atlas_governance_check.py
+python tools/atlas_dispatcher.py audit-repo
+python tools/atlas_dispatcher.py surface-audit
 ```
 
 Auditar un derivado:
 
 ```powershell
-python C:\Proyectos\Codex-Atlas\tools\atlas_governance_check.py --project C:\Ruta\Al\Proyecto
-python C:\Proyectos\Codex-Atlas\tools\atlas_dispatcher.py --project C:\Ruta\Al\Proyecto audit-repo
+python tools/atlas_governance_check.py --project <project_root>
+python tools/atlas_dispatcher.py --project <project_root> audit-repo
 ```
 
 Certificar un derivado:
 
 ```powershell
-python C:\Proyectos\Codex-Atlas\tools\atlas_dispatcher.py --project C:\Ruta\Al\Proyecto certify-project
+python tools/atlas_dispatcher.py --project <project_root> certify-project
 ```
 
 Los derivados no necesitan shims de Atlas si exponen `.atlas-project.json`.
@@ -150,21 +150,30 @@ Atlas no incluye ni habilita por defecto:
 Además:
 - `docs_search` sigue siendo adapter interno, no conector MCP real
 - la creación de proyecto produce scaffold y metadata, no lógica de negocio lista
-- siguen existiendo algunos residuos legacy bloqueados por el filesystem en `tests/`
 
 ## Roadmap inmediato
 
 - cerrar el baseline actual y usar Atlas para el primer proyecto real controlado
 - mantener fresco `config/docs_search_catalog.json`
 - seguir fortaleciendo quality gates read-only antes de sumar más autonomía
-- retirar residuos legacy cuando el filesystem lo permita
 - evaluar un segundo MCP solo si el modelo de gobernanza actual se sostiene
+
+## Desarrollo y tests
+
+Prerequisito mínimo para correr la suite local:
+
+```powershell
+pip install -r requirements-dev.txt
+pytest tests/
+```
+
+Los tests resuelven la raíz del repo desde el checkout actual y aceptan override por `ATLAS_ROOT` si hiciera falta.
 
 ## Referencias rápidas
 
-- [AGENTS.md](/C:/Proyectos/Codex-Atlas/AGENTS.md)
-- [ATLAS_STATUS.md](/C:/Proyectos/Codex-Atlas/ATLAS_STATUS.md)
-- [ATLAS_NEXT_STEPS.md](/C:/Proyectos/Codex-Atlas/ATLAS_NEXT_STEPS.md)
-- [docs/architecture.md](/C:/Proyectos/Codex-Atlas/docs/architecture.md)
-- [docs/codex_system_prompt.md](/C:/Proyectos/Codex-Atlas/docs/codex_system_prompt.md)
-- [docs/mcp_read_only_evaluation.md](/C:/Proyectos/Codex-Atlas/docs/mcp_read_only_evaluation.md)
+- [AGENTS.md](AGENTS.md)
+- [ATLAS_STATUS.md](ATLAS_STATUS.md)
+- [ATLAS_NEXT_STEPS.md](ATLAS_NEXT_STEPS.md)
+- [docs/architecture.md](docs/architecture.md)
+- [docs/codex_system_prompt.md](docs/codex_system_prompt.md)
+- [docs/mcp_read_only_evaluation.md](docs/mcp_read_only_evaluation.md)

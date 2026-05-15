@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import ATLAS_ROOT, REYESOFT_ROOT, TEMP_ROOT
 from tools.atlas_orchestrator import orchestrate_task
 
 
@@ -110,7 +111,7 @@ def test_simple_documentation_task_routes_to_cost_saver():
 def test_project_creation_task_recommends_project_bootstrap_skill():
     result = orchestrate_task(
         "Create a new project from Atlas and scaffold the initial structure.",
-        output_dir=Path(r"C:\Temp\atlas_bootstrap_candidate"),
+        output_dir=TEMP_ROOT / "atlas_bootstrap_candidate",
     )
     assert result["intent"] == "project_creation"
     assert result["recommended_skill"] == "project-bootstrap"
@@ -146,7 +147,7 @@ def test_skill_human_approval_triggers_influence_output():
 
 
 def test_project_bootstrap_preflight_nonexistent_output_dir_is_safe():
-    target = Path(r"C:\Temp\atlas_bootstrap_new_project")
+    target = TEMP_ROOT / "atlas_bootstrap_new_project"
     result = orchestrate_task("Bootstrap project for a sandbox demo.", output_dir=target)
     assert result["recommended_skill"] == "project-bootstrap"
     assert result["preflight"]["exists"] is False
@@ -158,7 +159,7 @@ def test_project_bootstrap_preflight_nonexistent_output_dir_is_safe():
 def test_project_bootstrap_infers_ai_agent_system_project_type():
     result = orchestrate_task(
         "Bootstrap a new AI agent system for internal orchestration.",
-        output_dir=Path(r"C:\Temp\atlas_agent_system_candidate"),
+        output_dir=TEMP_ROOT / "atlas_agent_system_candidate",
     )
     assert result["recommended_skill"] == "project-bootstrap"
     assert result["project_type"] == "ai_agent_system"
@@ -168,7 +169,7 @@ def test_project_bootstrap_infers_ai_agent_system_project_type():
 def test_project_bootstrap_invalid_explicit_project_type_blocks_execution():
     result = orchestrate_task(
         "Bootstrap a new project.",
-        output_dir=Path(r"C:\Temp\atlas_invalid_project_type"),
+        output_dir=TEMP_ROOT / "atlas_invalid_project_type",
         project_type="desktop_app",
     )
     assert result["recommended_skill"] == "project-bootstrap"
@@ -177,7 +178,7 @@ def test_project_bootstrap_invalid_explicit_project_type_blocks_execution():
 
 
 def test_project_bootstrap_preflight_existing_empty_output_dir_is_safe():
-    target = Path(r"C:\Temp\atlas_preflight_empty")
+    target = TEMP_ROOT / "atlas_preflight_empty"
 
     original_exists = Path.exists
     original_is_dir = Path.is_dir
@@ -210,7 +211,7 @@ def test_project_bootstrap_preflight_existing_empty_output_dir_is_safe():
 
 
 def test_project_bootstrap_preflight_existing_non_empty_output_dir_blocks_execution():
-    target = Path(r"C:\Temp\atlas_preflight_non_empty")
+    target = TEMP_ROOT / "atlas_preflight_non_empty"
     readme = target / "README.md"
 
     original_exists = Path.exists
@@ -248,7 +249,7 @@ def test_project_bootstrap_preflight_existing_non_empty_output_dir_blocks_execut
 
 
 def test_project_bootstrap_preflight_inside_reyesoft_is_blocked():
-    target = Path(r"C:\Proyectos\REYESOFT\demo-bootstrap")
+    target = REYESOFT_ROOT / "demo-bootstrap"
     result = orchestrate_task("Bootstrap project for a sandbox demo.", output_dir=target)
     assert result["recommended_skill"] == "project-bootstrap"
     assert result["preflight"]["inside_reyesoft"] is True
@@ -257,7 +258,7 @@ def test_project_bootstrap_preflight_inside_reyesoft_is_blocked():
 
 
 def test_project_bootstrap_preflight_inside_atlas_root_is_blocked():
-    target = Path(r"C:\Proyectos\Codex-Atlas\demo-bootstrap")
+    target = ATLAS_ROOT / "demo-bootstrap"
     result = orchestrate_task("Bootstrap project for a sandbox demo.", output_dir=target)
     assert result["recommended_skill"] == "project-bootstrap"
     assert result["preflight"]["inside_atlas_root"] is True
@@ -266,7 +267,7 @@ def test_project_bootstrap_preflight_inside_atlas_root_is_blocked():
 
 
 def test_bootstrap_project_text_does_not_trigger_false_deploy_or_delete_blockers():
-    target = Path(r"C:\Temp\atlas_bootstrap_phrase_check")
+    target = TEMP_ROOT / "atlas_bootstrap_phrase_check"
     result = orchestrate_task("Bootstrap project in a safe sandbox with explicit output_dir.", output_dir=target)
     assert result["recommended_skill"] == "project-bootstrap"
     assert not any(reason.startswith("dangerous_task_keyword:deploy") for reason in result["approval_reasons"])
@@ -275,7 +276,7 @@ def test_bootstrap_project_text_does_not_trigger_false_deploy_or_delete_blockers
 
 
 def test_no_deploy_restriction_does_not_trigger_deploy_intent_or_approval():
-    target = Path(r"C:\Temp\atlas_bootstrap_no_deploy")
+    target = TEMP_ROOT / "atlas_bootstrap_no_deploy"
     result = orchestrate_task(
         "Bootstrap a static site with no backend, no deploy, no deployment and no tocar REYESOFT.",
         output_dir=target,

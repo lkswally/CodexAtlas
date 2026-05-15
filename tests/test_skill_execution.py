@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import ATLAS_ROOT, TEMP_ROOT
 from tools.atlas_orchestrator import execute_skill, get_project_bootstrap_contract
 
 
@@ -55,7 +56,7 @@ def test_project_bootstrap_execution_requires_output_dir():
 
 
 def test_project_bootstrap_execution_returns_contract_and_expected_writes():
-    target = Path(r"C:\Temp\atlas_bootstrap_mock\DerivedProject")
+    target = TEMP_ROOT / "atlas_bootstrap_mock" / "DerivedProject"
     contract = get_project_bootstrap_contract()
     created_paths = []
     written_files = {}
@@ -99,7 +100,7 @@ def test_project_bootstrap_execution_returns_contract_and_expected_writes():
     assert "AI Agent System" in written_files["README.md"]
     assert "Example Usage" in written_files["README.md"]
     assert "agents/" in written_files["README.md"]
-    assert "C:\\Proyectos\\Codex-Atlas" in written_files["README.md"]
+    assert str(ATLAS_ROOT) in written_files["README.md"]
     assert "Project Context" in written_files["AGENTS.md"]
     assert "ai_agent_system" in written_files["AGENTS.md"]
     assert "{{" not in written_files["README.md"]
@@ -116,7 +117,7 @@ def test_project_bootstrap_execution_rejects_invalid_project_type():
     execution = execute_skill(
         "project-bootstrap",
         "Bootstrap a new derived project.",
-        output_dir=Path(r"C:\Temp\atlas_bootstrap_invalid_type"),
+        output_dir=TEMP_ROOT / "atlas_bootstrap_invalid_type",
         project_type="desktop_app",
     )
     assert execution["skill"] == "project-bootstrap"
@@ -128,7 +129,7 @@ def test_project_bootstrap_execution_blocks_output_dir_inside_atlas_root():
     execution = execute_skill(
         "project-bootstrap",
         "Bootstrap a new derived project.",
-        output_dir=Path(r"C:\Proyectos\Codex-Atlas\demo-bootstrap"),
+        output_dir=ATLAS_ROOT / "demo-bootstrap",
     )
     assert execution["skill"] == "project-bootstrap"
     assert execution["ok"] is False
@@ -138,7 +139,7 @@ def test_project_bootstrap_execution_blocks_output_dir_inside_atlas_root():
 
 
 def test_project_bootstrap_default_internal_tool_template_is_used_when_not_specified():
-    target = Path(r"C:\Temp\atlas_bootstrap_internal_tool")
+    target = TEMP_ROOT / "atlas_bootstrap_internal_tool"
     created_paths = []
     written_files = {}
 
@@ -176,7 +177,7 @@ def test_project_bootstrap_templates_render_minimum_content_for_all_profiles():
     }
 
     for project_type, (profile_label, expected_directory_hint) in profile_expectations.items():
-        target = Path(rf"C:\Temp\atlas_bootstrap_{project_type}")
+        target = TEMP_ROOT / f"atlas_bootstrap_{project_type}"
         written_files = {}
 
         def fake_write(path, content):
@@ -196,7 +197,7 @@ def test_project_bootstrap_templates_render_minimum_content_for_all_profiles():
         assert profile_label in written_files["README.md"]
         assert expected_directory_hint in written_files["README.md"]
         assert "Bootstrap source: `project-bootstrap`" in written_files["README.md"]
-        assert "C:\\Proyectos\\Codex-Atlas" in written_files["README.md"]
+        assert str(ATLAS_ROOT) in written_files["README.md"]
         assert execution["project_type"] in written_files["AGENTS.md"]
         assert "{{" not in written_files["README.md"]
         assert "{{" not in written_files["AGENTS.md"]

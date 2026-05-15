@@ -1012,7 +1012,7 @@ def main(argv: Optional[List[str]] = None) -> int:
     if not args.command_id:
         print("Usage: python tools/atlas_dispatcher.py [--root <path>] [--project <path>] <command_id>")
         print("Example: python tools/atlas_dispatcher.py audit-repo")
-        print(r"Example: python tools/atlas_dispatcher.py --project C:\Proyectos\REYESOFT audit-repo")
+        print("Example: python tools/atlas_dispatcher.py --project <project_root> audit-repo")
         print(r"Example: python tools/atlas_dispatcher.py --project C:\Proyectos\ATLAS_SANDBOX_DEMO_TEMPLATES certify-project")
         return 2
 

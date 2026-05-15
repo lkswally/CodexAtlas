@@ -6,11 +6,12 @@ from pathlib import Path
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import ATLAS_ROOT
 from tools.atlas_dispatcher import dispatch
 from tools.project_phase_resolver import build_project_phase_report
 
 
-ROOT = Path(r"C:\Proyectos\Codex-Atlas")
+ROOT = ATLAS_ROOT
 TMP_ROOT = ROOT / "tests" / "_tmp_project_phase"
 
 

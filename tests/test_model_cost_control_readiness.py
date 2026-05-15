@@ -3,10 +3,10 @@ from pathlib import Path
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import ATLAS_ROOT
 from tools.model_cost_control_readiness import assess_model_cost_control
 
 
-ATLAS_ROOT = Path(r"C:\Proyectos\Codex-Atlas")
 
 
 def test_model_cost_control_prefers_mini_for_small_docs_task():

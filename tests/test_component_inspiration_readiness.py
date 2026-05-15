@@ -5,10 +5,11 @@ from unittest.mock import patch
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import ATLAS_ROOT
 from tools.component_inspiration_readiness import check_component_inspiration_readiness
 
 
-ROOT = Path(r"C:\Proyectos\Codex-Atlas")
+ROOT = ATLAS_ROOT
 
 
 def _creative_report(*, available_services=None, missing_services=None):

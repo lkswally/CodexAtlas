@@ -4,11 +4,9 @@ from unittest.mock import patch
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import ATLAS_ROOT, WEB_ROOT
 from tools.quality_gate_report import build_quality_gate_report
 
-
-ATLAS_ROOT = Path(r"C:\Proyectos\Codex-Atlas")
-WEB_ROOT = Path(r"C:\Proyectos\CodexAtlas-Web")
 
 
 def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web():

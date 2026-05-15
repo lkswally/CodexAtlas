@@ -3,11 +3,12 @@ import shutil
 from pathlib import Path
 from uuid import uuid4
 
+from tests._support_paths import ATLAS_ROOT, WEB_ROOT
 from tools.feedback_analyzer import analyze_feedback
 
 
-ROOT = Path(r"C:\Proyectos\Codex-Atlas")
-PROJECT = Path(r"C:\Proyectos\CodexAtlas-Web")
+ROOT = ATLAS_ROOT
+PROJECT = WEB_ROOT
 TESTS_DIR = Path(__file__).resolve().parent
 
 

@@ -3,10 +3,11 @@ import shutil
 import uuid
 from pathlib import Path
 
+from tests._support_paths import ATLAS_ROOT
 from tools.atlas_surface_audit import run_surface_audit
 
 
-ROOT = Path(r"C:\Proyectos\Codex-Atlas")
+ROOT = ATLAS_ROOT
 TMP_ROOT = ROOT / "tests" / "_tmp_surface_audit"
 
 

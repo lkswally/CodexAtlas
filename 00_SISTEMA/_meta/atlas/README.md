@@ -1,6 +1,6 @@
 # ATLAS Core Metadata
 
-Legacy compatibility mirror: este directorio vive en `C:\Proyectos\Codex-Atlas` solo para preservar compatibilidad.
+Legacy compatibility mirror: este directorio vive dentro del repo Atlas (`<atlas_root>`) solo para preservar compatibilidad.
 No es la fuente primaria de Atlas.
 
 Incluye:

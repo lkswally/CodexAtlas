@@ -1,10 +1,11 @@
 from pathlib import Path
 from unittest.mock import patch
 
+from tests._support_paths import ATLAS_ROOT
 from tools.atlas_memory_readiness import check_atlas_memory_readiness
 
 
-ROOT = Path(r"C:\Proyectos\Codex-Atlas")
+ROOT = ATLAS_ROOT
 
 
 def _snapshot(source: str, available: bool) -> dict:

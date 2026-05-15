@@ -6,10 +6,10 @@ from uuid import uuid4
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import ATLAS_ROOT
 from tools.skill_improvement_review import review_skill_catalog
 
 
-ATLAS_ROOT = Path(r"C:\Proyectos\Codex-Atlas")
 
 
 def _write_json(path: Path, payload: dict) -> None:

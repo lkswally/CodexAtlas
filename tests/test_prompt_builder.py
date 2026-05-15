@@ -3,12 +3,10 @@ from pathlib import Path
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import ATLAS_ROOT, WEB_ROOT
 from tools.atlas_dispatcher import dispatch
 from tools.prompt_builder import build_prompt
 
-
-ATLAS_ROOT = Path(r"C:\Proyectos\Codex-Atlas")
-WEB_ROOT = Path(r"C:\Proyectos\CodexAtlas-Web")
 
 
 def test_prompt_builder_uses_phase_and_intent_for_existing_project():

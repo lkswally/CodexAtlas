@@ -4,10 +4,11 @@ from unittest.mock import patch
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import ATLAS_ROOT, PLAYWRIGHT_HOME_HINT
 from tools.playwright_visual_qa_readiness import check_playwright_visual_qa_readiness
 
 
-ROOT = Path(r"C:\Proyectos\Codex-Atlas")
+ROOT = ATLAS_ROOT
 
 
 def _cli_probe(*, available: bool, stdout: str = "", stderr: str = "", returncode: int | None = None):
@@ -23,7 +24,7 @@ def _browser_probe(*, available: bool, detected_browsers=None, checked_paths=Non
     return {
         "available": available,
         "detected_browsers": detected_browsers or [],
-        "checked_paths": checked_paths or [r"C:\Users\Lucas\AppData\Local\ms-playwright"],
+        "checked_paths": checked_paths or [str(PLAYWRIGHT_HOME_HINT)],
     }
 
 

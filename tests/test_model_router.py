@@ -3,10 +3,9 @@ from pathlib import Path
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import ATLAS_ROOT
 from tools.model_router import recommend_model_profile
 
-
-ATLAS_ROOT = Path(r"C:\Proyectos\Codex-Atlas")
 SWITCH_SUPPORT_UNVERIFIED = {
     "status": "ok",
     "current_global_model": "gpt-5.4",

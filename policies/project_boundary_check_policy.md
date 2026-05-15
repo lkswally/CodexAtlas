@@ -6,7 +6,7 @@ Keep Atlas core separate from derived runtimes and prevent double sources of tru
 
 ## Rules
 
-- Atlas core lives only in `C:\Proyectos\Codex-Atlas`.
+- Atlas core lives only in the current Atlas repository root (`<atlas_root>`).
 - Derived projects may expose `.atlas-project.json` and project-local adapters only.
 - Atlas dispatcher, governance check, registries and mother policies must not live inside derived projects as active runtime files.
 - Derived projects must not require `.claude`, `CLAUDE.md`, Engram or Atlas internals to function.

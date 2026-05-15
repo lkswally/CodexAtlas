@@ -6,7 +6,7 @@ This directory documents how REYESOFT consumes Atlas without turning Atlas into 
 
 - REYESOFT keeps its own runtime and business logic
 - REYESOFT identifies itself through `.atlas-project.json`
-- Atlas tools run from `C:\Proyectos\Codex-Atlas\tools\` with `--project C:\Proyectos\REYESOFT`
+- Atlas tools run from `<atlas_root>/tools/` with `--project <reyesoft_root>`
 
 ## Compatibility note
 

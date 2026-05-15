@@ -1,10 +1,11 @@
 from pathlib import Path
 from unittest.mock import patch
 
+from tests._support_paths import ATLAS_ROOT
 from tools.codex_runtime_compatibility_check import check_codex_runtime_compatibility
 
 
-ROOT = Path(r"C:\Proyectos\Codex-Atlas")
+ROOT = ATLAS_ROOT
 
 
 def test_codex_runtime_compatibility_reports_safe_runtime():
