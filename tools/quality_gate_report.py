@@ -78,6 +78,14 @@ try:
     from tools.model_cost_control_readiness import assess_model_cost_control
 except ModuleNotFoundError:
     from model_cost_control_readiness import assess_model_cost_control
+try:
+    from tools.atlas_error_learning_review import review_atlas_error_learning
+except ModuleNotFoundError:
+    from atlas_error_learning_review import review_atlas_error_learning
+try:
+    from tools.codex_runtime_compatibility_check import check_codex_runtime_compatibility
+except ModuleNotFoundError:
+    from codex_runtime_compatibility_check import check_codex_runtime_compatibility
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -470,6 +478,26 @@ def _run_frontend_auto_audit_rules(
     except Exception as exc:
         return _build_failed_report("frontend_auto_audit_rules", f"frontend_auto_audit_rules_failed:{exc}")
     return _build_ok_report("frontend_auto_audit_rules", report)
+
+
+def _run_atlas_error_learning_review(
+    *,
+    root: Path,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    try:
+        report = review_atlas_error_learning(payload, root=root)
+    except Exception as exc:
+        return _build_failed_report("atlas_error_learning_review", f"atlas_error_learning_review_failed:{exc}")
+    return _build_ok_report("atlas_error_learning_review", report)
+
+
+def _run_codex_runtime_compatibility(root: Path) -> Dict[str, Any]:
+    try:
+        report = check_codex_runtime_compatibility(root=root)
+    except Exception as exc:
+        return _build_failed_report("codex_runtime_compatibility_check", f"codex_runtime_compatibility_check_failed:{exc}")
+    return _build_ok_report("codex_runtime_compatibility_check", report)
 
 
 def _run_model_cost_control(
@@ -1016,6 +1044,25 @@ def _build_frontend_auto_audit_warnings(review: Optional[Dict[str, Any]]) -> Lis
     return warnings
 
 
+def _build_error_learning_warnings(review: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not isinstance(review, dict):
+        return []
+    warnings: List[Dict[str, Any]] = []
+    for item in list(review.get("blockers", [])) + list(review.get("warnings", [])):
+        if not isinstance(item, dict):
+            continue
+        warnings.append(
+            {
+                "source": "atlas_error_learning_review",
+                "check": item.get("check", "error_learning_warning"),
+                "severity": item.get("severity", "medium"),
+                "message": item.get("message", "Atlas learned-risk warning detected."),
+                "evidence": list(item.get("evidence", []))[:4],
+            }
+        )
+    return warnings
+
+
 def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     root = root.resolve()
     project = project.resolve()
@@ -1079,6 +1126,46 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "design_checks": design_report.get("checks", []),
         },
     )
+    source_reports["playwright_visual_qa_readiness"] = _run_playwright_visual_qa_readiness(root)
+    source_reports["codex_runtime_compatibility_check"] = _run_codex_runtime_compatibility(root)
+    source_reports["atlas_error_learning_review"] = _run_atlas_error_learning_review(
+        root=root,
+        payload={
+            "project_type": ((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "unknown",
+            "design_report": design_report,
+            "design_checks": design_report.get("checks", []),
+            "ui_pre_return_review": ui_pre_return_review or {},
+            "frontend_auto_audit_review": source_reports["frontend_auto_audit_rules"]["report"] or {},
+            "visual_qa_readiness_posture": source_reports["playwright_visual_qa_readiness"]["report"] or {},
+            "requires_visual_evidence": bool((ui_pre_return_review or {}).get("missing_evidence")),
+            "manual_visual_review_recorded": False,
+            "certify_report": source_reports["certify-project"].get("report") or {},
+            "integration_surfaces": [
+                {
+                    "name": "creative_pipeline_readiness",
+                    "claim_active": False,
+                    "declared_state": "readiness",
+                    "actual_state": "readiness",
+                    "tests_present": True,
+                },
+                {
+                    "name": "component_inspiration_readiness",
+                    "claim_active": False,
+                    "declared_state": "watchlist",
+                    "actual_state": "watchlist",
+                    "tests_present": True,
+                },
+                {
+                    "name": "playwright_visual_qa_readiness",
+                    "claim_active": False,
+                    "declared_state": "watchlist",
+                    "actual_state": "watchlist" if not bool((source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("safe_to_run")) else "readiness",
+                    "tests_present": True,
+                },
+            ],
+        },
+    )
+
     blockers = _extract_certify_blockers(source_reports["certify-project"])
     warnings: List[Dict[str, Any]] = []
     seen: set[Tuple[str, str]] = set()
@@ -1120,6 +1207,10 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     for item in _build_frontend_auto_audit_warnings(source_reports["frontend_auto_audit_rules"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
+    for item in _build_error_learning_warnings(source_reports["atlas_error_learning_review"].get("report")):
+        _unique_priority_append(candidate_priorities, item, candidate_seen)
+        _unique_priority_append(warnings, item, seen)
+
     certify_report = source_reports["certify-project"].get("report") or {}
     for warning in certify_report.get("result", {}).get("warnings", []):
         if not isinstance(warning, dict):
@@ -1167,6 +1258,8 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             overall_status = "needs_improvement"
         if str(frontend_auto_audit_review.get("status", "")).strip() == "needs_improvement":
             overall_status = "needs_improvement"
+        if str((source_reports["atlas_error_learning_review"].get("report") or {}).get("status", "")).strip() == "needs_improvement":
+            overall_status = "needs_improvement"
     confidence_level = _derive_confidence_level(source_reports)
     if confidence_level == "high" and overall_status == "needs_improvement":
         confidence_level = "medium"
@@ -1203,7 +1296,6 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     source_reports["skill_improvement_review"] = _run_skill_improvement_review(root)
     source_reports["creative_pipeline_readiness"] = _run_creative_pipeline_readiness(root)
     source_reports["component_inspiration_readiness"] = _run_component_inspiration_readiness(root)
-    source_reports["playwright_visual_qa_readiness"] = _run_playwright_visual_qa_readiness(root)
     source_reports["feedback_analyzer"] = feedback_report
     source_reports["model_router"] = _run_model_route(
         root,
@@ -1382,6 +1474,18 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "why": (source_reports["model_cost_control_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["model_cost_control_readiness"]["report"] or {}).get("advisory_only", True)),
         },
+        "error_learning_posture": {
+            "status": (source_reports["atlas_error_learning_review"]["report"] or {}).get("status"),
+            "blockers": (source_reports["atlas_error_learning_review"]["report"] or {}).get("blockers", []),
+            "warnings": (source_reports["atlas_error_learning_review"]["report"] or {}).get("warnings", []),
+            "triggered_signals": (source_reports["atlas_error_learning_review"]["report"] or {}).get("triggered_signals", []),
+            "warning_codes": (source_reports["atlas_error_learning_review"]["report"] or {}).get("warning_codes", []),
+            "requires_human_clarification": bool((source_reports["atlas_error_learning_review"]["report"] or {}).get("requires_human_clarification")),
+            "requires_decision_council": bool((source_reports["atlas_error_learning_review"]["report"] or {}).get("requires_decision_council")),
+            "recommended_next_action": (source_reports["atlas_error_learning_review"]["report"] or {}).get("recommended_next_action"),
+            "why": (source_reports["atlas_error_learning_review"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["atlas_error_learning_review"]["report"] or {}).get("advisory_only", True)),
+        },
         "model_routing": source_reports["model_router"]["report"] if source_reports["model_router"]["status"] == "ok" else None,
         "external_tool_posture": external_tool_posture,
         "prompt_guidance": source_reports["prompt_builder"]["report"] if source_reports["prompt_builder"]["status"] == "ok" else None,
@@ -1451,6 +1555,19 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "requires_decision_council": bool((source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("requires_decision_council")),
             "why": (source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("advisory_only", True)),
+        },
+        "codex_runtime_posture": {
+            "status": (source_reports["codex_runtime_compatibility_check"]["report"] or {}).get("status"),
+            "codex_cli_available": bool((source_reports["codex_runtime_compatibility_check"]["report"] or {}).get("codex_cli_available")),
+            "codex_version": (source_reports["codex_runtime_compatibility_check"]["report"] or {}).get("codex_version"),
+            "mcp_cli_functional": bool((source_reports["codex_runtime_compatibility_check"]["report"] or {}).get("mcp_cli_functional")),
+            "configured_mcp_servers": (source_reports["codex_runtime_compatibility_check"]["report"] or {}).get("configured_mcp_servers", []),
+            "runtime_model_visible": bool((source_reports["codex_runtime_compatibility_check"]["report"] or {}).get("runtime_model_visible")),
+            "safe_to_use_with_atlas": bool((source_reports["codex_runtime_compatibility_check"]["report"] or {}).get("safe_to_use_with_atlas")),
+            "limitations": (source_reports["codex_runtime_compatibility_check"]["report"] or {}).get("limitations", []),
+            "manual_steps": (source_reports["codex_runtime_compatibility_check"]["report"] or {}).get("manual_steps", []),
+            "why": (source_reports["codex_runtime_compatibility_check"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["codex_runtime_compatibility_check"]["report"] or {}).get("advisory_only", True)),
         },
         "system_learning": source_reports["error_pattern_analyzer"]["report"] if source_reports["error_pattern_analyzer"]["status"] == "ok" else None,
         "blockers": blockers,

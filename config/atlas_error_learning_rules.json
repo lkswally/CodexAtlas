@@ -1,0 +1,98 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "ui_project_types": [
+    "frontend_app",
+    "fullstack",
+    "internal_tool"
+  ],
+  "checks": {
+    "hero_overflow_or_mobile_header_failure": {
+      "category": "ui",
+      "severity": "high",
+      "signal": "hero_or_mobile_header_failure",
+      "blocks_ready_if_present": true,
+      "why_it_matters": "Above-the-fold breakage ruins first impression and often hides the real value proposition on mobile.",
+      "recommended_fix": "Refactor the hero/header structure until it fits the viewport and communicates the core value without overflow."
+    },
+    "font_loading_or_typography_failure": {
+      "category": "ui",
+      "severity": "medium",
+      "signal": "font_or_typography_failure",
+      "blocks_ready_if_present": true,
+      "why_it_matters": "A declared visual system is not real if the fonts do not load or the typography remains generic and unintentional.",
+      "recommended_fix": "Verify the actual font-loading path and simplify the type system until hierarchy and personality are explicit."
+    },
+    "cta_or_onboarding_failure": {
+      "category": "ui",
+      "severity": "high",
+      "signal": "cta_or_onboarding_failure",
+      "blocks_ready_if_present": true,
+      "why_it_matters": "A UI or landing cannot be treated as ready if it does not tell people what to do next or the CTA path is broken.",
+      "recommended_fix": "Restore a working next-step CTA and explain the first practical action clearly."
+    },
+    "touch_accessibility_failure": {
+      "category": "ui",
+      "severity": "high",
+      "signal": "touch_accessibility_failure",
+      "blocks_ready_if_present": true,
+      "why_it_matters": "Broken touch targets, missing focus-visible or invalid interactive semantics create real usability failures.",
+      "recommended_fix": "Raise tap targets to at least 44px, restore focus-visible and remove invalid nested button patterns."
+    },
+    "seo_or_security_baseline_missing": {
+      "category": "ui",
+      "severity": "medium",
+      "signal": "seo_or_security_baseline_missing",
+      "blocks_ready_if_present": true,
+      "why_it_matters": "A surface is not production-ready if it lacks baseline SEO or security evidence.",
+      "recommended_fix": "Add baseline SEO metadata and confirm required security headers before calling the project ready."
+    },
+    "visual_evidence_missing": {
+      "category": "ui",
+      "severity": "high",
+      "signal": "visual_evidence_missing",
+      "blocks_ready_if_present": true,
+      "why_it_matters": "Atlas should not claim strong visual readiness without an evidence trail.",
+      "recommended_fix": "Add evidence expectations and a manual visual review trail before final handoff."
+    },
+    "landing_reads_like_readme": {
+      "category": "landing",
+      "severity": "high",
+      "signal": "landing_reads_like_readme",
+      "blocks_ready_if_present": true,
+      "why_it_matters": "A public landing that feels like documentation will underperform and fails the anti-generic product brief.",
+      "recommended_fix": "Reframe the landing around audience, promise, CTA and onboarding instead of documentation density."
+    },
+    "landing_copy_or_onboarding_weak": {
+      "category": "landing",
+      "severity": "medium",
+      "signal": "landing_copy_or_onboarding_weak",
+      "blocks_ready_if_present": true,
+      "why_it_matters": "Repetitive copy and missing onboarding make the surface feel unfinished even if it is technically functional.",
+      "recommended_fix": "Reduce repetition, explain how to begin and make the first action concrete."
+    },
+    "integration_claims_ahead_of_readiness": {
+      "category": "integration",
+      "severity": "high",
+      "signal": "integration_claims_ahead_of_readiness",
+      "blocks_ready_if_present": true,
+      "why_it_matters": "Atlas must not communicate advisory or watchlist integrations as if they were active and ready.",
+      "recommended_fix": "Downgrade the claim to readiness/watchlist language until the external surface is truly configured and tested."
+    },
+    "integration_missing_tests_or_labels": {
+      "category": "integration",
+      "severity": "medium",
+      "signal": "integration_missing_tests_or_labels",
+      "blocks_ready_if_present": false,
+      "why_it_matters": "Without tests and explicit labels, integration posture becomes misleading and brittle.",
+      "recommended_fix": "Add clear readiness labeling and a focused test before promoting the integration posture."
+    }
+  },
+  "warning_codes": [
+    "error_learning_ui_not_ready",
+    "error_learning_landing_not_ready",
+    "error_learning_integration_not_ready",
+    "error_learning_visual_evidence_missing",
+    "error_learning_readiness_label_mismatch"
+  ]
+}

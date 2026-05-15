@@ -45,6 +45,8 @@ REQUIRED_ROOT_FILES = (
     "config/component_inspiration_profiles.json",
     "config/playwright_visual_qa_profiles.json",
     "config/design_quality_enforcement_rules.json",
+    "config/atlas_error_learning_rules.json",
+    "config/codex_runtime_compatibility_rules.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -94,6 +96,8 @@ REQUIRED_ROOT_FILES = (
     "policies/component_inspiration_readiness_policy.md",
     "policies/playwright_visual_qa_readiness_policy.md",
     "policies/design_quality_enforcement_policy.md",
+    "policies/atlas_error_learning_policy.md",
+    "policies/codex_runtime_compatibility_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
     "memory/session_summaries.md",
@@ -166,6 +170,8 @@ REQUIRED_ROOT_FILES = (
     "tools/component_inspiration_readiness.py",
     "tools/playwright_visual_qa_readiness.py",
     "tools/design_quality_enforcement.py",
+    "tools/atlas_error_learning_review.py",
+    "tools/codex_runtime_compatibility_check.py",
     "tests/test_atlas_orchestrator.py",
     "tests/test_certify_project.py",
     "tests/test_docs_catalog_report.py",
@@ -197,6 +203,8 @@ REQUIRED_ROOT_FILES = (
     "tests/test_component_inspiration_readiness.py",
     "tests/test_playwright_visual_qa_readiness.py",
     "tests/test_design_quality_enforcement.py",
+    "tests/test_atlas_error_learning_review.py",
+    "tests/test_codex_runtime_compatibility_check.py",
     "tests/test_surface_audit.py",
     "templates/project_bootstrap_profiles.md",
 )
@@ -811,6 +819,61 @@ VALID_DESIGN_QUALITY_REDESIGN_LEVELS = {
     "visual_system_refactor",
     "full_redesign",
 }
+ATLAS_ERROR_LEARNING_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "ui_project_types",
+    "checks",
+    "warning_codes",
+}
+ATLAS_ERROR_LEARNING_REQUIRED_CHECKS = {
+    "hero_overflow_or_mobile_header_failure",
+    "font_loading_or_typography_failure",
+    "cta_or_onboarding_failure",
+    "touch_accessibility_failure",
+    "seo_or_security_baseline_missing",
+    "visual_evidence_missing",
+    "landing_reads_like_readme",
+    "landing_copy_or_onboarding_weak",
+    "integration_claims_ahead_of_readiness",
+    "integration_missing_tests_or_labels",
+}
+ATLAS_ERROR_LEARNING_REQUIRED_WARNING_CODES = {
+    "error_learning_ui_not_ready",
+    "error_learning_landing_not_ready",
+    "error_learning_integration_not_ready",
+    "error_learning_visual_evidence_missing",
+    "error_learning_readiness_label_mismatch",
+}
+ATLAS_ERROR_LEARNING_REQUIRED_CHECK_FIELDS = {
+    "category",
+    "severity",
+    "signal",
+    "why_it_matters",
+    "recommended_fix",
+    "blocks_ready_if_present",
+}
+CODEX_RUNTIME_COMPATIBILITY_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "required_checks",
+    "known_limitations",
+    "manual_step_templates",
+}
+CODEX_RUNTIME_COMPATIBILITY_REQUIRED_CHECKS = {
+    "codex_cli_available",
+    "codex_version_visible",
+    "mcp_cli_functional",
+    "configured_mcp_servers_visible",
+    "runtime_model_visibility",
+    "atlas_compatibility",
+}
+CODEX_RUNTIME_COMPATIBILITY_REQUIRED_LIMITATIONS = {
+    "manual_model_switch_only",
+    "no_mcp_auto_activation",
+    "config_visibility_can_be_partial",
+    "runtime_probe_is_not_execution_proof",
+}
 MODEL_COST_CONTROL_REQUIRED_FIELDS = {
     "version",
     "advisory_only",
@@ -958,6 +1021,14 @@ def _load_playwright_visual_qa_profiles(root: Path) -> Dict[str, Any]:
 
 def _load_design_quality_enforcement_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "design_quality_enforcement_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_atlas_error_learning_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "atlas_error_learning_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_codex_runtime_compatibility_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "codex_runtime_compatibility_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -1189,6 +1260,7 @@ def _validate_model_cost_control_profiles(root: Path, findings: List[str]) -> No
         value = config.get(field_name)
         if not isinstance(value, dict) or not value:
             findings.append(f"model_cost_control_profiles_invalid_dict:{field_name}")
+
 
 def _validate_mcp_profiles(root: Path, findings: List[str]) -> None:
     try:
@@ -2179,6 +2251,102 @@ def _validate_design_quality_enforcement_rules(root: Path, findings: List[str]) 
             findings.append(f"design_quality_enforcement_rules_invalid_check_blocker_flag:{check_name}")
 
 
+def _validate_atlas_error_learning_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_atlas_error_learning_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_atlas_error_learning_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("atlas_error_learning_rules_not_object")
+        return
+
+    missing_fields = ATLAS_ERROR_LEARNING_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(f"atlas_error_learning_rules_missing_fields:{','.join(sorted(missing_fields))}")
+
+    ui_project_types = rules.get("ui_project_types")
+    if not isinstance(ui_project_types, list) or not ui_project_types:
+        findings.append("atlas_error_learning_rules_invalid_ui_project_types")
+
+    checks = rules.get("checks")
+    if not isinstance(checks, dict) or not checks:
+        findings.append("atlas_error_learning_rules_invalid_checks")
+    else:
+        missing_checks = ATLAS_ERROR_LEARNING_REQUIRED_CHECKS - set(checks.keys())
+        if missing_checks:
+            findings.append(f"atlas_error_learning_rules_missing_checks:{','.join(sorted(missing_checks))}")
+        for check_name, check in checks.items():
+            if not isinstance(check, dict):
+                findings.append(f"atlas_error_learning_rules_invalid_check:{check_name}")
+                continue
+            missing_rule_fields = ATLAS_ERROR_LEARNING_REQUIRED_CHECK_FIELDS - set(check.keys())
+            if missing_rule_fields:
+                findings.append(
+                    f"atlas_error_learning_rules_missing_check_fields:{check_name}:{','.join(sorted(missing_rule_fields))}"
+                )
+            if str(check.get("severity", "")).strip() not in VALID_SKILL_RISK_LEVELS:
+                findings.append(f"atlas_error_learning_rules_invalid_check_severity:{check_name}")
+            if not isinstance(check.get("blocks_ready_if_present"), bool):
+                findings.append(f"atlas_error_learning_rules_invalid_check_blocking:{check_name}")
+
+    warning_codes = rules.get("warning_codes")
+    if not isinstance(warning_codes, list) or not warning_codes:
+        findings.append("atlas_error_learning_rules_invalid_warning_codes")
+    else:
+        warning_set = {str(item).strip() for item in warning_codes if str(item).strip()}
+        missing_warning_codes = ATLAS_ERROR_LEARNING_REQUIRED_WARNING_CODES - warning_set
+        if missing_warning_codes:
+            findings.append(
+                f"atlas_error_learning_rules_missing_warning_codes:{','.join(sorted(missing_warning_codes))}"
+            )
+
+
+def _validate_codex_runtime_compatibility_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_codex_runtime_compatibility_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_codex_runtime_compatibility_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("codex_runtime_compatibility_rules_not_object")
+        return
+
+    missing_fields = CODEX_RUNTIME_COMPATIBILITY_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(
+            f"codex_runtime_compatibility_rules_missing_fields:{','.join(sorted(missing_fields))}"
+        )
+
+    required_checks = rules.get("required_checks")
+    if not isinstance(required_checks, list) or not required_checks:
+        findings.append("codex_runtime_compatibility_rules_invalid_required_checks")
+    else:
+        check_set = {str(item).strip() for item in required_checks if str(item).strip()}
+        missing_checks = CODEX_RUNTIME_COMPATIBILITY_REQUIRED_CHECKS - check_set
+        if missing_checks:
+            findings.append(
+                f"codex_runtime_compatibility_rules_missing_required_checks:{','.join(sorted(missing_checks))}"
+            )
+
+    limitations = rules.get("known_limitations")
+    if not isinstance(limitations, list) or not limitations:
+        findings.append("codex_runtime_compatibility_rules_invalid_known_limitations")
+    else:
+        limitation_set = {str(item).strip() for item in limitations if str(item).strip()}
+        missing_limitations = CODEX_RUNTIME_COMPATIBILITY_REQUIRED_LIMITATIONS - limitation_set
+        if missing_limitations:
+            findings.append(
+                f"codex_runtime_compatibility_rules_missing_known_limitations:{','.join(sorted(missing_limitations))}"
+            )
+
+    manual_steps = rules.get("manual_step_templates")
+    if not isinstance(manual_steps, list) or not manual_steps:
+        findings.append("codex_runtime_compatibility_rules_invalid_manual_steps")
+
+
 def _validate_docs_search_catalog(root: Path, findings: List[str]) -> None:
     try:
         catalog = _load_docs_search_catalog(root)
@@ -3049,6 +3217,8 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_component_inspiration_profiles(root, findings)
         _validate_playwright_visual_qa_profiles(root, findings)
         _validate_design_quality_enforcement_rules(root, findings)
+        _validate_atlas_error_learning_rules(root, findings)
+        _validate_codex_runtime_compatibility_rules(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)

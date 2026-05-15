@@ -76,6 +76,10 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["component_inspiration_posture"]["advisory_only"] is True
     assert isinstance(result["visual_qa_readiness_posture"], dict)
     assert result["visual_qa_readiness_posture"]["advisory_only"] is True
+    assert isinstance(result["error_learning_posture"], dict)
+    assert result["error_learning_posture"]["advisory_only"] is True
+    assert isinstance(result["codex_runtime_posture"], dict)
+    assert result["codex_runtime_posture"]["advisory_only"] is True
     assert isinstance(result["system_learning"], dict)
     assert isinstance(result["execution_plan"], list)
     assert len(result["execution_plan"]) <= 3
@@ -117,7 +121,9 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert "blocked_profiles" in result["component_inspiration_posture"]
     assert "playwright_available" in result["visual_qa_readiness_posture"]
     assert "blocked_profiles" in result["visual_qa_readiness_posture"]
+    assert "triggered_signals" in result["error_learning_posture"]
     assert "recommended_model_tier" in result["model_cost_control_posture"]
+    assert "configured_mcp_servers" in result["codex_runtime_posture"]
     assert "required_fields" in result["visual_intent_posture"]
     assert "missing_fields" in result["visual_intent_posture"]
     assert "required_fields" in result["brand_profile_posture"]
@@ -146,6 +152,17 @@ def test_quality_gate_report_exposes_visual_qa_readiness_posture():
     assert result["visual_qa_readiness_posture"]["advisory_only"] is True
     assert "playwright_available" in result["visual_qa_readiness_posture"]
     assert "blocked_profiles" in result["visual_qa_readiness_posture"]
+
+
+def test_quality_gate_report_exposes_error_learning_and_codex_runtime_postures():
+    result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+    assert isinstance(result["error_learning_posture"], dict)
+    assert result["error_learning_posture"]["advisory_only"] is True
+    assert "triggered_signals" in result["error_learning_posture"]
+    assert isinstance(result["codex_runtime_posture"], dict)
+    assert result["codex_runtime_posture"]["advisory_only"] is True
+    assert "configured_mcp_servers" in result["codex_runtime_posture"]
+
 
 def test_quality_gate_report_uses_existing_outputs_to_mark_not_ready():
     phase_report = {

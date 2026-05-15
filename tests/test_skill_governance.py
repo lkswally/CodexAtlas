@@ -22,6 +22,8 @@ from tools.atlas_governance_check import (
     _load_component_inspiration_profiles,
     _load_playwright_visual_qa_profiles,
     _load_design_quality_enforcement_rules,
+    _load_atlas_error_learning_rules,
+    _load_codex_runtime_compatibility_rules,
     _validate_external_tool_policy,
     _validate_mcp_profiles,
     _validate_docs_search_catalog,
@@ -38,6 +40,8 @@ from tools.atlas_governance_check import (
     _validate_component_inspiration_profiles,
     _validate_playwright_visual_qa_profiles,
     _validate_design_quality_enforcement_rules,
+    _validate_atlas_error_learning_rules,
+    _validate_codex_runtime_compatibility_rules,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
@@ -309,6 +313,52 @@ def test_design_quality_enforcement_rules_require_expected_checks():
     )
     assert any(
         finding.startswith("design_quality_enforcement_rules_missing_warning_codes:")
+        for finding in findings
+    )
+
+
+def test_atlas_error_learning_rules_require_expected_checks_and_warning_codes():
+    findings = []
+    invalid_rules = _load_atlas_error_learning_rules(ROOT)
+    invalid_rules["checks"] = {
+        "hero_overflow_or_mobile_header_failure": invalid_rules["checks"]["hero_overflow_or_mobile_header_failure"]
+    }
+    invalid_rules["warning_codes"] = ["error_learning_ui_not_ready"]
+
+    with patch(
+        "tools.atlas_governance_check._load_atlas_error_learning_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_atlas_error_learning_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("atlas_error_learning_rules_missing_checks:")
+        for finding in findings
+    )
+    assert any(
+        finding.startswith("atlas_error_learning_rules_missing_warning_codes:")
+        for finding in findings
+    )
+
+
+def test_codex_runtime_compatibility_rules_require_expected_checks_and_limitations():
+    findings = []
+    invalid_rules = _load_codex_runtime_compatibility_rules(ROOT)
+    invalid_rules["required_checks"] = ["codex_cli_available"]
+    invalid_rules["known_limitations"] = ["manual_model_switch_only"]
+
+    with patch(
+        "tools.atlas_governance_check._load_codex_runtime_compatibility_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_codex_runtime_compatibility_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("codex_runtime_compatibility_rules_missing_required_checks:")
+        for finding in findings
+    )
+    assert any(
+        finding.startswith("codex_runtime_compatibility_rules_missing_known_limitations:")
         for finding in findings
     )
 

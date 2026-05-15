@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "required_checks": [
+    "codex_cli_available",
+    "codex_version_visible",
+    "mcp_cli_functional",
+    "configured_mcp_servers_visible",
+    "runtime_model_visibility",
+    "atlas_compatibility"
+  ],
+  "known_limitations": [
+    "manual_model_switch_only",
+    "no_mcp_auto_activation",
+    "config_visibility_can_be_partial",
+    "runtime_probe_is_not_execution_proof"
+  ],
+  "manual_step_templates": [
+    "Verify `codex --version` locally if the CLI state changes.",
+    "Verify `codex mcp list` locally after any approved MCP configuration change.",
+    "Keep model selection manual in Codex Desktop.",
+    "Do not paste secrets into Atlas or project files."
+  ]
+}
