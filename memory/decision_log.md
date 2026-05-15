@@ -1,5 +1,36 @@
 # Decision Log
 
+## 2026-05-15
+- Decision: add `atlas_error_learning_review` as a local advisory layer before Atlas calls a UI, landing or integration ready
+- Reason: repeated failures showed that existing visual and readiness guardrails were still too easy to bypass or communicate too optimistically
+- Impact: Atlas can now downgrade readiness when known regressions reappear, including missing visual evidence, CTA/onboarding failure, landing-as-README drift or integrations claimed as active before they are truly ready
+- Risk: if the learned checks become too broad, Atlas could turn a useful postmortem layer into noisy pseudo-memory
+- Rollback: remove `config/atlas_error_learning_rules.json`, `policies/atlas_error_learning_policy.md`, `tools/atlas_error_learning_review.py` and the related governance/quality-gate/test wiring
+
+- Decision: add `codex_runtime_compatibility_check` as a local advisory probe before Atlas communicates Codex runtime capabilities strongly
+- Reason: Atlas needed a machine-readable way to distinguish what Codex can actually do on this workstation from what is merely documented or theoretically supported
+- Impact: Atlas can now report visible CLI availability, local MCP inspection, runtime-model visibility, known limitations and manual next steps without mutating config or activating runtime changes
+- Risk: users could still confuse runtime visibility with permission to auto-switch models or activate MCPs if the advisory boundary is not kept explicit
+- Rollback: remove `config/codex_runtime_compatibility_rules.json`, `policies/codex_runtime_compatibility_policy.md`, `tools/codex_runtime_compatibility_check.py` and the connected governance/quality-gate/test wiring
+
+- Decision: refine `model_cost_control_readiness` so low-risk mini tasks do not escalate to confirmation by default
+- Reason: the first implementation was too aggressive and treated routine low-risk documentation work as if it still needed human confirmation, which weakened its usefulness as a practical cost guardrail
+- Impact: Atlas now reserves confirmation prompts for stronger tiers, larger context, ambiguous tasks or mixed planning/execution, while keeping model selection fully manual
+- Risk: if future rules become too permissive, Atlas could under-warn on expensive but still avoidable tasks
+- Rollback: revert the `cost_tradeoff_unclear` refinement in `tools/model_cost_control_readiness.py` and restore the earlier stricter confirmation behavior
+
+- Decision: enrich `skill_improvement_review` with explicit external-radar fit decisions instead of only lifecycle language
+- Reason: Atlas needed a safer way to consume repositories like `awesome-claude-skills` or `ruflo` as radar without drifting into auto-adoption or trend chasing
+- Impact: external candidates can now be classified as `adapt_now`, `design_later`, `watchlist` or `discard`, and Claude-only/runtime-heavy ideas are blocked more explicitly
+- Risk: if the fit heuristics become too shallow, Atlas could under-value a useful pattern or over-block an idea that still needs design work
+- Rollback: remove the external-fit classification in `tools/skill_improvement_review.py` and return to lifecycle-only candidate posture
+
+- Decision: keep repo-graph and memory ambitions in watchlist posture instead of implementing them now
+- Reason: both patterns may help with long-context work, but they widen runtime and maintenance surface faster than Atlas currently needs
+- Impact: Atlas documents the need and boundary clearly, but does not add repo-graph generation, plugin memory, hooks, RAG or auto-injection behavior
+- Risk: long-running Atlas work may still pay an avoidable context cost until a lighter local-first design proves worthwhile
+- Rollback: no rollback needed because the capability remains design-only/watchlist
+
 ## 2026-05-14
 - Decision: add `intent_clarifier_contract`, `brand_json_v2_readiness`, and `frontend_auto_audit_rules` as executable advisory guardrails before Atlas treats frontend work as strongly ready
 - Reason: Atlas already had visual intent, brand profile, UI pre-return and design-quality layers, but a recent external audit showed that vague upstream intent, inferred brand structure and missing local pre-release checks could still leak weak frontend quality into production

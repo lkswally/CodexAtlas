@@ -75,6 +75,7 @@ Rules:
 - catalog hygiene reviews are governed by `policies/skill_improvement_review_policy.md` and `config/skill_improvement_review_rules.json`
 - a proposed skill may stay `candidate` or be rejected even if the idea sounds useful; Atlas should prefer catalog hygiene over skill sprawl
 - `skill_improvement_review` is advisory-only: it may recommend `keep`, `improve`, `merge`, `deprecate`, `archive` or external `candidate_review`, but it does not auto-install or auto-modify skills
+- when external skill references are reviewed, Atlas should classify them explicitly as `adapt_now`, `design_later`, `watchlist` or `discard` before any human chooses to implement them
 
 Current skills:
 - `project-bootstrap`: start a derived project safely from Atlas
@@ -92,6 +93,9 @@ Current skills:
 - `intent_clarifier_contract` (tool-level advisory): require clearer upstream answers for audience, domain, goal, style and originality before stronger design or handoff claims
 - `brand_json_v2_readiness` (tool-level advisory): require an explicit governed brand artifact posture instead of relying on inferred identity alone
 - `frontend_auto_audit_rules` (tool-level advisory): aggregate intent, brand, pre-return and design-quality guardrails before Atlas should treat a frontend as strongly ready
+- `atlas_error_learning_review` (tool-level advisory): turn repeated UI, landing and integration mistakes into explicit readiness blockers before Atlas treats a surface as ready again
+- `model_cost_control_readiness` (tool-level advisory): recommend mini/medium/strong cost posture, context trimming and split-task strategy without auto-switching models
+- `codex_runtime_compatibility_check` (tool-level advisory): report what the local Codex runtime can actually do on this machine without mutating configuration or activating MCPs
 
 Execution model:
 - skills default to documentary guidance

@@ -1,6 +1,6 @@
 # ATLAS Status
 
-As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base of ATLAS.
+As of 2026-05-15, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base of ATLAS.
 
 ## Current capabilities
 
@@ -30,10 +30,10 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Manual design-intelligence policies now cover visual direction, anti-generic UI review and design evidence
 - Manual design-intelligence policies now also require a visual intent contract before Atlas treats design direction as coherent enough for stronger recommendations
 - Atlas now has persistent observability files for derived projects, routing decisions and governance events under `memory/`
-- Atlas now has a controlled MCP evaluation surface with one experimental read-only candidate and the rest denied or deferred by policy
+- Atlas now has a controlled MCP evaluation surface with one verified read-only MCP candidate and the rest denied or deferred by policy
 - Atlas now has a governed MCP lifecycle manager for read-only dry runs without real connector activation
-- Atlas now has a read-only `docs_search` adapter as the safe execution path while real Codex MCP runtime support remains unverified locally
-- Atlas has now re-checked the official OpenAI Developer Docs MCP path and confirmed that the local Codex CLI still cannot execute `mcp` commands on this Windows machine because `codex.exe` returns `Access is denied`
+- Atlas now has a read-only `docs_search` adapter as the safe internal execution path while Atlas keeps real MCP usage approval-bound
+- Atlas has now verified the official OpenAI Developer Docs MCP path locally: `codex --version` and `codex mcp list` work on this machine, and `openaiDeveloperDocs` appears configured and enabled
 - The `docs_search` adapter now returns ranked, deduplicated results plus structured summary, key points, confidence and possible-staleness signals
 - The `docs_search` adapter now reads a governed external catalog from `config/docs_search_catalog.json` instead of keeping the curated references hardcoded in the adapter
 - Atlas now has a read-only docs catalog health report via `tools/docs_catalog_report.py`
@@ -62,11 +62,15 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Atlas now has an advisory `component_inspiration_readiness` layer that reports whether 21st Magic or Context7 look locally ready for UI-pattern inspiration without generating components, activating MCPs or bypassing local-first design direction
 - Atlas now has an advisory `playwright_visual_qa_readiness` layer that reports whether Playwright and browser binaries look locally ready for future screenshot-based QA without opening browsers or capturing screenshots
 - Atlas now has an advisory `design_quality_enforcement` layer that can downgrade visually weak UI from `ready` to `needs_improvement` when the surface still reads as amateur, wireframe-like, overly heavy or under-directed
+- Atlas now has an advisory `model_cost_control_readiness` layer that recommends lite vs full model tiers, context trimming and task splitting without auto-switching the runtime model
+- Atlas now has an advisory `atlas_error_learning_review` layer that turns repeated UI, landing and integration mistakes into explicit readiness blockers before Atlas calls a surface ready
+- Atlas now has an advisory `codex_runtime_compatibility_check` layer that reports what Codex capabilities are actually visible on this machine without changing runtime or config
+- Atlas now enriches `skill_improvement_review` with curated external-radar fit decisions: `adapt_now`, `design_later`, `watchlist` or `discard`
 - Atlas now has a read-only `error_pattern_analyzer` that reads local Atlas logs to detect repeated blocks, ignored actions, MCP runtime failures and governance drift
 - Atlas now has a read-only `repo_improvement_scout` that evaluates `_reference/claude-vibecoding` as a structured source of safe Atlas improvements
 - Atlas now has a read-only `atlas_verify` helper that reuses governance, `audit-repo`, `surface-audit`, and optional `quality-gate-report` as one post-setup verification entrypoint
 - Atlas now has a read-only `decision-council` pattern adapted from `llm-council` for high-risk Atlas decisions without adding multi-model runtime or external dependencies
-- Atlas now has a read-only `mcp_readiness_check` that keeps real MCP activation blocked while the local Codex CLI still cannot be verified safely
+- Atlas now has a read-only `mcp_readiness_check` that distinguishes configured, functional and watchlist MCP posture from real activation
 - `quality_gate_report` now includes intent analysis, prompt guidance and a reusable-skill creation signal alongside readiness, phase and evidence summaries
 - `quality_gate_report` now also exposes `skill_improvement_posture` so catalog-health signals stay visible without turning them into a blocking runtime gate
 - `quality_gate_report` now also exposes `creative_pipeline_posture` so visual-media readiness stays explicit without turning Atlas into an asset runtime
@@ -74,6 +78,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - `quality_gate_report` now also exposes `visual_qa_readiness_posture` so browser-automation readiness stays explicit without turning Atlas into a screenshot runtime
 - `quality_gate_report` now also exposes `design_quality_posture` so visual-system weakness, hierarchy problems and amateur-ui risk remain visible before a final handoff claim
 - `quality_gate_report` now also exposes `intent_clarifier_posture`, `brand_json_v2_posture` and `frontend_auto_audit_posture` so vague briefs, inferred branding and incomplete local frontend guardrails can downgrade readiness before release
+- `quality_gate_report` now also exposes `model_cost_control_posture`, `error_learning_posture` and `codex_runtime_posture` so cost discipline, learned regression signals and real Codex capability limits stay visible before release claims
 - Atlas now has a read-only `priority_engine` that reduces noise and turns existing phase, intent, audit and skill signals into a short execution plan
 - `quality_gate_report` now exposes `execution_plan`, `primary_action` and `why_now` so readiness reports say what to do first instead of only listing signals
 - `quality_gate_report` now enriches each `execution_plan` step with its own model recommendation, fallback, cheaper alternative and confirmation signal without attempting any auto-switch
@@ -132,7 +137,7 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - Model routing, MCP routing and cost control policies are documented
 - Evidence-required, project-boundary and template-quality policies are now documented as Atlas-native quality gates
 - `docs_search` is now the only experimental read-only MCP approved in Atlas metadata
-- the official OpenAI Docs MCP remains a documented candidate, but it is not activated locally because Codex CLI execution is currently blocked on this machine
+- the official OpenAI Docs MCP is now visible and locally verified through Codex CLI, but Atlas still treats configuration changes and broader MCP expansion as approval-bound
 - `github`, `filesystem` and `engram` remain non-experimental until their risk and surface fit improve
 - `tools/atlas_mcp_manager.py` now manages the MCP lifecycle states `suggested`, `approval_required`, `approved`, `blocked`, `executed_adapter` and `executed_simulated`
 - `tools/docs_search_adapter.py` now provides the current controlled execution path for `docs_search` without claiming a real external MCP connection
@@ -203,10 +208,10 @@ As of 2026-04-24, `C:\Proyectos\Codex-Atlas` is the canonical Codex-native base 
 - No deploy automation or external connector has been introduced
 - No write-capable MCP or external connector is active inside Atlas workflows
 - The current MCP experiment is advisory by default, can execute through the internal docs adapter after approval, and still does not auto-connect a real external MCP
-- No change was made to `C:\Users\Lucas\.codex\config.toml`, and no project-scoped `.codex/config.toml` was added under Atlas because real MCP activation could not be verified safely
+- Atlas still does not mutate `C:\Users\Lucas\.codex\config.toml` or add a project-scoped `.codex/config.toml`; runtime compatibility is observed, not changed
 - Decision feedback is now tracked only inside Atlas memory and never written back into derived projects
 - Atlas can now read decision feedback back into its ranking layer to reduce repeated ignored recommendations and reinforce consistently accepted ones
-- Atlas can now combine phase, intent, model routing, feedback history and error-pattern evidence without activating hidden runtime or touching derived projects
+- Atlas can now combine phase, intent, model routing, model-cost discipline, feedback history, runtime compatibility and error-learning evidence without activating hidden runtime or touching derived projects
 - Atlas now treats Codex model switching as recommendation-only unless CLI or config mutation can be verified safely, and it asks for user confirmation whenever routing stays ambiguous or auto-switch remains unverified
 - Model-router outputs now expose `active_runtime_model=manual_or_unknown`, `model_switch_mode=manual_required`, `recommended_model_is_advisory=true`, explicit manual user action, and `can_auto_switch=false` with `auto_switch_method=not_available` across router, prompt guidance and quality-gate execution steps
 - Atlas now has advisory-only visual/media and external model fallback policies so image, video, branding and NVIDIA Build style fallback decisions stay explicit before any provider, MCP or runtime integration is considered

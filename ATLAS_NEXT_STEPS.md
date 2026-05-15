@@ -58,10 +58,12 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep `model_router` alias-driven and configurable so Atlas can change provider strategy without rewriting routing logic
 - Keep `model_router` tied to the visible Codex Desktop model list and ask before deciding when planning-vs-execution, cost-vs-quality or safe model switching are not explicit
 - Keep model-routing outputs explicit about runtime limits: recommendations are advisory/manual until Codex model switching is verifiably available in this environment
+- Keep `model_cost_control_readiness` advisory-only and conservative; it should prefer trimming context, splitting tasks and cheaper tiers before Atlas recommends a stronger model
 - Keep `prompt_builder` phase-aware and explicit so it teaches the flow without becoming hidden automation
 - Keep `prompt_builder` tied to real priority, feedback and validation signals instead of drifting back toward generic task templates
 - Keep `skill_evaluator` conservative; it should block capability sprawl more often than it approves new reusable skills
 - Keep `skill_improvement_review` advisory and hygiene-first; it should recommend review, merge or deprecate before Atlas grows the catalog
+- Keep `skill_improvement_review` explicit about curated external-radar fit: `adapt_now`, `design_later`, `watchlist` or `discard` should stay reviewable instead of drifting into hidden trend-following
 - Keep `visual_intent_contract` advisory and evidence-first until repeated usage proves that stronger gating would reduce generic design drift without over-blocking simple projects
 - Keep `visual_intent_contract` aligned across `project_intent_analyzer`, `visual-direction-checkpoint`, `brand_agent`, `design_intelligence_audit` and `quality_gate_report`
 - Keep `intent_clarifier_contract` strict enough that UI-facing work cannot rely on mostly inferred audience, domain or goal answers
@@ -70,10 +72,12 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep brand-profile warnings advisory and evidence-first until Atlas has enough repeated usage to justify stronger gating for public-facing UI work
 - Keep `ui_pre_return_audit` advisory until Atlas has stronger visual proof inputs, but use it to prevent unsupported “UI ready” claims and generic handoff decisions
 - Keep `frontend_auto_audit_rules` focused on local guardrails and evidence expectations; screenshot collection, fidelity judging and stronger final reality checks should stay in readiness/watchlist until separately approved
+- Keep `atlas_error_learning_review` evidence-first and local-only; it should capture repeated real failures without turning hindsight into noisy pseudo-memory
+- Keep `codex_runtime_compatibility_check` aligned with the real local Codex CLI surface so Atlas never communicates advisory runtime support as if it were active automation
 - If the contract proves consistently useful, decide later whether it should become a stronger certification prerequisite for public-facing UI work
 - Keep `error_pattern_analyzer` evidence-first so it reports recurring Atlas failure modes without turning log noise into fake system-learning claims
 - Keep `repo_improvement_scout` anchored to the local reference clone and explicit effort/benefit tradeoffs, not to trend-chasing features
-- Keep `mcp_readiness_check` read-only until Codex CLI can be verified locally without `Access is denied`
+- Keep `mcp_readiness_check` read-only and approval-bound even though the local Codex CLI is now callable and `openaiDeveloperDocs` is visible
 - Keep `priority_engine` as a ranking layer over existing evidence, not as a second policy engine with its own hidden rules
 - Keep per-action model recommendations tied to the existing router so `execution_plan` guidance stays explainable instead of growing a second routing logic
 - Keep landing-quality checks evidence-first and warning-first so Atlas catches README-like public pages without over-blocking intentionally simple derived sites
@@ -87,6 +91,8 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep `design_quality_enforcement` strict enough to block visually weak handoff claims, but evidence-first enough that it does not confuse intentional minimalism with accidental low fidelity
 - Keep external model fallback evaluation separate from Codex Desktop model routing; benchmark NVIDIA candidates manually before adding any profile or adapter
 - Keep `21st_magic` disabled until the exposed key is revoked, a fresh key is stored outside the repo, and a separate approval allows a controlled MCP test
+- Keep `repo_graph_readiness` in watchlist/design-only posture until Atlas proves a local graph would reduce context materially without adding dependency or maintenance drag
+- Keep memory automation in watchlist posture; if Atlas ever revisits it, prefer a local-first summary/readiness path before any plugin, hook or auto-injection runtime
 - Fix known public placeholder links in derived landings before treating design readiness as anything stronger than `needs_improvement`
 - Keep `design_evidence_policy.md` aligned with landing-readiness heuristics so public-facing PASS states always have traceable proof
 
@@ -141,11 +147,13 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - The docs adapter being mistaken for a verified real Codex MCP runtime on machines where `codex mcp` is not operational
 - README and public-facing docs drifting behind the real Atlas command, skill and workflow surface as the factory evolves
 - The Windows Store Codex package continuing to expose `codex.exe` while denying CLI execution, creating false confidence that MCP setup is available locally
+- Confusing `codex_runtime_compatibility_check` or `mcp_readiness_check` with permission to mutate runtime, switch models or activate new MCPs automatically
 - The docs adapter confidence signal becoming noisy if ranking and verification dates drift from the curated catalog
 - The curated docs catalog drifting because `last_verified` stops being updated or deprecated entries remain active too long
 - The catalog report becoming disconnected from adapter semantics if freshness logic changes in one place but not the other
 - Design-intelligence checks drifting into taste-only opinions instead of evidence-backed review
 - Pressure to recreate Playwright-driven Claude QA before Atlas actually needs browser automation
+- Pressure to implement repo graphs or memory runtimes before Atlas has enough repeated evidence that the extra surface would actually save context
 - Anti-generic heuristics becoming brittle or over-blocking for intentionally simple internal tools
 - Landing-readiness heuristics drifting into copy taste instead of verifiable public-facing quality signals
 - Too many low-value skills diluting Atlas-native guidance
@@ -163,6 +171,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - External model adapters before manual benchmark evidence proves the value
 - Image or video generation agents inside Atlas core
 - Automatic write-back from decision logs into derived projects
+- Repository graph generators, memory plugins or RAG layers that require installs, background workers or hidden reinjection
 
 ## Recommended Level 2
 
