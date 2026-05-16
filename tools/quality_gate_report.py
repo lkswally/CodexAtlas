@@ -94,6 +94,10 @@ try:
     from tools.evidence_collector_readiness import review_evidence_collector_readiness
 except ModuleNotFoundError:
     from evidence_collector_readiness import review_evidence_collector_readiness
+try:
+    from tools.change_proposal_readiness import assess_change_proposal_readiness
+except ModuleNotFoundError:
+    from change_proposal_readiness import assess_change_proposal_readiness
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -526,6 +530,18 @@ def _run_evidence_collector_readiness(
     except Exception as exc:
         return _build_failed_report("evidence_collector_readiness", f"evidence_collector_readiness_failed:{exc}")
     return _build_ok_report("evidence_collector_readiness", report)
+
+
+def _run_change_proposal_readiness(
+    *,
+    root: Path,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    try:
+        report = assess_change_proposal_readiness(payload, root=root)
+    except Exception as exc:
+        return _build_failed_report("change_proposal_readiness", f"change_proposal_readiness_failed:{exc}")
+    return _build_ok_report("change_proposal_readiness", report)
 
 
 def _run_model_cost_control(
@@ -1291,6 +1307,35 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             ],
         },
     )
+    inferred_complexity = (
+        str((source_reports["project_intent_analyzer"]["report"] or {}).get("complexity", "low")).strip().lower()
+        if source_reports["project_intent_analyzer"]["status"] == "ok"
+        else "low"
+    )
+    project_type_for_change_proposal = (
+        ((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else None)
+        or "unknown"
+    )
+    source_reports["change_proposal_readiness"] = _run_change_proposal_readiness(
+        root=root,
+        payload={
+            "project_type": project_type_for_change_proposal,
+            "change_size": {
+                "high": "large",
+                "medium": "medium",
+                "low": "small",
+            }.get(inferred_complexity, "small"),
+            "risk_level": (
+                ((source_reports["project_intent_analyzer"]["report"] or {}).get("risk_level") if source_reports["project_intent_analyzer"]["status"] == "ok" else None)
+                or "low"
+            ),
+            "complexity": inferred_complexity,
+            "is_architecture_change": inferred_complexity in {"medium", "high"}
+            and project_type_for_change_proposal in {"fullstack", "ai_agent_system"},
+            "is_governance_change": False,
+            "is_contract_change": bool(source_reports["intent_clarifier_contract"].get("report")),
+        },
+    )
 
     blockers = _extract_certify_blockers(source_reports["certify-project"])
     warnings: List[Dict[str, Any]] = []
@@ -1730,6 +1775,13 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "manual_next_steps": (source_reports["evidence_collector_readiness"]["report"] or {}).get("manual_next_steps", []),
             "why": (source_reports["evidence_collector_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["evidence_collector_readiness"]["report"] or {}).get("advisory_only", True)),
+        },
+        "change_proposal_posture": {
+            "required": bool((source_reports["change_proposal_readiness"]["report"] or {}).get("required")),
+            "status": (source_reports["change_proposal_readiness"]["report"] or {}).get("status"),
+            "missing_artifacts": (source_reports["change_proposal_readiness"]["report"] or {}).get("missing_artifacts", []),
+            "why": (source_reports["change_proposal_readiness"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["change_proposal_readiness"]["report"] or {}).get("advisory_only", True)),
         },
         "system_learning": source_reports["error_pattern_analyzer"]["report"] if source_reports["error_pattern_analyzer"]["status"] == "ok" else None,
         "blockers": blockers,

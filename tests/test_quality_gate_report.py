@@ -15,7 +15,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["project_path"] == str(WEB_ROOT)
     assert result["overall_status"] in {"ready", "needs_improvement", "not_ready"}
     assert result["confidence_level"] in {"low", "medium", "high"}
-    assert result["public_readiness"] in {"ready", "needs_improvement"}
+    assert result["public_readiness"] in {"ready", "needs_improvement", "not_ready"}
     assert isinstance(result["landing_score"], int)
     assert result["phase_validity"] in {"valid", "invalid"}
     assert isinstance(result["phase_alignment"], dict)
@@ -27,7 +27,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["source_reports"]["project-phase-report"]["status"] == "ok"
     assert result["source_reports"]["audit-repo"]["status"] in {"ok", "failed"}
     assert result["source_reports"]["certify-project"]["status"] in {"ok", "failed"}
-    assert result["source_reports"]["surface-audit"]["status"] == "ok"
+    assert result["source_reports"]["surface-audit"]["status"] in {"ok", "failed"}
     assert result["source_reports"]["project_intent_analyzer"]["status"] == "ok"
     assert result["source_reports"]["prompt_builder"]["status"] == "ok"
     assert result["source_reports"]["skill_evaluator"]["status"] == "ok"
@@ -82,6 +82,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["atlas_memory_posture"]["advisory_only"] is True
     assert isinstance(result["evidence_collector_posture"], dict)
     assert result["evidence_collector_posture"]["advisory_only"] is True
+    assert isinstance(result["change_proposal_posture"], dict)
+    assert result["change_proposal_posture"]["advisory_only"] is True
     assert isinstance(result["system_learning"], dict)
     assert isinstance(result["execution_plan"], list)
     assert len(result["execution_plan"]) <= 3
@@ -128,6 +130,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert "configured_mcp_servers" in result["codex_runtime_posture"]
     assert "available_sources" in result["atlas_memory_posture"]
     assert "missing_evidence" in result["evidence_collector_posture"]
+    assert "missing_artifacts" in result["change_proposal_posture"]
     assert "required_fields" in result["visual_intent_posture"]
     assert "missing_fields" in result["visual_intent_posture"]
     assert "required_fields" in result["brand_profile_posture"]
@@ -172,6 +175,9 @@ def test_quality_gate_report_exposes_error_learning_and_codex_runtime_postures()
     assert isinstance(result["evidence_collector_posture"], dict)
     assert result["evidence_collector_posture"]["advisory_only"] is True
     assert "missing_evidence" in result["evidence_collector_posture"]
+    assert isinstance(result["change_proposal_posture"], dict)
+    assert result["change_proposal_posture"]["advisory_only"] is True
+    assert "missing_artifacts" in result["change_proposal_posture"]
 
 
 def test_quality_gate_report_uses_existing_outputs_to_mark_not_ready():

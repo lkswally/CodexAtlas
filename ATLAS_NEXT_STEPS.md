@@ -94,6 +94,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep memory automation in watchlist posture; if Atlas ever revisits it, prefer a local-first summary/readiness path before any plugin, hook or auto-injection runtime
 - Keep `atlas_memory_readiness` honest about the current boundary: local files are useful continuity, not autonomous memory
 - Keep `evidence_collector_readiness` strict about strong PASS language; advisory confidence is not the same thing as proof
+- Keep `change_proposal_readiness` lightweight for small fixes but explicit for medium or large changes so Atlas does not drift back into implementation-before-agreement
 - Fix known public placeholder links in derived landings before treating design readiness as anything stronger than `needs_improvement`
 - Keep `design_evidence_policy.md` aligned with landing-readiness heuristics so public-facing PASS states always have traceable proof
 

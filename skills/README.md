@@ -98,6 +98,7 @@ Current skills:
 - `codex_runtime_compatibility_check` (tool-level advisory): report what the local Codex runtime can actually do on this machine without mutating configuration or activating MCPs
 - `atlas_memory_readiness` (tool-level advisory): report whether Atlas local-first memory artifacts are strong enough for continuity without enabling plugin memory, hooks or hidden reinjection
 - `evidence_collector_readiness` (tool-level advisory): report what proof Atlas still needs before making a strong PASS claim for frontend, backend, research, high-risk decisions or governance changes
+- `change_proposal_readiness` (tool-level advisory): report whether a medium or large change has enough proposal, specs, design, task, verify and archive artifacts before implementation should be treated as well-scoped
 
 Execution model:
 - skills default to documentary guidance
@@ -113,6 +114,7 @@ Optional lifecycle metadata:
 - branding-facing skills should align with `policies/brand_profile_schema_policy.md` and `config/brand_profile_schema_rules.json` before stronger identity or differentiation claims
 - final UI-facing reviews should also align with `policies/design_quality_enforcement_policy.md` and `config/design_quality_enforcement_rules.json` before Atlas calls a surface visually ready
 - final frontend readiness claims should also align with `policies/frontend_auto_audit_rules_policy.md` and `config/frontend_auto_audit_rules.json` before Atlas calls the local guardrail chain complete
+- medium or large Atlas changes should also align with `policies/change_proposal_policy.md`, `config/change_proposal_rules.json` and `workflows/change_proposal_workflow.md` before implementation is treated as well-scoped
 
 Design-intelligence conventions:
 - design skills must return `status`, `warnings`, `evidence` and `next_action`

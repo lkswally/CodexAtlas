@@ -49,6 +49,7 @@ REQUIRED_ROOT_FILES = (
     "config/codex_runtime_compatibility_rules.json",
     "config/atlas_memory_readiness_profiles.json",
     "config/evidence_collector_readiness_rules.json",
+    "config/change_proposal_rules.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -68,6 +69,7 @@ REQUIRED_ROOT_FILES = (
     "workflows/certify_output.md",
     "workflows/certify_project.md",
     "workflows/audit_repo.md",
+    "workflows/change_proposal_workflow.md",
     "policies/anti_generic_output_policy.md",
     "policies/anti_generic_ui_policy.md",
     "policies/landing_quality_policy.md",
@@ -102,6 +104,7 @@ REQUIRED_ROOT_FILES = (
     "policies/codex_runtime_compatibility_policy.md",
     "policies/atlas_memory_readiness_policy.md",
     "policies/evidence_collector_readiness_policy.md",
+    "policies/change_proposal_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
     "memory/session_summaries.md",
@@ -178,6 +181,7 @@ REQUIRED_ROOT_FILES = (
     "tools/codex_runtime_compatibility_check.py",
     "tools/atlas_memory_readiness.py",
     "tools/evidence_collector_readiness.py",
+    "tools/change_proposal_readiness.py",
     "tests/test_atlas_orchestrator.py",
     "tests/test_certify_project.py",
     "tests/test_docs_catalog_report.py",
@@ -213,6 +217,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_codex_runtime_compatibility_check.py",
     "tests/test_atlas_memory_readiness.py",
     "tests/test_evidence_collector_readiness.py",
+    "tests/test_change_proposal_readiness.py",
     "tests/test_surface_audit.py",
     "templates/project_bootstrap_profiles.md",
 )
@@ -933,6 +938,25 @@ EVIDENCE_COLLECTOR_REQUIRED_WARNING_CODES = {
     "evidence_collector_frontend_visual_gap",
     "evidence_collector_high_risk_gap",
 }
+CHANGE_PROPOSAL_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "required_when",
+    "required_artifacts",
+    "artifact_requirements",
+}
+CHANGE_PROPOSAL_REQUIRED_ARTIFACTS = {
+    "proposal",
+    "specs",
+    "design",
+    "tasks",
+    "verify",
+    "archive",
+}
+CHANGE_PROPOSAL_REQUIRED_ARTIFACT_FIELDS = {
+    "required_fields",
+    "why_it_matters",
+}
 MODEL_COST_CONTROL_REQUIRED_FIELDS = {
     "version",
     "advisory_only",
@@ -1096,6 +1120,10 @@ def _load_atlas_memory_readiness_profiles(root: Path) -> Dict[str, Any]:
 
 def _load_evidence_collector_readiness_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "evidence_collector_readiness_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_change_proposal_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "change_proposal_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -2544,6 +2572,63 @@ def _validate_evidence_collector_readiness_rules(root: Path, findings: List[str]
             )
 
 
+def _validate_change_proposal_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_change_proposal_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_change_proposal_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("change_proposal_rules_not_object")
+        return
+
+    missing_fields = CHANGE_PROPOSAL_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(
+            f"change_proposal_rules_missing_fields:{','.join(sorted(missing_fields))}"
+        )
+
+    required_when = rules.get("required_when")
+    if not isinstance(required_when, dict) or not required_when:
+        findings.append("change_proposal_rules_invalid_required_when")
+
+    required_artifacts = rules.get("required_artifacts")
+    if not isinstance(required_artifacts, list) or not required_artifacts:
+        findings.append("change_proposal_rules_invalid_required_artifacts")
+    else:
+        artifact_set = {str(item).strip() for item in required_artifacts if str(item).strip()}
+        missing_artifacts = CHANGE_PROPOSAL_REQUIRED_ARTIFACTS - artifact_set
+        if missing_artifacts:
+            findings.append(
+                f"change_proposal_rules_missing_required_artifacts:{','.join(sorted(missing_artifacts))}"
+            )
+
+    artifact_requirements = rules.get("artifact_requirements")
+    if not isinstance(artifact_requirements, dict) or not artifact_requirements:
+        findings.append("change_proposal_rules_invalid_artifact_requirements")
+    else:
+        missing_requirement_artifacts = CHANGE_PROPOSAL_REQUIRED_ARTIFACTS - set(artifact_requirements.keys())
+        if missing_requirement_artifacts:
+            findings.append(
+                f"change_proposal_rules_missing_artifact_requirements:{','.join(sorted(missing_requirement_artifacts))}"
+            )
+        for artifact_name, artifact_rules in artifact_requirements.items():
+            if not isinstance(artifact_rules, dict):
+                findings.append(f"change_proposal_rules_invalid_artifact:{artifact_name}")
+                continue
+            missing_artifact_fields = CHANGE_PROPOSAL_REQUIRED_ARTIFACT_FIELDS - set(artifact_rules.keys())
+            if missing_artifact_fields:
+                findings.append(
+                    f"change_proposal_rules_missing_artifact_fields:{artifact_name}:{','.join(sorted(missing_artifact_fields))}"
+                )
+            required_fields = artifact_rules.get("required_fields")
+            if not isinstance(required_fields, list) or not required_fields:
+                findings.append(
+                    f"change_proposal_rules_invalid_artifact_required_fields:{artifact_name}"
+                )
+
+
 def _validate_docs_search_catalog(root: Path, findings: List[str]) -> None:
     try:
         catalog = _load_docs_search_catalog(root)
@@ -3418,6 +3503,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_codex_runtime_compatibility_rules(root, findings)
         _validate_atlas_memory_readiness_profiles(root, findings)
         _validate_evidence_collector_readiness_rules(root, findings)
+        _validate_change_proposal_rules(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)

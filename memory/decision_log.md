@@ -1,6 +1,12 @@
 # Decision Log
 
 ## 2026-05-15
+- Decision: add `change_proposal_readiness` as a Codex-native planning contract for medium and large Atlas changes
+- Reason: Atlas already had governance, quality gates and readiness layers, but still lacked one explicit artifact chain for proposal, specs, design, tasks, verify and archive before implementation starts on larger changes
+- Impact: Atlas can now report whether bigger changes are missing proposal discipline even when the repo is otherwise healthy, without adopting OpenSpec runtime or commands
+- Risk: if the contract is applied too broadly, Atlas could over-ceremonialize small fixes that do not need formal planning artifacts
+- Rollback: remove `config/change_proposal_rules.json`, `policies/change_proposal_policy.md`, `workflows/change_proposal_workflow.md`, `tools/change_proposal_readiness.py` and the connected governance/quality-gate/test wiring
+
 - Decision: add `evidence_collector_readiness` as a local advisory layer before Atlas communicates a strong PASS claim
 - Reason: Atlas had many useful quality guardrails, but still lacked one machine-readable contract for what proof should exist across frontend, backend, research, high-risk decisions and governance changes
 - Impact: Atlas can now distinguish evidence-ready work from evidence-partial or evidence-missing posture, and `quality_gate_report` can downgrade strong-ready claims when proof is still incomplete

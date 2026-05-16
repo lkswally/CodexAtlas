@@ -27,6 +27,7 @@ from tools.atlas_governance_check import (
     _load_codex_runtime_compatibility_rules,
     _load_atlas_memory_readiness_profiles,
     _load_evidence_collector_readiness_rules,
+    _load_change_proposal_rules,
     _validate_external_tool_policy,
     _validate_mcp_profiles,
     _validate_docs_search_catalog,
@@ -47,6 +48,7 @@ from tools.atlas_governance_check import (
     _validate_codex_runtime_compatibility_rules,
     _validate_atlas_memory_readiness_profiles,
     _validate_evidence_collector_readiness_rules,
+    _validate_change_proposal_rules,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
@@ -174,6 +176,23 @@ def test_evidence_collector_readiness_rules_require_expected_task_types():
 
     assert any(
         finding.startswith("evidence_collector_readiness_rules_missing_task_types:")
+        for finding in findings
+    )
+
+
+def test_change_proposal_rules_require_expected_artifacts():
+    findings = []
+    invalid_rules = _load_change_proposal_rules(ROOT)
+    invalid_rules["required_artifacts"] = ["proposal", "specs"]
+
+    with patch(
+        "tools.atlas_governance_check._load_change_proposal_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_change_proposal_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("change_proposal_rules_missing_required_artifacts:")
         for finding in findings
     )
 

@@ -73,6 +73,7 @@ Capas principales:
 - `audit_repo`
 - `certify_project`
 - `certify_output`
+- `change_proposal_workflow`
 - `decision_council_review`
 - `design_intelligence_pipeline`
 - `market_research_benchmark`

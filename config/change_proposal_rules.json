@@ -1,0 +1,80 @@
+{
+  "version": 1,
+  "advisory_only": true,
+  "required_when": {
+    "change_sizes": ["medium", "large"],
+    "risk_levels": ["high"],
+    "change_flags": [
+      "is_architecture_change",
+      "is_governance_change",
+      "is_contract_change"
+    ]
+  },
+  "required_artifacts": [
+    "proposal",
+    "specs",
+    "design",
+    "tasks",
+    "verify",
+    "archive"
+  ],
+  "artifact_requirements": {
+    "proposal": {
+      "required_fields": [
+        "what_changes",
+        "why",
+        "problem_resolved",
+        "out_of_scope",
+        "risks",
+        "expected_impact"
+      ],
+      "why_it_matters": "Atlas should agree on the change boundary before implementation starts."
+    },
+    "specs": {
+      "required_fields": [
+        "functional_requirements",
+        "non_functional_requirements",
+        "scenarios",
+        "acceptance_criteria"
+      ],
+      "why_it_matters": "Clear requirements reduce drift, false completion and hidden assumptions."
+    },
+    "design": {
+      "required_fields": [
+        "technical_approach",
+        "affected_modules",
+        "tradeoffs",
+        "discarded_alternatives"
+      ],
+      "why_it_matters": "Atlas should expose technical boundaries and tradeoffs before coding."
+    },
+    "tasks": {
+      "required_fields": [
+        "task_list",
+        "suggested_order",
+        "validation_per_task",
+        "rollback_if_needed"
+      ],
+      "why_it_matters": "Task decomposition keeps medium and large changes auditable and reversible."
+    },
+    "verify": {
+      "required_fields": [
+        "tests",
+        "governance",
+        "quality_gate",
+        "minimum_evidence",
+        "known_false_positives"
+      ],
+      "why_it_matters": "Atlas should define proof expectations before claiming a change is complete."
+    },
+    "archive": {
+      "required_fields": [
+        "final_decision",
+        "commit_reference",
+        "lessons_learned",
+        "next_steps"
+      ],
+      "why_it_matters": "Closure should preserve decisions and learnings without hidden memory."
+    }
+  }
+}
