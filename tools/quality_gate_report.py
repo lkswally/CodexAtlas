@@ -102,6 +102,10 @@ try:
     from tools.skill_registry_index_first_readiness import assess_skill_registry_index_first_readiness
 except ModuleNotFoundError:
     from skill_registry_index_first_readiness import assess_skill_registry_index_first_readiness
+try:
+    from tools.ui_ux_design_system_readiness import assess_ui_ux_design_system_readiness
+except ModuleNotFoundError:
+    from ui_ux_design_system_readiness import assess_ui_ux_design_system_readiness
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -554,6 +558,18 @@ def _run_skill_registry_index_first_readiness(root: Path) -> Dict[str, Any]:
     except Exception as exc:
         return _build_failed_report("skill_registry_index_first_readiness", f"skill_registry_index_first_readiness_failed:{exc}")
     return _build_ok_report("skill_registry_index_first_readiness", report)
+
+
+def _run_ui_ux_design_system_readiness(
+    *,
+    root: Path,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    try:
+        report = assess_ui_ux_design_system_readiness(payload=payload, root=root)
+    except Exception as exc:
+        return _build_failed_report("ui_ux_design_system_readiness", f"ui_ux_design_system_readiness_failed:{exc}")
+    return _build_ok_report("ui_ux_design_system_readiness", report)
 
 
 def _run_model_cost_control(
@@ -1243,6 +1259,24 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     source_reports["codex_runtime_compatibility_check"] = _run_codex_runtime_compatibility(root)
     source_reports["atlas_memory_readiness"] = _run_atlas_memory_readiness(root)
     source_reports["skill_registry_index_first_readiness"] = _run_skill_registry_index_first_readiness(root)
+    source_reports["ui_ux_design_system_readiness"] = _run_ui_ux_design_system_readiness(
+        root=root,
+        payload={
+            "project_type": ((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "unknown",
+            "product_type": ((source_reports["project_intent_analyzer"]["report"] or {}).get("domain_context") if source_reports["project_intent_analyzer"]["status"] == "ok" else None)
+            or ((source_reports["project_intent_analyzer"]["report"] or {}).get("objective") if source_reports["project_intent_analyzer"]["status"] == "ok" else None)
+            or project.name,
+            "audience": ((visual_intent_from_design or visual_intent_from_intent or {}).get("contract") or {}).get("audience")
+            or ((design_report.get("brand_profile_review") or {}).get("profile") or {}).get("audience"),
+            "stack": "unknown",
+            "visual_intent_contract": ((visual_intent_from_design or visual_intent_from_intent or {}).get("contract") or {}),
+            "brand_profile": ((design_report.get("brand_profile_review") or {}).get("profile") or {}),
+            "needs_complex_hero_motion": "hero" in " ".join(design_report.get("warnings", [])).lower(),
+            "needs_microinteractions": bool(design_report.get("ui_pre_return_review")),
+            "needs_transition_heavy_ui": "dashboard" in str(((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else "")).lower(),
+            "needs_scroll_reveal": "landing" in str(((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else "")).lower(),
+        },
+    )
     source_reports["atlas_error_learning_review"] = _run_atlas_error_learning_review(
         root=root,
         payload={
@@ -1807,6 +1841,22 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "index_first_safe_to_use": bool((source_reports["skill_registry_index_first_readiness"]["report"] or {}).get("index_first_safe_to_use")),
             "why": (source_reports["skill_registry_index_first_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["skill_registry_index_first_readiness"]["report"] or {}).get("advisory_only", True)),
+        },
+        "ui_ux_design_system_posture": {
+            "status": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("status"),
+            "recommended_pattern": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("recommended_pattern"),
+            "recommended_style": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("recommended_style"),
+            "recommended_palette": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("recommended_palette"),
+            "recommended_typography": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("recommended_typography"),
+            "recommended_motion": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("recommended_motion"),
+            "anti_patterns": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("anti_patterns", []),
+            "pre_delivery_checklist": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("pre_delivery_checklist", []),
+            "stack_recommendation": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("stack_recommendation"),
+            "accessibility_baseline": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("accessibility_baseline", []),
+            "frontend_motion_library_posture": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("frontend_motion_library_posture"),
+            "missing_inputs": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("missing_inputs", []),
+            "why": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("advisory_only", True)),
         },
         "system_learning": source_reports["error_pattern_analyzer"]["report"] if source_reports["error_pattern_analyzer"]["status"] == "ok" else None,
         "blockers": blockers,

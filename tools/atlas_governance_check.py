@@ -51,6 +51,7 @@ REQUIRED_ROOT_FILES = (
     "config/evidence_collector_readiness_rules.json",
     "config/change_proposal_rules.json",
     "config/skill_registry_index_first_rules.json",
+    "config/ui_ux_design_system_rules.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -107,6 +108,7 @@ REQUIRED_ROOT_FILES = (
     "policies/evidence_collector_readiness_policy.md",
     "policies/change_proposal_policy.md",
     "policies/skill_registry_index_first_policy.md",
+    "policies/ui_ux_design_system_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
     "memory/session_summaries.md",
@@ -185,6 +187,7 @@ REQUIRED_ROOT_FILES = (
     "tools/evidence_collector_readiness.py",
     "tools/change_proposal_readiness.py",
     "tools/skill_registry_index_first_readiness.py",
+    "tools/ui_ux_design_system_readiness.py",
     "tests/test_atlas_orchestrator.py",
     "tests/test_certify_project.py",
     "tests/test_docs_catalog_report.py",
@@ -222,6 +225,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_evidence_collector_readiness.py",
     "tests/test_change_proposal_readiness.py",
     "tests/test_skill_registry_index_first_readiness.py",
+    "tests/test_ui_ux_design_system_readiness.py",
     "tests/test_surface_audit.py",
     "templates/project_bootstrap_profiles.md",
 )
@@ -985,6 +989,35 @@ SKILL_REGISTRY_INDEX_FIRST_REQUIRED_COMPANION_FILES = {
     "skill.json",
     "behavior.json",
 }
+UI_UX_DESIGN_SYSTEM_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "required_inputs",
+    "frontend_project_types",
+    "product_profiles",
+    "audience_modifiers",
+    "motion_library_posture",
+    "pre_delivery_checklist",
+    "accessibility_baseline",
+}
+UI_UX_DESIGN_SYSTEM_REQUIRED_PRODUCT_FIELDS = {
+    "id",
+    "match_terms",
+    "recommended_pattern",
+    "recommended_style",
+    "recommended_palette",
+    "recommended_typography",
+    "recommended_motion",
+    "anti_patterns",
+    "stack_recommendation",
+    "style_priority",
+}
+UI_UX_DESIGN_SYSTEM_REQUIRED_MOTION_FIELDS = {
+    "react_eligible_stacks",
+    "css_first_stacks",
+    "triggers_for_recommended_for_react",
+    "reduced_motion_policy",
+}
 MODEL_COST_CONTROL_REQUIRED_FIELDS = {
     "version",
     "advisory_only",
@@ -1156,6 +1189,10 @@ def _load_change_proposal_rules(root: Path) -> Dict[str, Any]:
 
 def _load_skill_registry_index_first_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "skill_registry_index_first_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_ui_ux_design_system_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "ui_ux_design_system_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -2716,6 +2753,69 @@ def _validate_skill_registry_index_first_rules(root: Path, findings: List[str]) 
         findings.append("skill_registry_index_first_rules_invalid_valid_lifecycle_states")
 
 
+def _validate_ui_ux_design_system_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_ui_ux_design_system_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_ui_ux_design_system_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("ui_ux_design_system_rules_not_object")
+        return
+
+    missing_fields = UI_UX_DESIGN_SYSTEM_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(
+            f"ui_ux_design_system_rules_missing_fields:{','.join(sorted(missing_fields))}"
+        )
+
+    required_inputs = rules.get("required_inputs")
+    if not isinstance(required_inputs, list) or not required_inputs:
+        findings.append("ui_ux_design_system_rules_invalid_required_inputs")
+
+    frontend_project_types = rules.get("frontend_project_types")
+    if not isinstance(frontend_project_types, list) or not frontend_project_types:
+        findings.append("ui_ux_design_system_rules_invalid_frontend_project_types")
+
+    product_profiles = rules.get("product_profiles")
+    if not isinstance(product_profiles, list) or not product_profiles:
+        findings.append("ui_ux_design_system_rules_invalid_product_profiles")
+    else:
+        for profile in product_profiles:
+            if not isinstance(profile, dict):
+                findings.append("ui_ux_design_system_rules_invalid_product_profile")
+                continue
+            missing_profile_fields = UI_UX_DESIGN_SYSTEM_REQUIRED_PRODUCT_FIELDS - set(profile.keys())
+            if missing_profile_fields:
+                findings.append(
+                    "ui_ux_design_system_rules_missing_product_profile_fields:"
+                    f"{profile.get('id', 'unknown')}:{','.join(sorted(missing_profile_fields))}"
+                )
+
+    audience_modifiers = rules.get("audience_modifiers")
+    if not isinstance(audience_modifiers, dict) or not audience_modifiers:
+        findings.append("ui_ux_design_system_rules_invalid_audience_modifiers")
+
+    motion_library_posture = rules.get("motion_library_posture")
+    if not isinstance(motion_library_posture, dict) or not motion_library_posture:
+        findings.append("ui_ux_design_system_rules_invalid_motion_library_posture")
+    else:
+        missing_motion_fields = UI_UX_DESIGN_SYSTEM_REQUIRED_MOTION_FIELDS - set(motion_library_posture.keys())
+        if missing_motion_fields:
+            findings.append(
+                f"ui_ux_design_system_rules_missing_motion_library_fields:{','.join(sorted(missing_motion_fields))}"
+            )
+
+    pre_delivery_checklist = rules.get("pre_delivery_checklist")
+    if not isinstance(pre_delivery_checklist, list) or not pre_delivery_checklist:
+        findings.append("ui_ux_design_system_rules_invalid_pre_delivery_checklist")
+
+    accessibility_baseline = rules.get("accessibility_baseline")
+    if not isinstance(accessibility_baseline, list) or not accessibility_baseline:
+        findings.append("ui_ux_design_system_rules_invalid_accessibility_baseline")
+
+
 def _validate_docs_search_catalog(root: Path, findings: List[str]) -> None:
     try:
         catalog = _load_docs_search_catalog(root)
@@ -3592,6 +3692,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_evidence_collector_readiness_rules(root, findings)
         _validate_change_proposal_rules(root, findings)
         _validate_skill_registry_index_first_rules(root, findings)
+        _validate_ui_ux_design_system_rules(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)

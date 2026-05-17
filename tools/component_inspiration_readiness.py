@@ -103,6 +103,7 @@ def check_component_inspiration_readiness(root: Optional[Path] = None) -> Dict[s
             "profile": profile_name,
             "suggested_services": suggested_services,
             "available_services": available_matches,
+            "use_when": list(profile.get("use_when", [])),
             "requirements": list(profile.get("requirements", [])),
             "risk_level": risk_level,
             "initial_state": initial_state,

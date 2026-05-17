@@ -96,6 +96,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep `evidence_collector_readiness` strict about strong PASS language; advisory confidence is not the same thing as proof
 - Keep `change_proposal_readiness` lightweight for small fixes but explicit for medium or large changes so Atlas does not drift back into implementation-before-agreement
 - Keep `skill_registry_index_first_readiness` metadata-first and path-first; do not let registry entries grow into hidden instruction summaries or a second source of truth
+- Keep `ui_ux_design_system_readiness` advisory and stack-aware; it should strengthen visual-system direction without pretending that Atlas core owns Framer Motion, 21st Magic or any framework-specific dependency
 - Fix known public placeholder links in derived landings before treating design readiness as anything stronger than `needs_improvement`
 - Keep `design_evidence_policy.md` aligned with landing-readiness heuristics so public-facing PASS states always have traceable proof
 

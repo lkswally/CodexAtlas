@@ -1,0 +1,172 @@
+{
+  "version": 1,
+  "advisory_only": true,
+  "required_inputs": [
+    "project_type",
+    "audience"
+  ],
+  "frontend_project_types": [
+    "landing_page",
+    "marketing_site",
+    "frontend_app",
+    "dashboard",
+    "ui_surface",
+    "internal_tool"
+  ],
+  "product_profiles": [
+    {
+      "id": "fintech_finance",
+      "match_terms": ["fintech", "bank", "banking", "finance", "billing", "invoice", "treasury"],
+      "recommended_pattern": "trust-led hero plus proof plus workflow clarity",
+      "recommended_style": "precise modern editorial with restrained depth",
+      "recommended_palette": "deep neutral base with one confident accent and strong contrast states",
+      "recommended_typography": "authoritative grotesk headings with highly legible UI sans body",
+      "recommended_motion": "measured motion focused on reassurance and state clarity",
+      "anti_patterns": [
+        "ai-purple gradient finance cliche",
+        "toy-like glass cards for critical data",
+        "overdecorated trust surfaces"
+      ],
+      "stack_recommendation": "prefer current stack; add a React motion library only if transitions become state-heavy",
+      "style_priority": 5
+    },
+    {
+      "id": "developer_tool_saas",
+      "match_terms": ["developer", "devtool", "saas", "platform", "ai", "automation", "docs", "tool"],
+      "recommended_pattern": "hero plus product mechanism plus proof plus onboarding path",
+      "recommended_style": "clean technical product design with strong hierarchy and controlled density",
+      "recommended_palette": "neutral system with one bright signal accent and disciplined semantic colors",
+      "recommended_typography": "neo-grotesk headings with practical UI sans body",
+      "recommended_motion": "subtle reveal and interaction feedback, never decorative overload",
+      "anti_patterns": [
+        "README-looking landing",
+        "generic bento spam",
+        "overweight borders and shadows"
+      ],
+      "stack_recommendation": "HTML/CSS is enough for simple marketing surfaces; React motion is optional for richer product interactions",
+      "style_priority": 5
+    },
+    {
+      "id": "healthcare_wellness",
+      "match_terms": ["health", "healthcare", "clinic", "medical", "wellness", "spa", "therapy"],
+      "recommended_pattern": "calm hero plus reassurance plus process clarity plus conversion CTA",
+      "recommended_style": "soft premium clarity with generous whitespace and low visual aggression",
+      "recommended_palette": "light calm neutrals with one restorative accent and high accessibility contrast",
+      "recommended_typography": "warm humanist headings with highly readable body text",
+      "recommended_motion": "low-intensity calming motion only",
+      "anti_patterns": [
+        "hard black framing",
+        "cold enterprise severity for wellness",
+        "busy promotional card walls"
+      ],
+      "stack_recommendation": "prefer CSS-first motion and static clarity over library-heavy animation",
+      "style_priority": 4
+    },
+    {
+      "id": "ecommerce_consumer",
+      "match_terms": ["ecommerce", "shop", "store", "retail", "marketplace", "pricing"],
+      "recommended_pattern": "value hero plus catalog or offer proof plus friction-light CTA progression",
+      "recommended_style": "high-clarity merchandising with controlled expressiveness",
+      "recommended_palette": "brand-forward palette with disciplined background and CTA contrast",
+      "recommended_typography": "confident display heading paired with pragmatic body sans",
+      "recommended_motion": "product-focused motion for hover, state change and merchandising emphasis",
+      "anti_patterns": [
+        "too many competing accents",
+        "promo noise without hierarchy",
+        "card repetition without product focus"
+      ],
+      "stack_recommendation": "CSS-first for basic commerce; React motion only when merchandising interactions are materially richer",
+      "style_priority": 4
+    },
+    {
+      "id": "dashboard_internal_tool",
+      "match_terms": ["dashboard", "analytics", "internal tool", "admin", "operations", "backoffice"],
+      "recommended_pattern": "summary hero plus prioritized metrics plus task-oriented workflows",
+      "recommended_style": "dense but breathable operational UI with disciplined layout rhythm",
+      "recommended_palette": "neutral structural palette with semantic state colors and limited accent usage",
+      "recommended_typography": "compact utilitarian sans with strong numeric clarity",
+      "recommended_motion": "microinteraction-first motion focused on panel, state and flow changes",
+      "anti_patterns": [
+        "endless identical cards",
+        "brutalist wireframe weight",
+        "horizontal sprawl without priority"
+      ],
+      "stack_recommendation": "React motion can help when dashboards need coordinated transitions; otherwise keep CSS and layout discipline first",
+      "style_priority": 5
+    },
+    {
+      "id": "portfolio_agency",
+      "match_terms": ["portfolio", "agency", "studio", "creative", "brand"],
+      "recommended_pattern": "statement hero plus signature work plus taste proof plus contact CTA",
+      "recommended_style": "high-personality editorial with deliberate contrast and restraint",
+      "recommended_palette": "small but intentional palette with one memorable accent behavior",
+      "recommended_typography": "expressive display heading with refined supporting text",
+      "recommended_motion": "identity-supporting motion with strong reduced-motion fallback",
+      "anti_patterns": [
+        "random trend stacking",
+        "motion for spectacle only",
+        "template-like portfolio grids"
+      ],
+      "stack_recommendation": "React motion is justified only if the creative concept depends on coordinated animation",
+      "style_priority": 3
+    },
+    {
+      "id": "default_product",
+      "match_terms": [],
+      "recommended_pattern": "clear hero plus mechanism plus trust plus next step",
+      "recommended_style": "clean contemporary product UI with obvious hierarchy",
+      "recommended_palette": "neutral base with one intentional accent and semantic states",
+      "recommended_typography": "modern sans pairing with contrast between heading and body roles",
+      "recommended_motion": "low-to-medium motion used only to reinforce hierarchy and interaction",
+      "anti_patterns": [
+        "default SaaS template feel",
+        "README-as-landing",
+        "visual weight without system"
+      ],
+      "stack_recommendation": "start with the current stack; only add a motion library if the interaction model truly needs it",
+      "style_priority": 1
+    }
+  ],
+  "audience_modifiers": {
+    "enterprise": {
+      "style_shift": "increase structure, trust and contrast discipline",
+      "anti_patterns": ["consumer-gimmick motion", "overly playful color behavior"]
+    },
+    "developer": {
+      "style_shift": "favor technical clarity, stronger mechanism explanation and denser information hierarchy",
+      "anti_patterns": ["marketing vagueness", "decorative pseudo-AI visuals"]
+    },
+    "consumer": {
+      "style_shift": "favor faster comprehension, warmth and lower friction CTA rhythm",
+      "anti_patterns": ["enterprise stiffness", "copy-heavy first fold"]
+    }
+  },
+  "motion_library_posture": {
+    "react_eligible_stacks": ["react", "vite", "react-vite", "next", "nextjs", "remix"],
+    "css_first_stacks": ["html", "html-css", "html-tailwind", "astro", "laravel-blade"],
+    "triggers_for_recommended_for_react": [
+      "hero_animated_complex",
+      "microinteractions_required",
+      "accordion_or_transition_heavy",
+      "scroll_reveal_required"
+    ],
+    "reduced_motion_policy": "respect_prefers_reduced_motion"
+  },
+  "pre_delivery_checklist": [
+    "hero hierarchy is obvious in the first viewport",
+    "CTA intent and visual priority are explicit",
+    "palette roles are consistent, not decorative noise",
+    "typography has contrast between heading and body roles",
+    "spacing creates rhythm instead of card clutter",
+    "interactive states are visually distinct",
+    "mobile layout keeps meaning before decoration",
+    "motion respects reduced-motion expectations"
+  ],
+  "accessibility_baseline": [
+    "44px minimum tap targets for mobile actions",
+    "visible focus states on interactive controls",
+    "semantic heading order",
+    "text and CTA contrast checks",
+    "reduced-motion fallback for animated surfaces"
+  ]
+}

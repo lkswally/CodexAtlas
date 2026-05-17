@@ -29,6 +29,7 @@ from tools.atlas_governance_check import (
     _load_evidence_collector_readiness_rules,
     _load_change_proposal_rules,
     _load_skill_registry_index_first_rules,
+    _load_ui_ux_design_system_rules,
     _validate_external_tool_policy,
     _validate_mcp_profiles,
     _validate_docs_search_catalog,
@@ -51,6 +52,7 @@ from tools.atlas_governance_check import (
     _validate_evidence_collector_readiness_rules,
     _validate_change_proposal_rules,
     _validate_skill_registry_index_first_rules,
+    _validate_ui_ux_design_system_rules,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
@@ -212,6 +214,25 @@ def test_skill_registry_index_first_rules_require_expected_registry_fields():
 
     assert any(
         finding.startswith("skill_registry_index_first_rules_missing_required_registry_fields:")
+        for finding in findings
+    )
+
+
+def test_ui_ux_design_system_rules_require_motion_library_fields():
+    findings = []
+    invalid_rules = _load_ui_ux_design_system_rules(ROOT)
+    invalid_rules["motion_library_posture"] = {
+        "react_eligible_stacks": ["react"]
+    }
+
+    with patch(
+        "tools.atlas_governance_check._load_ui_ux_design_system_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_ui_ux_design_system_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("ui_ux_design_system_rules_missing_motion_library_fields:")
         for finding in findings
     )
 

@@ -30,6 +30,11 @@
         "twentyfirst_magic",
         "context7"
       ],
+      "use_when": [
+        "hero variations",
+        "UI redesign direction",
+        "component-level structure ideation"
+      ],
       "requirements": [
         "visual_intent_contract",
         "brand_profile_schema",
@@ -48,6 +53,10 @@
         "context7",
         "twentyfirst_magic"
       ],
+      "use_when": [
+        "theme and token comparison",
+        "color and typography reference alignment"
+      ],
       "requirements": [
         "brand_profile_schema",
         "typography_and_color_intent"
@@ -63,6 +72,11 @@
     "landing_section_patterns": {
       "suggested_services": [
         "twentyfirst_magic"
+      ],
+      "use_when": [
+        "hero variations",
+        "pricing table structure",
+        "social proof section options"
       ],
       "requirements": [
         "visual_intent_contract",
@@ -81,6 +95,11 @@
         "twentyfirst_magic",
         "context7"
       ],
+      "use_when": [
+        "dashboard layouts",
+        "chart framing",
+        "admin and analytics panels"
+      ],
       "requirements": [
         "information_hierarchy_goal",
         "brand_profile_schema"
@@ -97,6 +116,11 @@
       "suggested_services": [
         "twentyfirst_magic",
         "context7"
+      ],
+      "use_when": [
+        "forms",
+        "multi-step onboarding",
+        "error and validation flows"
       ],
       "requirements": [
         "user_flow_goal",
@@ -115,6 +139,11 @@
         "twentyfirst_magic",
         "context7"
       ],
+      "use_when": [
+        "empty states",
+        "error states",
+        "loading placeholders"
+      ],
       "requirements": [
         "state_design_goal",
         "brand_profile_schema"
@@ -130,6 +159,9 @@
     "component_generation_watchlist": {
       "suggested_services": [
         "twentyfirst_magic"
+      ],
+      "use_when": [
+        "direct component generation requests"
       ],
       "requirements": [
         "manual_component_scope",

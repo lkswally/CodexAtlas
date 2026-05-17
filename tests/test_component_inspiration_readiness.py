@@ -104,6 +104,10 @@ def test_component_inspiration_readiness_exposes_safe_profiles():
     safe_profiles = {item["profile"] for item in result["safe_to_use_profiles"]}
     assert "design_system_reference" in safe_profiles
     assert "empty_error_loading_states" in safe_profiles
+    design_system_profile = next(
+        item for item in result["safe_to_use_profiles"] if item["profile"] == "design_system_reference"
+    )
+    assert "theme and token comparison" in design_system_profile["use_when"]
 
 
 def test_component_inspiration_readiness_keeps_generation_profile_in_watchlist():

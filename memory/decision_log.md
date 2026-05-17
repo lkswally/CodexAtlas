@@ -1,6 +1,12 @@
 # Decision Log
 
 ## 2026-05-15
+- Decision: add `ui_ux_design_system_readiness` as an Atlas-native visual-system recommendation layer instead of importing `ui-ux-pro-max-skill`, Framer Motion or 21st Magic runtime
+- Reason: Atlas already had intent, brand, anti-generic and pre-return guardrails, but still lacked one explicit layer that turns product type, audience and stack fit into a stronger design-system recommendation before implementation starts
+- Impact: Atlas can now recommend pattern, style, palette, typography, motion posture, anti-patterns and pre-delivery checks while keeping Framer Motion stack-specific, 21st approval-bound and Atlas core dependency-free
+- Risk: if the layer is treated as if it generated final design truth, Atlas could overfit to generic presets instead of using it as one more governed recommendation surface
+- Rollback: remove `config/ui_ux_design_system_rules.json`, `policies/ui_ux_design_system_policy.md`, `tools/ui_ux_design_system_readiness.py` and the connected governance/quality-gate/test wiring
+
 - Decision: add `skill_registry_index_first_readiness` as a safe way to evaluate path-first skill discovery before changing Atlas runtime behavior
 - Reason: Atlas already has governed `skill.md`, `skill.json` and `behavior.json` files, but it still needed an explicit check for whether the catalog is clean enough to support a lightweight index-first registry pattern inspired by external ecosystems
 - Impact: Atlas can now distinguish whether its current skill surface is ready, partial or blocked for index-first discovery, while keeping full markdown instructions as the source of truth and avoiding heavy skill-summary injection

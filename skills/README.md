@@ -100,6 +100,7 @@ Current skills:
 - `evidence_collector_readiness` (tool-level advisory): report what proof Atlas still needs before making a strong PASS claim for frontend, backend, research, high-risk decisions or governance changes
 - `change_proposal_readiness` (tool-level advisory): report whether a medium or large change has enough proposal, specs, design, task, verify and archive artifacts before implementation should be treated as well-scoped
 - `skill_registry_index_first_readiness` (tool-level advisory): report whether Atlas skills are clean enough to support a lightweight index-first registry that passes paths to canonical skill markdown instead of bloated summaries
+- `ui_ux_design_system_readiness` (tool-level advisory): recommend a stronger pattern, style, palette, typography, motion posture and pre-delivery checklist before a derived UI implementation expands
 
 Execution model:
 - skills default to documentary guidance
@@ -117,6 +118,7 @@ Optional lifecycle metadata:
 - final frontend readiness claims should also align with `policies/frontend_auto_audit_rules_policy.md` and `config/frontend_auto_audit_rules.json` before Atlas calls the local guardrail chain complete
 - medium or large Atlas changes should also align with `policies/change_proposal_policy.md`, `config/change_proposal_rules.json` and `workflows/change_proposal_workflow.md` before implementation is treated as well-scoped
 - future index-first skill routing should align with `policies/skill_registry_index_first_policy.md` and `config/skill_registry_index_first_rules.json` before Atlas changes how skills are discovered or loaded
+- future design-system recommendation layers should align with `policies/ui_ux_design_system_policy.md` and `config/ui_ux_design_system_rules.json` before Atlas treats stack, motion or inspiration guidance as stronger than advisory
 
 Design-intelligence conventions:
 - design skills must return `status`, `warnings`, `evidence` and `next_action`
