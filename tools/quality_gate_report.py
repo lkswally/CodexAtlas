@@ -98,6 +98,10 @@ try:
     from tools.change_proposal_readiness import assess_change_proposal_readiness
 except ModuleNotFoundError:
     from change_proposal_readiness import assess_change_proposal_readiness
+try:
+    from tools.skill_registry_index_first_readiness import assess_skill_registry_index_first_readiness
+except ModuleNotFoundError:
+    from skill_registry_index_first_readiness import assess_skill_registry_index_first_readiness
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -542,6 +546,14 @@ def _run_change_proposal_readiness(
     except Exception as exc:
         return _build_failed_report("change_proposal_readiness", f"change_proposal_readiness_failed:{exc}")
     return _build_ok_report("change_proposal_readiness", report)
+
+
+def _run_skill_registry_index_first_readiness(root: Path) -> Dict[str, Any]:
+    try:
+        report = assess_skill_registry_index_first_readiness(root=root)
+    except Exception as exc:
+        return _build_failed_report("skill_registry_index_first_readiness", f"skill_registry_index_first_readiness_failed:{exc}")
+    return _build_ok_report("skill_registry_index_first_readiness", report)
 
 
 def _run_model_cost_control(
@@ -1230,6 +1242,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     source_reports["playwright_visual_qa_readiness"] = _run_playwright_visual_qa_readiness(root)
     source_reports["codex_runtime_compatibility_check"] = _run_codex_runtime_compatibility(root)
     source_reports["atlas_memory_readiness"] = _run_atlas_memory_readiness(root)
+    source_reports["skill_registry_index_first_readiness"] = _run_skill_registry_index_first_readiness(root)
     source_reports["atlas_error_learning_review"] = _run_atlas_error_learning_review(
         root=root,
         payload={
@@ -1782,6 +1795,18 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "missing_artifacts": (source_reports["change_proposal_readiness"]["report"] or {}).get("missing_artifacts", []),
             "why": (source_reports["change_proposal_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["change_proposal_readiness"]["report"] or {}).get("advisory_only", True)),
+        },
+        "skill_registry_index_first_posture": {
+            "status": (source_reports["skill_registry_index_first_readiness"]["report"] or {}).get("status"),
+            "readiness_state": (source_reports["skill_registry_index_first_readiness"]["report"] or {}).get("readiness_state"),
+            "skills_indexed": (source_reports["skill_registry_index_first_readiness"]["report"] or {}).get("skills_indexed"),
+            "broken_skill_paths": (source_reports["skill_registry_index_first_readiness"]["report"] or {}).get("broken_skill_paths", []),
+            "invalid_frontmatter": (source_reports["skill_registry_index_first_readiness"]["report"] or {}).get("invalid_frontmatter", []),
+            "duplicate_names": (source_reports["skill_registry_index_first_readiness"]["report"] or {}).get("duplicate_names", []),
+            "missing_descriptions": (source_reports["skill_registry_index_first_readiness"]["report"] or {}).get("missing_descriptions", []),
+            "index_first_safe_to_use": bool((source_reports["skill_registry_index_first_readiness"]["report"] or {}).get("index_first_safe_to_use")),
+            "why": (source_reports["skill_registry_index_first_readiness"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["skill_registry_index_first_readiness"]["report"] or {}).get("advisory_only", True)),
         },
         "system_learning": source_reports["error_pattern_analyzer"]["report"] if source_reports["error_pattern_analyzer"]["status"] == "ok" else None,
         "blockers": blockers,

@@ -99,6 +99,7 @@ Current skills:
 - `atlas_memory_readiness` (tool-level advisory): report whether Atlas local-first memory artifacts are strong enough for continuity without enabling plugin memory, hooks or hidden reinjection
 - `evidence_collector_readiness` (tool-level advisory): report what proof Atlas still needs before making a strong PASS claim for frontend, backend, research, high-risk decisions or governance changes
 - `change_proposal_readiness` (tool-level advisory): report whether a medium or large change has enough proposal, specs, design, task, verify and archive artifacts before implementation should be treated as well-scoped
+- `skill_registry_index_first_readiness` (tool-level advisory): report whether Atlas skills are clean enough to support a lightweight index-first registry that passes paths to canonical skill markdown instead of bloated summaries
 
 Execution model:
 - skills default to documentary guidance
@@ -115,6 +116,7 @@ Optional lifecycle metadata:
 - final UI-facing reviews should also align with `policies/design_quality_enforcement_policy.md` and `config/design_quality_enforcement_rules.json` before Atlas calls a surface visually ready
 - final frontend readiness claims should also align with `policies/frontend_auto_audit_rules_policy.md` and `config/frontend_auto_audit_rules.json` before Atlas calls the local guardrail chain complete
 - medium or large Atlas changes should also align with `policies/change_proposal_policy.md`, `config/change_proposal_rules.json` and `workflows/change_proposal_workflow.md` before implementation is treated as well-scoped
+- future index-first skill routing should align with `policies/skill_registry_index_first_policy.md` and `config/skill_registry_index_first_rules.json` before Atlas changes how skills are discovered or loaded
 
 Design-intelligence conventions:
 - design skills must return `status`, `warnings`, `evidence` and `next_action`

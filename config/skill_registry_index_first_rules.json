@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "advisory_only": true,
+  "accepted_skill_doc_names": [
+    "skill.md",
+    "SKILL.md"
+  ],
+  "required_registry_fields": [
+    "name",
+    "description",
+    "scope",
+    "path",
+    "lifecycle_state",
+    "risk_level",
+    "agent",
+    "workflow"
+  ],
+  "required_companion_files": [
+    "skill.json",
+    "behavior.json"
+  ],
+  "optional_frontmatter_fields": [
+    "name",
+    "description",
+    "scope"
+  ],
+  "description_rules": {
+    "minimum_words": 8,
+    "prefer_frontmatter_description": true,
+    "fallback_to_markdown_purpose": true
+  },
+  "valid_lifecycle_states": [
+    "candidate",
+    "experimental",
+    "stable",
+    "deprecated",
+    "archived",
+    "rejected"
+  ]
+}

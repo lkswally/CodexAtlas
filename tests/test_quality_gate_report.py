@@ -84,6 +84,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["evidence_collector_posture"]["advisory_only"] is True
     assert isinstance(result["change_proposal_posture"], dict)
     assert result["change_proposal_posture"]["advisory_only"] is True
+    assert isinstance(result["skill_registry_index_first_posture"], dict)
+    assert result["skill_registry_index_first_posture"]["advisory_only"] is True
     assert isinstance(result["system_learning"], dict)
     assert isinstance(result["execution_plan"], list)
     assert len(result["execution_plan"]) <= 3
@@ -131,6 +133,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert "available_sources" in result["atlas_memory_posture"]
     assert "missing_evidence" in result["evidence_collector_posture"]
     assert "missing_artifacts" in result["change_proposal_posture"]
+    assert "skills_indexed" in result["skill_registry_index_first_posture"]
     assert "required_fields" in result["visual_intent_posture"]
     assert "missing_fields" in result["visual_intent_posture"]
     assert "required_fields" in result["brand_profile_posture"]
@@ -178,6 +181,9 @@ def test_quality_gate_report_exposes_error_learning_and_codex_runtime_postures()
     assert isinstance(result["change_proposal_posture"], dict)
     assert result["change_proposal_posture"]["advisory_only"] is True
     assert "missing_artifacts" in result["change_proposal_posture"]
+    assert isinstance(result["skill_registry_index_first_posture"], dict)
+    assert result["skill_registry_index_first_posture"]["advisory_only"] is True
+    assert "skills_indexed" in result["skill_registry_index_first_posture"]
 
 
 def test_quality_gate_report_uses_existing_outputs_to_mark_not_ready():

@@ -50,6 +50,7 @@ REQUIRED_ROOT_FILES = (
     "config/atlas_memory_readiness_profiles.json",
     "config/evidence_collector_readiness_rules.json",
     "config/change_proposal_rules.json",
+    "config/skill_registry_index_first_rules.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -105,6 +106,7 @@ REQUIRED_ROOT_FILES = (
     "policies/atlas_memory_readiness_policy.md",
     "policies/evidence_collector_readiness_policy.md",
     "policies/change_proposal_policy.md",
+    "policies/skill_registry_index_first_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
     "memory/session_summaries.md",
@@ -182,6 +184,7 @@ REQUIRED_ROOT_FILES = (
     "tools/atlas_memory_readiness.py",
     "tools/evidence_collector_readiness.py",
     "tools/change_proposal_readiness.py",
+    "tools/skill_registry_index_first_readiness.py",
     "tests/test_atlas_orchestrator.py",
     "tests/test_certify_project.py",
     "tests/test_docs_catalog_report.py",
@@ -218,6 +221,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_atlas_memory_readiness.py",
     "tests/test_evidence_collector_readiness.py",
     "tests/test_change_proposal_readiness.py",
+    "tests/test_skill_registry_index_first_readiness.py",
     "tests/test_surface_audit.py",
     "templates/project_bootstrap_profiles.md",
 )
@@ -957,6 +961,30 @@ CHANGE_PROPOSAL_REQUIRED_ARTIFACT_FIELDS = {
     "required_fields",
     "why_it_matters",
 }
+SKILL_REGISTRY_INDEX_FIRST_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "accepted_skill_doc_names",
+    "required_registry_fields",
+    "required_companion_files",
+    "optional_frontmatter_fields",
+    "description_rules",
+    "valid_lifecycle_states",
+}
+SKILL_REGISTRY_INDEX_FIRST_REQUIRED_REGISTRY_FIELDS = {
+    "name",
+    "description",
+    "scope",
+    "path",
+    "lifecycle_state",
+    "risk_level",
+    "agent",
+    "workflow",
+}
+SKILL_REGISTRY_INDEX_FIRST_REQUIRED_COMPANION_FILES = {
+    "skill.json",
+    "behavior.json",
+}
 MODEL_COST_CONTROL_REQUIRED_FIELDS = {
     "version",
     "advisory_only",
@@ -1124,6 +1152,10 @@ def _load_evidence_collector_readiness_rules(root: Path) -> Dict[str, Any]:
 
 def _load_change_proposal_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "change_proposal_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_skill_registry_index_first_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "skill_registry_index_first_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -2629,6 +2661,61 @@ def _validate_change_proposal_rules(root: Path, findings: List[str]) -> None:
                 )
 
 
+def _validate_skill_registry_index_first_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_skill_registry_index_first_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_skill_registry_index_first_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("skill_registry_index_first_rules_not_object")
+        return
+
+    missing_fields = SKILL_REGISTRY_INDEX_FIRST_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(
+            f"skill_registry_index_first_rules_missing_fields:{','.join(sorted(missing_fields))}"
+        )
+
+    accepted_doc_names = rules.get("accepted_skill_doc_names")
+    if not isinstance(accepted_doc_names, list) or not accepted_doc_names:
+        findings.append("skill_registry_index_first_rules_invalid_accepted_skill_doc_names")
+
+    registry_fields = rules.get("required_registry_fields")
+    if not isinstance(registry_fields, list) or not registry_fields:
+        findings.append("skill_registry_index_first_rules_invalid_required_registry_fields")
+    else:
+        registry_field_set = {str(item).strip() for item in registry_fields if str(item).strip()}
+        missing_registry_fields = SKILL_REGISTRY_INDEX_FIRST_REQUIRED_REGISTRY_FIELDS - registry_field_set
+        if missing_registry_fields:
+            findings.append(
+                f"skill_registry_index_first_rules_missing_required_registry_fields:{','.join(sorted(missing_registry_fields))}"
+            )
+
+    companion_files = rules.get("required_companion_files")
+    if not isinstance(companion_files, list) or not companion_files:
+        findings.append("skill_registry_index_first_rules_invalid_required_companion_files")
+    else:
+        companion_set = {str(item).strip() for item in companion_files if str(item).strip()}
+        missing_companion = SKILL_REGISTRY_INDEX_FIRST_REQUIRED_COMPANION_FILES - companion_set
+        if missing_companion:
+            findings.append(
+                f"skill_registry_index_first_rules_missing_required_companion_files:{','.join(sorted(missing_companion))}"
+            )
+
+    description_rules = rules.get("description_rules")
+    if not isinstance(description_rules, dict) or not description_rules:
+        findings.append("skill_registry_index_first_rules_invalid_description_rules")
+    else:
+        if "minimum_words" not in description_rules:
+            findings.append("skill_registry_index_first_rules_missing_minimum_words")
+
+    valid_lifecycle_states = rules.get("valid_lifecycle_states")
+    if not isinstance(valid_lifecycle_states, list) or not valid_lifecycle_states:
+        findings.append("skill_registry_index_first_rules_invalid_valid_lifecycle_states")
+
+
 def _validate_docs_search_catalog(root: Path, findings: List[str]) -> None:
     try:
         catalog = _load_docs_search_catalog(root)
@@ -3504,6 +3591,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_atlas_memory_readiness_profiles(root, findings)
         _validate_evidence_collector_readiness_rules(root, findings)
         _validate_change_proposal_rules(root, findings)
+        _validate_skill_registry_index_first_rules(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)

@@ -28,6 +28,7 @@ from tools.atlas_governance_check import (
     _load_atlas_memory_readiness_profiles,
     _load_evidence_collector_readiness_rules,
     _load_change_proposal_rules,
+    _load_skill_registry_index_first_rules,
     _validate_external_tool_policy,
     _validate_mcp_profiles,
     _validate_docs_search_catalog,
@@ -49,6 +50,7 @@ from tools.atlas_governance_check import (
     _validate_atlas_memory_readiness_profiles,
     _validate_evidence_collector_readiness_rules,
     _validate_change_proposal_rules,
+    _validate_skill_registry_index_first_rules,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
@@ -193,6 +195,23 @@ def test_change_proposal_rules_require_expected_artifacts():
 
     assert any(
         finding.startswith("change_proposal_rules_missing_required_artifacts:")
+        for finding in findings
+    )
+
+
+def test_skill_registry_index_first_rules_require_expected_registry_fields():
+    findings = []
+    invalid_rules = _load_skill_registry_index_first_rules(ROOT)
+    invalid_rules["required_registry_fields"] = ["name", "description"]
+
+    with patch(
+        "tools.atlas_governance_check._load_skill_registry_index_first_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_skill_registry_index_first_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("skill_registry_index_first_rules_missing_required_registry_fields:")
         for finding in findings
     )
 
