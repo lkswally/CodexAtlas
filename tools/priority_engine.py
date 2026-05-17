@@ -14,6 +14,64 @@ EXTERNAL_TOOL_HINTS = (
     "playwright",
 )
 
+DESTRUCTIVE_ACTION_HINTS = (
+    "rewrite",
+    "refactor",
+    "replace",
+    "remove",
+    "delete",
+    "overhaul",
+    "redesign",
+    "rebuild",
+    "migrate",
+)
+
+VISUAL_ACTION_HINTS = (
+    "hero",
+    "cta",
+    "layout",
+    "hierarchy",
+    "spacing",
+    "typography",
+    "color",
+    "palette",
+    "visual",
+    "motion",
+    "card",
+    "button",
+    "dashboard",
+    "landing",
+)
+
+ACTION_STOPWORDS = {
+    "the",
+    "and",
+    "for",
+    "with",
+    "before",
+    "after",
+    "from",
+    "into",
+    "this",
+    "that",
+    "your",
+    "their",
+    "more",
+    "less",
+    "high",
+    "medium",
+    "low",
+    "fix",
+    "review",
+    "validate",
+    "improve",
+    "strengthen",
+    "tighten",
+    "trim",
+    "reduce",
+    "avoid",
+}
+
 
 def _normalize(text: str) -> str:
     return " ".join(str(text).lower().split())
@@ -53,6 +111,39 @@ def _candidate(
         "source": source,
         "_score": score,
     }
+
+
+def _tokenize_action(action: str) -> set[str]:
+    tokens = {
+        token
+        for token in _normalize(action).replace("/", " ").replace("-", " ").split()
+        if len(token) > 2 and token not in ACTION_STOPWORDS
+    }
+    return tokens
+
+
+def _is_destructive_action(action: str) -> bool:
+    normalized = _normalize(action)
+    return any(hint in normalized for hint in DESTRUCTIVE_ACTION_HINTS)
+
+
+def _is_visual_action(action: str) -> bool:
+    normalized = _normalize(action)
+    return any(hint in normalized for hint in VISUAL_ACTION_HINTS)
+
+
+def _overlaps_with_visual_design_candidate(
+    candidate: Dict[str, Any],
+    design_candidates: List[Dict[str, Any]],
+) -> bool:
+    candidate_tokens = _tokenize_action(str(candidate.get("action", "")))
+    if not candidate_tokens:
+        return False
+    for design_candidate in design_candidates:
+        design_tokens = _tokenize_action(str(design_candidate.get("action", "")))
+        if len(candidate_tokens & design_tokens) >= 1:
+            return True
+    return False
 
 
 def _feedback_weight_for_action(
@@ -295,6 +386,43 @@ def _apply_feedback_weights(
     return adjusted
 
 
+def _apply_conflict_resolution(
+    candidates: List[Dict[str, Any]],
+    *,
+    phase_validity: str,
+    intent_analysis: Optional[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    adjusted: List[Dict[str, Any]] = []
+    intent_missing = bool(isinstance(intent_analysis, dict) and intent_analysis.get("missing_definition"))
+    design_candidates = [item for item in candidates if str(item.get("source", "")) == "design_audit"]
+
+    for item in candidates:
+        candidate = dict(item)
+        source = str(candidate.get("source", "")).strip()
+        action = str(candidate.get("action", "")).strip()
+        score_delta = 0
+
+        if phase_validity != "valid" and source != "phase" and _is_destructive_action(action):
+            score_delta -= 18
+            candidate["conflict_rule"] = "phase_over_destructive"
+            candidate["conflict_reason"] = "Phase guidance takes precedence over broader or destructive changes until the project reaches a valid phase."
+
+        if intent_missing and source not in {"phase", "intent"}:
+            score_delta -= 8
+            candidate["conflict_rule"] = candidate.get("conflict_rule") or "intent_before_recommendations"
+            candidate["conflict_reason"] = candidate.get("conflict_reason") or "Intent gaps make downstream recommendations less trustworthy until the brief is clarified."
+
+        if source == "quick_win" and _is_visual_action(action) and _overlaps_with_visual_design_candidate(candidate, design_candidates):
+            score_delta -= 10
+            candidate["conflict_rule"] = candidate.get("conflict_rule") or "design_over_visual_quick_win"
+            candidate["conflict_reason"] = candidate.get("conflict_reason") or "Design audit guidance has priority over lighter visual polish suggestions when both point to the same surface."
+
+        candidate["_score"] = int(candidate["_score"]) + score_delta
+        adjusted.append(candidate)
+
+    return adjusted
+
+
 def build_execution_plan(
     *,
     phase_guidance: Dict[str, Any],
@@ -314,7 +442,8 @@ def build_execution_plan(
         *_quick_win_candidates(quick_wins, current_phase),
         *_skill_candidate(skill_creation_signal, overall_status),
     ]
-    adjusted_candidates = _apply_feedback_weights(candidates, feedback_analysis)
+    adjusted_candidates = _apply_conflict_resolution(candidates, phase_validity=phase_validity, intent_analysis=intent_analysis)
+    adjusted_candidates = _apply_feedback_weights(adjusted_candidates, feedback_analysis)
     ranked = _dedupe_candidates(_prefer_local_resolution(adjusted_candidates))
     limited = [item for item in ranked if not item.get("_should_filter")][:3]
     if not limited:
@@ -329,6 +458,7 @@ def build_execution_plan(
             "effort": item["effort"],
             "source": item["source"],
             "feedback_weight": item.get("feedback_weight", "neutral"),
+            "conflict_rule": item.get("conflict_rule"),
         }
         for index, item in enumerate(limited, start=1)
     ]

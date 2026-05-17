@@ -128,3 +128,58 @@ def test_priority_engine_prefers_local_actions_over_external_tool_suggestions():
     actions = [item["action"] for item in result["execution_plan"]]
     assert "finalize project brief" in actions
     assert "Use GitHub CLI to inspect an external repository" not in actions
+
+
+def test_priority_engine_penalizes_destructive_actions_when_phase_is_invalid():
+    result = build_execution_plan(
+        phase_guidance={
+            "current_phase": "planning",
+            "recommended_next_steps": ["finalize project brief", "review local policies"],
+            "top_phase_risks": ["changing architecture too early"],
+        },
+        phase_validity="invalid",
+        top_priorities=[
+            {
+                "source": "design_intelligence_audit",
+                "check": "visual_system",
+                "severity": "high",
+                "message": "Redesign the full landing hierarchy",
+            }
+        ],
+        quick_wins=[],
+        intent_analysis={"missing_definition": []},
+        skill_creation_signal={"should_create": False},
+        overall_status="needs_improvement",
+        feedback_analysis=None,
+    )
+    assert result["execution_plan"][0]["action"] == "finalize project brief"
+    assert result["execution_plan"][0]["conflict_rule"] is None
+
+
+def test_priority_engine_prefers_design_audit_over_visual_quick_win_overlap():
+    result = build_execution_plan(
+        phase_guidance={
+            "current_phase": "audit",
+            "recommended_next_steps": ["fix warnings", "validate design and structure"],
+            "top_phase_risks": ["ignoring warnings"],
+        },
+        phase_validity="valid",
+        top_priorities=[
+            {
+                "source": "design_intelligence_audit",
+                "check": "cta_integrity",
+                "severity": "high",
+                "message": "Strengthen CTA hierarchy",
+            }
+        ],
+        quick_wins=["Refine CTA copy", "Refine CTA copy"],
+        intent_analysis={"missing_definition": []},
+        skill_creation_signal={"should_create": False},
+        overall_status="needs_improvement",
+        feedback_analysis=None,
+    )
+    actions = [item["action"] for item in result["execution_plan"]]
+    assert "Strengthen CTA hierarchy" in actions
+    quick_win_steps = [item for item in result["execution_plan"] if item["source"] == "quick_win"]
+    if quick_win_steps:
+        assert quick_win_steps[0]["conflict_rule"] == "design_over_visual_quick_win"
