@@ -10,6 +10,14 @@ from typing import Any, Dict, List, Optional, Tuple
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
 RULES_PATH = Path("config/brand_profile_schema_rules.json")
 GENERIC_COLOR_TERMS = ("teal", "cyan", "saas", "default")
+EXPLICIT_BRAND_PROFILE_CANDIDATES = (
+    Path("docs/brand_profile.md"),
+    Path("docs/brand.md"),
+    Path(".atlas/brand_profile.json"),
+    Path(".atlas/brand.json"),
+    Path("brand_profile.md"),
+    Path("brand.json"),
+)
 
 
 def _normalize(text: str) -> str:
@@ -19,6 +27,12 @@ def _normalize(text: str) -> str:
 def _strip_html(text: str) -> str:
     text = re.sub(r"<[^>]+>", " ", text)
     return re.sub(r"\s+", " ", text).strip()
+
+
+def _read_text_if_exists(path: Path) -> str:
+    if not path.exists():
+        return ""
+    return path.read_text(encoding="utf-8-sig")
 
 
 def _dedupe_preserve_order(values: List[str]) -> List[str]:
@@ -45,6 +59,280 @@ def _extract_css_font_families(css_text: str) -> List[str]:
 
 def _extract_css_vars(css_text: str) -> Dict[str, str]:
     return {name: value.strip() for name, value in re.findall(r"(--[a-zA-Z0-9_-]+)\s*:\s*([^;]+);", css_text)}
+
+
+def _merge_nested_dicts(base: Dict[str, Any], overrides: Dict[str, Any]) -> Dict[str, Any]:
+    merged = dict(base)
+    for key, value in overrides.items():
+        if isinstance(value, dict) and isinstance(merged.get(key), dict):
+            merged[key] = _merge_nested_dicts(merged[key], value)
+        elif value is not None:
+            merged[key] = value
+    return merged
+
+
+def _split_markdown_sections(text: str) -> Tuple[Optional[str], Dict[str, str]]:
+    title: Optional[str] = None
+    sections: Dict[str, List[str]] = {}
+    current_key = "_root"
+    sections[current_key] = []
+    for raw_line in text.splitlines():
+        line = raw_line.rstrip("\n")
+        stripped = line.strip()
+        if not stripped:
+            sections.setdefault(current_key, []).append("")
+            continue
+        title_match = re.match(r"^#\s+(.+)$", stripped)
+        if title_match and title is None:
+            title = title_match.group(1).strip()
+            continue
+        heading_match = re.match(r"^##+\s+(.+)$", stripped)
+        if heading_match:
+            current_key = _normalize(heading_match.group(1))
+            sections.setdefault(current_key, [])
+            continue
+        sections.setdefault(current_key, []).append(line)
+    return title, {key: "\n".join(lines).strip() for key, lines in sections.items()}
+
+
+def _parse_bulleted_section(section_text: str) -> Tuple[Dict[str, Any], List[str]]:
+    key_values: Dict[str, Any] = {}
+    loose_items: List[str] = []
+    current_key: Optional[str] = None
+    for raw_line in section_text.splitlines():
+        line = raw_line.rstrip()
+        stripped = line.strip()
+        if not stripped:
+            continue
+        top_level = re.match(r"^-\s+([^:]+):\s*(.*)$", stripped)
+        if top_level:
+            key = top_level.group(1).strip().lower()
+            value = top_level.group(2).strip()
+            current_key = key
+            if value:
+                key_values[key] = value
+                current_key = None
+            else:
+                key_values[key] = []
+            continue
+        nested = re.match(r"^\s*-\s+(.+)$", stripped)
+        if nested and current_key:
+            existing = key_values.get(current_key)
+            if not isinstance(existing, list):
+                existing = [] if existing in {None, ""} else [str(existing)]
+            existing.append(nested.group(1).strip())
+            key_values[current_key] = existing
+            continue
+        plain_item = re.match(r"^-\s+(.+)$", stripped)
+        if plain_item:
+            loose_items.append(plain_item.group(1).strip())
+            current_key = None
+    return key_values, loose_items
+
+
+def _coerce_mood_vector(raw_values: Dict[str, Any], rules: Dict[str, Any]) -> Dict[str, int]:
+    vector: Dict[str, int] = {}
+    for dimension in rules.get("mood_vector_dimensions", []):
+        raw = raw_values.get(dimension.lower())
+        if raw is None:
+            continue
+        match = re.search(r"-?\d+", str(raw))
+        if match:
+            vector[str(dimension)] = int(match.group(0))
+    return vector
+
+
+def _infer_explicit_visual_density(text: str) -> Optional[str]:
+    normalized_text = _normalize(text)
+    for candidate in ("low", "medium", "high"):
+        if re.search(rf"\b{candidate}\b", normalized_text):
+            return candidate
+    return None
+
+
+def _infer_explicit_originality(text: str) -> Optional[str]:
+    normalized_text = _normalize(text)
+    for candidate in ("experimental", "distinctive", "balanced", "conservative"):
+        if re.search(rf"\b{candidate}\b", normalized_text):
+            return candidate
+    return None
+
+
+def _extract_explicit_brand_profile_from_markdown(
+    text: str,
+    *,
+    project_type: Optional[str],
+    rules: Dict[str, Any],
+) -> Dict[str, Any]:
+    title, sections = _split_markdown_sections(text)
+    identity_map, _ = _parse_bulleted_section(sections.get("identity summary", ""))
+    color_map, _ = _parse_bulleted_section(sections.get("color strategy", ""))
+    typography_map, _ = _parse_bulleted_section(sections.get("typography strategy", ""))
+    density_map, density_items = _parse_bulleted_section(sections.get("density", ""))
+    _, personality_traits = _parse_bulleted_section(sections.get("visual personality", ""))
+    mood_map, _ = _parse_bulleted_section(sections.get("mood vector", ""))
+    _, layout_principles = _parse_bulleted_section(sections.get("layout principles", ""))
+    _, motion_principles = _parse_bulleted_section(sections.get("motion principles", ""))
+    _, anti_patterns = _parse_bulleted_section(sections.get("anti-patterns to avoid", ""))
+    _, inspiration_references = _parse_bulleted_section(sections.get("inspiration references", ""))
+    _, evidence_expectations = _parse_bulleted_section(sections.get("evidence expectations", ""))
+    _, accessibility_items = _parse_bulleted_section(sections.get("accessibility notes", ""))
+    _, copy_tone = _parse_bulleted_section(sections.get("copy tone", ""))
+    _, cta_rules = _parse_bulleted_section(sections.get("cta rules", ""))
+
+    brand_name = str(identity_map.get("brand_name") or "").strip()
+    if not brand_name and title:
+        normalized_title = title.replace("brand profile", "").replace("Brand Profile", "").strip(" -")
+        brand_name = normalized_title.strip()
+
+    explicit_project_type = str(identity_map.get("project_type") or "").strip() or project_type
+    if not explicit_project_type:
+        normalized_identity = _normalize(
+            f"{identity_map.get('product_surface', '')} {identity_map.get('promise', '')} {sections.get('identity summary', '')}"
+        )
+        if any(term in normalized_identity for term in ("landing", "onboarding", "site", "website", "frontend")):
+            explicit_project_type = "frontend_app"
+
+    visual_density = (
+        str(density_map.get("target density") or density_map.get("density") or "").strip()
+        or _infer_explicit_visual_density(" ".join(density_items))
+        or _infer_explicit_visual_density(sections.get("density", ""))
+    )
+    originality_level = _infer_explicit_originality(
+        "\n".join(
+            [
+                sections.get("visual personality", ""),
+                sections.get("identity summary", ""),
+                sections.get("differentiation notes", ""),
+            ]
+        )
+    )
+
+    profile: Dict[str, Any] = {
+        "brand_name": brand_name or None,
+        "audience": str(identity_map.get("audience") or "").strip() or None,
+        "project_type": explicit_project_type or None,
+        "personality_traits": personality_traits,
+        "mood_vector": _coerce_mood_vector(mood_map, rules),
+        "color_strategy": {
+            "primary": str(color_map.get("primary") or "").strip() or None,
+            "secondary": str(color_map.get("secondary") or "").strip() or None,
+            "accent": str(color_map.get("accent") or "").strip() or None,
+            "background": str(color_map.get("background") or "").strip() or None,
+            "contrast_notes": str(color_map.get("contrast_notes") or "").strip() or None,
+            "forbidden_color_patterns": color_map.get("forbidden_color_patterns", []),
+        },
+        "typography_strategy": {
+            "heading_style": str(typography_map.get("heading_style") or "").strip() or None,
+            "body_style": str(typography_map.get("body_style") or "").strip() or None,
+            "contrast_rationale": str(typography_map.get("contrast_rationale") or "").strip() or None,
+            "forbidden_font_patterns": typography_map.get("forbidden_font_patterns", []),
+        },
+        "layout_principles": layout_principles,
+        "motion_principles": motion_principles,
+        "visual_density": visual_density or None,
+        "originality_level": originality_level or None,
+        "anti_patterns_to_avoid": anti_patterns,
+        "inspiration_references": inspiration_references,
+        "differentiation_notes": sections.get("differentiation notes", "").strip() or None,
+        "accessibility_notes": (
+            "; ".join(accessibility_items)
+            if accessibility_items
+            else sections.get("accessibility notes", "").strip() or None
+        ),
+        "evidence_expectations": evidence_expectations,
+    }
+    if copy_tone:
+        profile["copy_tone"] = copy_tone
+    if cta_rules:
+        profile["cta_rules"] = cta_rules
+    return profile
+
+
+def _collect_explicit_signal_coverage(profile: Dict[str, Any]) -> List[str]:
+    coverage: List[str] = []
+    if len(profile.get("personality_traits") or []) >= 2:
+        coverage.append("visual_personality")
+    if isinstance(profile.get("mood_vector"), dict) and len(profile.get("mood_vector") or {}) >= 2:
+        coverage.append("mood_vector")
+    color_strategy = profile.get("color_strategy") or {}
+    if isinstance(color_strategy, dict) and (
+        color_strategy.get("primary") or color_strategy.get("accent") or color_strategy.get("background")
+    ):
+        coverage.append("color_strategy")
+    typography_strategy = profile.get("typography_strategy") or {}
+    if isinstance(typography_strategy, dict) and (
+        typography_strategy.get("heading_style") or typography_strategy.get("body_style")
+    ):
+        coverage.append("typography_intent")
+    if str(profile.get("visual_density") or "").strip():
+        coverage.append("density")
+    if len(profile.get("motion_principles") or []) >= 1:
+        coverage.append("motion")
+    if len(profile.get("anti_patterns_to_avoid") or []) >= 1:
+        coverage.append("anti_patterns")
+    return coverage
+
+
+def _load_explicit_brand_profile_artifact(
+    *,
+    project: Optional[Path],
+    project_type: Optional[str],
+    visual_intent_contract: Optional[Dict[str, Any]] = None,
+    surface: Optional[Dict[str, str]] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+    project_name: Optional[str] = None,
+    objective: Optional[str] = None,
+    root: Path = DEFAULT_ROOT,
+) -> Optional[Dict[str, Any]]:
+    if project is None:
+        return None
+
+    rules = load_brand_profile_schema_rules(root)
+    baseline_profile = infer_brand_profile(
+        project_type=project_type,
+        visual_intent_contract=visual_intent_contract,
+        surface=surface,
+        metadata=metadata,
+        project_name=project_name,
+        objective=objective,
+        root=root,
+    )
+    for relative_path in EXPLICIT_BRAND_PROFILE_CANDIDATES:
+        artifact_path = project / relative_path
+        if not artifact_path.exists() or not artifact_path.is_file():
+            continue
+
+        raw_text = _read_text_if_exists(artifact_path)
+        parsed_profile: Dict[str, Any] = {}
+        if artifact_path.suffix.lower() == ".json":
+            if raw_text.strip():
+                try:
+                    json_payload = json.loads(raw_text)
+                except json.JSONDecodeError:
+                    json_payload = {}
+                if isinstance(json_payload, dict):
+                    parsed_profile = json_payload
+        else:
+            parsed_profile = _extract_explicit_brand_profile_from_markdown(
+                raw_text,
+                project_type=project_type,
+                rules=rules,
+            )
+
+        merged_profile = _merge_nested_dicts(baseline_profile, parsed_profile)
+        explicit_signal_coverage = _collect_explicit_signal_coverage(parsed_profile)
+        return {
+            "profile": merged_profile,
+            "explicit_profile_present": len(explicit_signal_coverage) >= 7,
+            "explicit_artifact_present": True,
+            "profile_source": "explicit" if len(explicit_signal_coverage) >= 7 else "explicit_artifact_weak",
+            "explicit_artifact_path": relative_path.as_posix(),
+            "explicit_artifact_type": artifact_path.suffix.lower().lstrip(".") or "unknown",
+            "explicit_signal_coverage": explicit_signal_coverage,
+            "artifact_raw_text": raw_text,
+        }
+    return None
 
 
 def load_brand_profile_schema_rules(root: Path = DEFAULT_ROOT) -> Dict[str, Any]:
@@ -431,13 +719,27 @@ def build_brand_profile_assessment(
     project_type: Optional[str],
     visual_intent_contract: Optional[Dict[str, Any]] = None,
     profile: Optional[Dict[str, Any]] = None,
+    project: Optional[Path] = None,
     surface: Optional[Dict[str, str]] = None,
     metadata: Optional[Dict[str, Any]] = None,
     project_name: Optional[str] = None,
     objective: Optional[str] = None,
     root: Path = DEFAULT_ROOT,
 ) -> Dict[str, Any]:
-    resolved_profile = profile or infer_brand_profile(
+    explicit_artifact = None
+    if profile is None:
+        explicit_artifact = _load_explicit_brand_profile_artifact(
+            project=project,
+            project_type=project_type,
+            visual_intent_contract=visual_intent_contract,
+            surface=surface,
+            metadata=metadata,
+            project_name=project_name,
+            objective=objective,
+            root=root,
+        )
+
+    resolved_profile = profile or (explicit_artifact or {}).get("profile") or infer_brand_profile(
         project_type=project_type,
         visual_intent_contract=visual_intent_contract,
         surface=surface,
@@ -446,15 +748,27 @@ def build_brand_profile_assessment(
         objective=objective,
         root=root,
     )
-    return validate_brand_profile(
+    review = validate_brand_profile(
         resolved_profile,
         project_type=project_type,
         visual_intent_contract=visual_intent_contract,
-        source_text=json.dumps(resolved_profile, ensure_ascii=False),
+        source_text="\n".join(
+            [
+                json.dumps(resolved_profile, ensure_ascii=False),
+                str((explicit_artifact or {}).get("artifact_raw_text") or ""),
+            ]
+        ),
         surface_paths=list((surface or {}).keys()),
-        explicit_profile_present=profile is not None,
+        explicit_profile_present=bool(profile is not None or (explicit_artifact or {}).get("explicit_profile_present")),
         root=root,
     )
+    if explicit_artifact:
+        review["explicit_artifact_present"] = bool(explicit_artifact.get("explicit_artifact_present"))
+        review["explicit_artifact_path"] = explicit_artifact.get("explicit_artifact_path")
+        review["explicit_artifact_type"] = explicit_artifact.get("explicit_artifact_type")
+        review["explicit_signal_coverage"] = explicit_artifact.get("explicit_signal_coverage", [])
+        review["profile_source"] = str(explicit_artifact.get("profile_source") or review.get("profile_source"))
+    return review
 
 
 def main(argv: Optional[List[str]] = None) -> int:

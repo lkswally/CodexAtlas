@@ -593,6 +593,7 @@ def _run_project_visual_analysis(project: Path) -> Dict[str, Any]:
     brand_profile_review = build_brand_profile_assessment(
         project_type="frontend_app",
         visual_intent_contract=visual_intent_contract.get("contract"),
+        project=project,
         surface=surface,
         project_name=project.name,
         objective=_extract_first_meaningful_sentence(content_text),

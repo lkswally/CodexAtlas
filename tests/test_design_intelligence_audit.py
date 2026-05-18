@@ -55,6 +55,7 @@ def test_anti_generic_ui_audit_returns_structured_output_for_codexatlas_web():
     assert len(result["top_priorities"]) <= 3
     assert any(check["id"] == "cta_clarity" for check in result["checks"])
     assert "profile_source" in result["brand_profile_review"]
+    assert result["brand_profile_review"]["explicit_profile_present"] is True
 
 
 def test_design_system_review_returns_design_findings():

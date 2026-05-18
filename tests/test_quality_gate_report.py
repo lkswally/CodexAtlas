@@ -154,6 +154,13 @@ def test_quality_gate_report_exposes_creative_pipeline_posture():
     assert "blocked_profiles" in result["creative_pipeline_posture"]
 
 
+def test_quality_gate_report_detects_explicit_brand_profile_from_derived_project_artifact():
+    result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+    assert result["brand_profile_posture"]["explicit_profile_present"] is True
+    assert result["brand_profile_posture"]["profile_source"] == "explicit"
+    assert result["brand_profile_posture"]["profile_status"] in {"ready", "needs_input"}
+
+
 def test_quality_gate_report_exposes_component_inspiration_posture():
     result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
     assert isinstance(result["component_inspiration_posture"], dict)

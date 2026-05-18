@@ -1,7 +1,12 @@
 import os
+import json
+import shutil
+import uuid
+from pathlib import Path
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import TEMP_ROOT
 from tools.brand_profile_schema import build_brand_profile_assessment, validate_brand_profile
 
 
@@ -45,6 +50,12 @@ def _valid_brand_profile():
         "accessibility_notes": "Keep contrast and scanning clarity above visual novelty.",
         "evidence_expectations": ["audit", "before pass"],
     }
+
+
+def _make_temp_project() -> Path:
+    project = TEMP_ROOT / f"brand-profile-{uuid.uuid4().hex}"
+    project.mkdir(parents=True, exist_ok=True)
+    return project
 
 
 def test_brand_profile_schema_accepts_complete_profile():
@@ -179,3 +190,183 @@ def test_landing_project_requires_brand_profile():
     assert result["requires_profile"] is True
     assert result["status"] == "needs_input"
     assert result["explicit_profile_present"] is False
+
+
+def test_project_without_explicit_brand_profile_stays_needs_input():
+    project = _make_temp_project()
+    try:
+        result = build_brand_profile_assessment(
+            project_type="frontend_app",
+            project=project,
+            visual_intent_contract={
+                "project_type": "frontend_app",
+                "requires_contract": True,
+                "audience": "for developers",
+                "mood_or_vibe": "editorial technical",
+                "originality_level": "distinctive",
+                "visual_density": "medium",
+                "motion_intensity": "low",
+                "anti_patterns_to_avoid": ["avoid generic", "avoid saas"],
+                "evidence_expectations": ["audit"],
+            },
+            surface={"styles.css": "", "index.html": "<section>landing</section>"},
+            project_name="Atlas Demo",
+            objective="Explain Atlas clearly.",
+        )
+    finally:
+        shutil.rmtree(project, ignore_errors=True)
+    assert result["status"] == "needs_input"
+    assert result["explicit_profile_present"] is False
+
+
+def test_docs_brand_profile_md_sets_explicit_profile_when_content_is_strong():
+    project = _make_temp_project()
+    try:
+        brand_dir = project / "docs"
+        brand_dir.mkdir(parents=True, exist_ok=True)
+        (brand_dir / "brand_profile.md").write_text(
+            """# Atlas Demo Brand Profile
+
+## Identity Summary
+
+- brand_name: Atlas Demo
+- audience: developers and technical teams
+- promise: explain Atlas clearly and make setup feel structured
+
+## Visual Personality
+
+- controlled
+- technical
+- distinctive
+
+## Mood Vector
+
+- premium: 6
+- playful: 2
+- technical: 9
+- editorial: 7
+- minimalist: 5
+- bold: 7
+- warm: 4
+- futuristic: 6
+
+## Color Strategy
+
+- primary: near-black graphite
+- secondary: steel neutrals
+- accent: warm cyan
+- background: midnight blue
+- contrast_notes: keep text bright on dark surfaces
+- forbidden_color_patterns:
+  - default teal with no rationale
+  - low contrast grey on grey
+
+## Typography Strategy
+
+- heading_style: Space Grotesk
+- body_style: Plus Jakarta Sans
+- contrast_rationale: headings should feel technical while body copy stays operational
+- forbidden_font_patterns:
+  - generic sans everywhere
+  - decorative body fonts
+
+## Layout Principles
+
+- hero-first narrative
+- compact sections with breathing room
+
+## Motion Principles
+
+- low motion
+- motion supports hierarchy
+
+## Density
+
+- target density: medium
+
+## Anti-Patterns To Avoid
+
+- avoid generic
+- avoid saas
+
+## Inspiration References
+
+- dark technical systems
+
+## Differentiation Notes
+
+Keep Atlas Demo positioned as a governed layer, not a generic AI toolkit landing page.
+
+## Accessibility Notes
+
+- keep contrast strong
+- preserve obvious focus-visible
+
+## Evidence Expectations
+
+- audit
+- build
+""",
+            encoding="utf-8",
+        )
+        result = build_brand_profile_assessment(
+            project_type="frontend_app",
+            project=project,
+            visual_intent_contract={
+                "project_type": "frontend_app",
+                "requires_contract": True,
+                "originality_level": "distinctive",
+                "visual_density": "medium",
+                "motion_intensity": "low",
+            },
+            surface={"styles.css": "", "index.html": "<section>landing</section>"},
+            project_name="Atlas Demo",
+            objective="Explain Atlas clearly.",
+        )
+    finally:
+        shutil.rmtree(project, ignore_errors=True)
+    assert result["explicit_profile_present"] is True
+    assert result["profile_source"] == "explicit"
+    assert result["explicit_artifact_path"] == "docs/brand_profile.md"
+
+
+def test_empty_docs_brand_profile_md_stays_needs_input():
+    project = _make_temp_project()
+    try:
+        brand_dir = project / "docs"
+        brand_dir.mkdir(parents=True, exist_ok=True)
+        (brand_dir / "brand_profile.md").write_text("", encoding="utf-8")
+        result = build_brand_profile_assessment(
+            project_type="frontend_app",
+            project=project,
+            visual_intent_contract={"project_type": "frontend_app", "requires_contract": True},
+            surface={"styles.css": "", "index.html": "<section>landing</section>"},
+            project_name="Atlas Demo",
+            objective="Explain Atlas clearly.",
+        )
+    finally:
+        shutil.rmtree(project, ignore_errors=True)
+    assert result["status"] == "needs_input"
+    assert result["explicit_profile_present"] is False
+    assert result["explicit_artifact_path"] == "docs/brand_profile.md"
+
+
+def test_atlas_brand_json_sets_explicit_profile_when_valid():
+    project = _make_temp_project()
+    try:
+        atlas_dir = project / ".atlas"
+        atlas_dir.mkdir(parents=True, exist_ok=True)
+        (atlas_dir / "brand.json").write_text(json.dumps(_valid_brand_profile(), ensure_ascii=False, indent=2), encoding="utf-8")
+        result = build_brand_profile_assessment(
+            project_type="frontend_app",
+            project=project,
+            visual_intent_contract={"project_type": "frontend_app", "requires_contract": True},
+            surface={"styles.css": "", "index.html": "<section>landing</section>"},
+            project_name="CodexAtlas",
+            objective="Explain Atlas clearly.",
+        )
+    finally:
+        shutil.rmtree(project, ignore_errors=True)
+    assert result["status"] == "ready"
+    assert result["explicit_profile_present"] is True
+    assert result["explicit_artifact_path"] == ".atlas/brand.json"
