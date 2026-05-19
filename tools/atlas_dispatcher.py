@@ -773,6 +773,97 @@ def _record_dispatch_event(
     _append_jsonl_record(root / "memory" / "routing_log.jsonl", record)
 
 
+def _extract_envelope_tarea(command_id: str) -> str:
+    """Map command_id to task description."""
+    task_map = {
+        "audit-repo": "Audit project structure and governance compliance",
+        "certify-project": "Certify derived project readiness for handoff",
+        "surface-audit": "Audit Atlas public and doc surface",
+        "quality-gate-report": "Generate quality gate report with phase-aware guidance",
+        "project-phase-report": "Resolve current project phase and allowed commands",
+        "project-intent-report": "Analyze project intent from brief or metadata",
+        "prompt-builder": "Build orchestrator prompt from project context",
+        "skill-evaluator": "Evaluate skill candidate against Atlas standards",
+    }
+    return task_map.get(command_id, command_id)
+
+
+def _extract_envelope_archivos(result: Dict[str, Any], target_root: Optional[Path]) -> List[str]:
+    """Extract touched files/paths from result."""
+    archivos = []
+    if isinstance(result, dict):
+        # From summary.target_root
+        if "summary" in result and "target_root" in result["summary"]:
+            archivos.append(str(result["summary"]["target_root"]))
+        # From relevant_paths (audit output)
+        if "relevant_paths" in result and isinstance(result["relevant_paths"], list):
+            for item in result["relevant_paths"]:
+                if isinstance(item, dict) and "path" in item:
+                    archivos.append(str(item["path"]))
+        # From checked_paths (certify output)
+        if "summary" in result and "checked_paths" in result["summary"]:
+            checked = result["summary"]["checked_paths"]
+            if isinstance(checked, list):
+                archivos.extend(str(p) for p in checked)
+    return list(dict.fromkeys(archivos))  # deduplicate while preserving order
+
+
+def _extract_envelope_verificacion(result: Dict[str, Any]) -> Dict[str, Any]:
+    """Extract verification status from result."""
+    if not isinstance(result, dict):
+        return {"status": "unknown"}
+
+    verification = {
+        "status": result.get("status", "unknown"),
+        "findings_count": 0,
+        "blockers_count": 0,
+        "warnings_count": 0,
+    }
+
+    if "findings" in result and isinstance(result["findings"], list):
+        verification["findings_count"] = len(result["findings"])
+    if "blockers" in result and isinstance(result["blockers"], list):
+        verification["blockers_count"] = len(result["blockers"])
+    if "warnings" in result and isinstance(result["warnings"], list):
+        verification["warnings_count"] = len(result["warnings"])
+
+    return verification
+
+
+def _extract_envelope_bloqueadores(result: Dict[str, Any], ok: bool) -> List[Dict[str, str]]:
+    """Extract blockers from result."""
+    bloqueadores = []
+
+    if isinstance(result, dict):
+        # Explicit blockers field
+        if "blockers" in result and isinstance(result["blockers"], list):
+            bloqueadores.extend(result["blockers"])
+        # High-severity findings
+        if "findings" in result and isinstance(result["findings"], list):
+            bloqueadores.extend([f for f in result["findings"] if isinstance(f, dict) and f.get("severity") == "high"])
+
+    if not ok and not bloqueadores:
+        bloqueadores.append({
+            "severity": "blocker",
+            "code": "command_failed",
+            "message": f"Command returned non-ok status"
+        })
+
+    return bloqueadores
+
+
+def _extract_envelope_notas(result: Dict[str, Any]) -> List[str]:
+    """Extract recommendations/notes from result."""
+    notas = []
+    if isinstance(result, dict):
+        if "recommendations" in result and isinstance(result["recommendations"], list):
+            notas.extend(str(r) for r in result["recommendations"])
+        if "possible_improvements" in result and isinstance(result["possible_improvements"], list):
+            improvements = [str(i) for i in result["possible_improvements"] if str(i) not in notas]
+            notas.extend(improvements)
+    return notas
+
+
 def dispatch(
     command_id: str,
     root: Optional[Path] = None,
@@ -789,14 +880,9 @@ def dispatch(
     try:
         registry = _load_registry(root)
     except Exception as exc:
-        return DispatchResult(
-            ok=False,
-            exit_code=2,
-            output={"ok": False, "command": command_id, "started_at": started_at, "error": f"registry_load_failed:{exc}"},
-        )
-
-    cmd = _find_command(registry, command_id)
-    if not cmd:
+        elapsed_ms = int((time.time() - t0) * 1000)
+        finished_at = _utc_now_iso()
+        error_msg = f"registry_load_failed:{exc}"
         return DispatchResult(
             ok=False,
             exit_code=2,
@@ -804,14 +890,51 @@ def dispatch(
                 "ok": False,
                 "command": command_id,
                 "started_at": started_at,
+                "finished_at": finished_at,
+                "elapsed_ms": elapsed_ms,
+                "error": error_msg,
+                "envelope": {
+                    "status": "error",
+                    "tarea": _extract_envelope_tarea(command_id),
+                    "archivos": [],
+                    "verificacion": {"status": "error", "findings_count": 0, "blockers_count": 1, "warnings_count": 0},
+                    "bloqueadores": [{"severity": "blocker", "code": "registry_load_failed", "message": str(exc)}],
+                    "notas": ["Failed to load command registry"]
+                }
+            },
+        )
+
+    cmd = _find_command(registry, command_id)
+    if not cmd:
+        elapsed_ms = int((time.time() - t0) * 1000)
+        finished_at = _utc_now_iso()
+        return DispatchResult(
+            ok=False,
+            exit_code=2,
+            output={
+                "ok": False,
+                "command": command_id,
+                "started_at": started_at,
+                "finished_at": finished_at,
+                "elapsed_ms": elapsed_ms,
                 "error": "unknown_command",
                 "known_commands": [
                     c.get("id") for c in registry.get("commands", []) if isinstance(c, dict) and c.get("id")
                 ],
+                "envelope": {
+                    "status": "error",
+                    "tarea": _extract_envelope_tarea(command_id),
+                    "archivos": [],
+                    "verificacion": {"status": "error", "findings_count": 0, "blockers_count": 1, "warnings_count": 0},
+                    "bloqueadores": [{"severity": "blocker", "code": "unknown_command", "message": f"Command '{command_id}' not found in registry"}],
+                    "notas": ["Check available commands in the registry"]
+                }
             },
         )
 
     if command_id == "project-phase-report" and project is None:
+        elapsed_ms = int((time.time() - t0) * 1000)
+        finished_at = _utc_now_iso()
         return DispatchResult(
             ok=False,
             exit_code=2,
@@ -820,7 +943,17 @@ def dispatch(
                 "command": command_id,
                 "alias": cmd.get("alias"),
                 "started_at": started_at,
+                "finished_at": finished_at,
+                "elapsed_ms": elapsed_ms,
                 "error": "project_argument_required",
+                "envelope": {
+                    "status": "error",
+                    "tarea": _extract_envelope_tarea(command_id),
+                    "archivos": [],
+                    "verificacion": {"status": "error", "findings_count": 0, "blockers_count": 1, "warnings_count": 0},
+                    "bloqueadores": [{"severity": "blocker", "code": "project_argument_required", "message": "Use --project <path> to specify the project root"}],
+                    "notas": []
+                }
             },
         )
 
@@ -829,6 +962,15 @@ def dispatch(
         phase_report = _resolve_phase_report(root, target_root)
         if command_id == "project-phase-report":
             result = phase_report
+            elapsed_ms = int((time.time() - t0) * 1000)
+            finished_at = _utc_now_iso()
+            # Extract envelope for project-phase-report
+            envelope_status = result.get("status", "error") if isinstance(result, dict) else "error"
+            envelope_tarea = _extract_envelope_tarea(command_id)
+            envelope_archivos = _extract_envelope_archivos(result, target_root)
+            envelope_verificacion = _extract_envelope_verificacion(result)
+            envelope_bloqueadores = _extract_envelope_bloqueadores(result, True)
+            envelope_notas = _extract_envelope_notas(result)
             output = {
                 "ok": True,
                 "command": command_id,
@@ -838,10 +980,18 @@ def dispatch(
                 "root": str(root),
                 "target_project": str(target_root),
                 "started_at": started_at,
-                "finished_at": _utc_now_iso(),
-                "elapsed_ms": int((time.time() - t0) * 1000),
+                "finished_at": finished_at,
+                "elapsed_ms": elapsed_ms,
                 "result": result,
                 "governance": None,
+                "envelope": {
+                    "status": envelope_status,
+                    "tarea": envelope_tarea,
+                    "archivos": envelope_archivos,
+                    "verificacion": envelope_verificacion,
+                    "bloqueadores": envelope_bloqueadores,
+                    "notas": envelope_notas,
+                }
             }
             _record_dispatch_event(root, command_id, target_root, True, result, 0)
             return DispatchResult(ok=True, exit_code=0, output=output)
@@ -857,6 +1007,21 @@ def dispatch(
             )
             if suggested_command:
                 guidance_message += f" Preferred command now: {suggested_command}."
+
+            # Create a synthetic result for envelope extraction
+            blocked_result = {
+                "status": "failed",
+                "reason": "phase_blocked",
+            }
+            elapsed_ms = int((time.time() - t0) * 1000)
+            finished_at = _utc_now_iso()
+            envelope_status = "failed"
+            envelope_tarea = _extract_envelope_tarea(command_id)
+            envelope_archivos = _extract_envelope_archivos(blocked_result, target_root)
+            envelope_verificacion = {"status": "failed", "findings_count": 1, "blockers_count": 1, "warnings_count": 0}
+            envelope_bloqueadores = [{"severity": "blocker", "code": "phase_blocked", "message": guidance_message}]
+            envelope_notas = [f"Project is in phase: {phase_report.get('current_phase')}"] + list(recommended_actions)
+
             output = {
                 "ok": False,
                 "command": command_id,
@@ -866,14 +1031,22 @@ def dispatch(
                 "root": str(root),
                 "target_project": str(target_root),
                 "started_at": started_at,
-                "finished_at": _utc_now_iso(),
-                "elapsed_ms": int((time.time() - t0) * 1000),
+                "finished_at": finished_at,
+                "elapsed_ms": elapsed_ms,
                 "error": "phase_blocked",
                 "message": guidance_message,
                 "suggested_command": suggested_command,
                 "phase_report": phase_report,
+                "envelope": {
+                    "status": envelope_status,
+                    "tarea": envelope_tarea,
+                    "archivos": envelope_archivos,
+                    "verificacion": envelope_verificacion,
+                    "bloqueadores": envelope_bloqueadores,
+                    "notas": envelope_notas,
+                }
             }
-            _record_dispatch_event(root, command_id, target_root, False, {"status": "failed", "reason": "phase_blocked"}, 2)
+            _record_dispatch_event(root, command_id, target_root, False, blocked_result, 2)
             return DispatchResult(ok=False, exit_code=2, output=output)
 
     project_metadata = None
@@ -886,6 +1059,8 @@ def dispatch(
             if command_id == "certify-project":
                 project_metadata = None
             else:
+                elapsed_ms = int((time.time() - t0) * 1000)
+                finished_at = _utc_now_iso()
                 return DispatchResult(
                     ok=False,
                     exit_code=2,
@@ -894,13 +1069,25 @@ def dispatch(
                         "command": command_id,
                         "alias": cmd.get("alias"),
                         "started_at": started_at,
+                        "finished_at": finished_at,
+                        "elapsed_ms": elapsed_ms,
                         "error": f"project_metadata_load_failed:{exc}",
                         "project_root": str(target_root),
+                        "envelope": {
+                            "status": "error",
+                            "tarea": _extract_envelope_tarea(command_id),
+                            "archivos": [str(target_root)],
+                            "verificacion": {"status": "error", "findings_count": 0, "blockers_count": 1, "warnings_count": 0},
+                            "bloqueadores": [{"severity": "blocker", "code": "project_metadata_load_failed", "message": str(exc)}],
+                            "notas": ["Ensure .atlas-project.json exists and is valid"]
+                        }
                     },
                 )
 
     governance_before = _run_project_governance_check(root, target_root) if project is not None else _run_governance_check(root)
     if not governance_before.get("ok", False) and command_id != "certify-project":
+        elapsed_ms = int((time.time() - t0) * 1000)
+        finished_at = _utc_now_iso()
         return DispatchResult(
             ok=False,
             exit_code=2,
@@ -909,19 +1096,24 @@ def dispatch(
                 "command": command_id,
                 "alias": cmd.get("alias"),
                 "started_at": started_at,
+                "finished_at": finished_at,
+                "elapsed_ms": elapsed_ms,
                 "error": "governance_check_failed_before_execution",
                 "governance": governance_before,
+                "envelope": {
+                    "status": "error",
+                    "tarea": _extract_envelope_tarea(command_id),
+                    "archivos": [str(target_root)] if project else [str(root)],
+                    "verificacion": {"status": "error", "findings_count": len(governance_before.get("findings", [])), "blockers_count": 1, "warnings_count": 0},
+                    "bloqueadores": [{"severity": "blocker", "code": "governance_check_failed", "message": "Governance check failed before execution"}],
+                    "notas": governance_before.get("findings", [])
+                }
             },
         )
 
     if command_id not in {"audit-repo", "certify-project", "surface-audit", "quality-gate-report", "project-phase-report", "project-intent-report", "prompt-builder", "skill-evaluator"}:
-        return DispatchResult(
-            ok=False,
-            exit_code=2,
-            output={"ok": False, "command": command_id, "alias": cmd.get("alias"), "started_at": started_at, "error": "workflow_not_implemented_in_minimal_mode"},
-        )
-
-    if command_id in {"certify-project", "quality-gate-report"} and project is None:
+        elapsed_ms = int((time.time() - t0) * 1000)
+        finished_at = _utc_now_iso()
         return DispatchResult(
             ok=False,
             exit_code=2,
@@ -930,7 +1122,42 @@ def dispatch(
                 "command": command_id,
                 "alias": cmd.get("alias"),
                 "started_at": started_at,
+                "finished_at": finished_at,
+                "elapsed_ms": elapsed_ms,
+                "error": "workflow_not_implemented_in_minimal_mode",
+                "envelope": {
+                    "status": "error",
+                    "tarea": _extract_envelope_tarea(command_id),
+                    "archivos": [],
+                    "verificacion": {"status": "error", "findings_count": 0, "blockers_count": 1, "warnings_count": 0},
+                    "bloqueadores": [{"severity": "blocker", "code": "workflow_not_implemented", "message": f"Command '{command_id}' is not implemented in minimal mode"}],
+                    "notas": []
+                }
+            },
+        )
+
+    if command_id in {"certify-project", "quality-gate-report"} and project is None:
+        elapsed_ms = int((time.time() - t0) * 1000)
+        finished_at = _utc_now_iso()
+        return DispatchResult(
+            ok=False,
+            exit_code=2,
+            output={
+                "ok": False,
+                "command": command_id,
+                "alias": cmd.get("alias"),
+                "started_at": started_at,
+                "finished_at": finished_at,
+                "elapsed_ms": elapsed_ms,
                 "error": "project_argument_required",
+                "envelope": {
+                    "status": "error",
+                    "tarea": _extract_envelope_tarea(command_id),
+                    "archivos": [],
+                    "verificacion": {"status": "error", "findings_count": 0, "blockers_count": 1, "warnings_count": 0},
+                    "bloqueadores": [{"severity": "blocker", "code": "project_argument_required", "message": "Use --project <path> to specify the project root"}],
+                    "notas": []
+                }
             },
         )
 
@@ -981,6 +1208,14 @@ def dispatch(
     if command_id not in {"certify-project", "quality-gate-report"}:
         ok = ok and bool(governance_after.get("ok", False))
 
+    # Extract Return Envelope fields
+    envelope_status = result.get("status", "error") if isinstance(result, dict) else "error"
+    envelope_tarea = _extract_envelope_tarea(command_id)
+    envelope_archivos = _extract_envelope_archivos(result, target_root)
+    envelope_verificacion = _extract_envelope_verificacion(result)
+    envelope_bloqueadores = _extract_envelope_bloqueadores(result, ok)
+    envelope_notas = _extract_envelope_notas(result)
+
     output = {
         "ok": ok,
         "command": command_id,
@@ -994,6 +1229,15 @@ def dispatch(
         "elapsed_ms": elapsed_ms,
         "result": result,
         "governance": {"before": governance_before, "after": governance_after},
+        # Return Envelope fields (Phase 1A.1 operational)
+        "envelope": {
+            "status": envelope_status,
+            "tarea": envelope_tarea,
+            "archivos": envelope_archivos,
+            "verificacion": envelope_verificacion,
+            "bloqueadores": envelope_bloqueadores,
+            "notas": envelope_notas,
+        }
     }
     _record_dispatch_event(root, command_id, target_root if project is not None else None, ok, result, 0 if ok else 2)
     return DispatchResult(ok=ok, exit_code=0 if ok else 2, output=output)
