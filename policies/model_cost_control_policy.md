@@ -13,6 +13,7 @@ This policy exists to improve cost-awareness without changing the active Codex D
 - suggest splitting a task into smaller steps
 - signal when a stronger model is justified
 - signal when a cheaper pass is enough
+- suggest a manual fallback posture for cheaper or lower-capability passes
 - request human confirmation before a costly or ambiguous recommendation
 
 ## What it cannot do
@@ -63,6 +64,37 @@ Before Atlas recommends a strong tier, it should ask whether the task can be imp
 - splitting planning from execution
 - separating audit from implementation
 
+## Manual fallback posture
+
+Atlas may recommend a manual fallback only when all of the following stay true:
+
+- the task is bounded, low-risk or informational
+- privacy risk is low enough for a weaker or alternate tier
+- the fallback does not change the runtime automatically
+- the fallback does not require enabling a new provider, proxy or local runtime silently
+
+Atlas should prefer fallback guidance for:
+
+- summaries
+- documentation passes
+- classification
+- lightweight triage
+- low-risk read-only follow-ups
+
+Atlas should block fallback guidance for:
+
+- security review
+- architecture decisions
+- high-risk planning
+- implementation with side effects
+- tasks that mention secrets, credentials, incidents or sensitive customer data
+
+Atlas should move to `watchlist` instead of `recommended` when:
+
+- the task explicitly depends on an external provider/runtime such as NVIDIA, LiteLLM, Ollama or a proxy
+- privacy is not low
+- the task shape suggests a local-model or external-provider discussion that still needs separate approval
+
 ## Human approval boundary
 
 Require user confirmation when:
@@ -71,6 +103,7 @@ Require user confirmation when:
 - the context looks large enough to waste tokens
 - the task mixes planning, research, and execution in one step
 - cost priority versus quality priority is unclear
+- Atlas recommends a manual fallback and the tradeoff could affect quality, privacy or trust
 
 Escalate to `decision-council` when:
 
@@ -93,3 +126,4 @@ Escalate to `decision-council` when:
 - no auto-routing across external runtimes
 - no changes to `can_auto_switch: false`
 - no changes to `model_switch_mode: manual_required`
+- no hidden fallback through proxies, wrappers or provider-specific startup scripts

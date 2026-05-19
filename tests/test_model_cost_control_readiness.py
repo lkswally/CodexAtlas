@@ -68,3 +68,45 @@ def test_model_cost_control_requires_confirmation_when_task_type_is_ambiguous():
     )
     assert result["requires_user_confirmation"] is True
     assert "ambiguous_task_type" in result["risks"]
+
+
+def test_model_cost_control_recommends_manual_fallback_for_bounded_docs_work():
+    result = assess_model_cost_control(
+        root=ATLAS_ROOT,
+        task="Summarize the current docs and classify the next lightweight follow-ups.",
+        task_type="documentation",
+        risk_level="low",
+        complexity="medium",
+    )
+    fallback = result["fallback_posture"]
+    assert fallback["status"] == "recommended"
+    assert fallback["fallback_mode"] == "manual_only"
+    assert fallback["auto_switch_enabled"] is False
+    assert fallback["fallback_tier"] == "basic"
+
+
+def test_model_cost_control_blocks_fallback_for_high_privacy_or_security_work():
+    result = assess_model_cost_control(
+        root=ATLAS_ROOT,
+        task="Review auth secrets, tokens and incident handling before release.",
+        task_type="security_review",
+        risk_level="high",
+        complexity="medium",
+    )
+    fallback = result["fallback_posture"]
+    assert fallback["status"] == "blocked"
+    assert fallback["fallback_allowed"] is False
+    assert fallback["privacy_risk"] == "high"
+
+
+def test_model_cost_control_moves_provider_runtime_requests_to_watchlist():
+    result = assess_model_cost_control(
+        root=ATLAS_ROOT,
+        task="Evaluate whether a local model or NVIDIA proxy fallback would help for simple summaries.",
+        task_type="triage",
+        risk_level="low",
+        complexity="low",
+    )
+    fallback = result["fallback_posture"]
+    assert fallback["status"] == "watchlist"
+    assert fallback["fallback_tier"] == "local_watchlist"

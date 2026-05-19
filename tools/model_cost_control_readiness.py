@@ -42,6 +42,105 @@ def _normalize_level(value: Optional[str], allowed: set[str], default: str) -> s
     return candidate if candidate in allowed else default
 
 
+def _detect_privacy_risk(task: str, rules: Dict[str, Any]) -> Tuple[str, List[str]]:
+    normalized_task = _normalize(task)
+    signals = rules.get("privacy_signals", {})
+    high_terms = [str(term).strip().lower() for term in signals.get("high", []) if str(term).strip()]
+    medium_terms = [str(term).strip().lower() for term in signals.get("medium", []) if str(term).strip()]
+
+    high_hits = [term for term in high_terms if term in normalized_task]
+    if high_hits:
+        return "high", [f"privacy_high_hits={high_hits}"]
+
+    medium_hits = [term for term in medium_terms if term in normalized_task]
+    if medium_hits:
+        return "medium", [f"privacy_medium_hits={medium_hits}"]
+
+    return "low", ["privacy_risk_low"]
+
+
+def _build_fallback_posture(
+    *,
+    task: str,
+    resolved_task_type: Optional[str],
+    recommended_model_tier: str,
+    normalized_risk: str,
+    normalized_complexity: str,
+    privacy_risk: str,
+    explicit_cost_priority: Optional[str],
+    rules: Dict[str, Any],
+) -> Dict[str, Any]:
+    normalized_task = _normalize(task)
+    allowed_task_types = [str(item).strip() for item in rules.get("allowed_task_types", []) if str(item).strip()]
+    watchlist_task_types = [str(item).strip() for item in rules.get("watchlist_task_types", []) if str(item).strip()]
+    blocked_task_types = [str(item).strip() for item in rules.get("blocked_task_types", []) if str(item).strip()]
+    provider_terms = [str(item).strip().lower() for item in rules.get("watchlist_provider_terms", []) if str(item).strip()]
+    provider_hits = [term for term in provider_terms if term in normalized_task]
+    fallback_tier_map = rules.get("fallback_tier_map", {})
+
+    fallback_tier = str(fallback_tier_map.get(recommended_model_tier, "not_allowed")).strip() or "not_allowed"
+    status = "not_required"
+    fallback_allowed = False
+    why_parts: List[str] = []
+
+    if provider_hits:
+        status = "watchlist"
+        fallback_tier = "local_watchlist"
+        why_parts.append(f"provider_runtime_terms={provider_hits}")
+    elif resolved_task_type in blocked_task_types or normalized_risk == "high" or normalized_complexity == "high" or privacy_risk == "high":
+        status = "blocked"
+        fallback_tier = "not_allowed"
+        if resolved_task_type in blocked_task_types:
+            why_parts.append(f"blocked_task_type={resolved_task_type}")
+        if normalized_risk == "high":
+            why_parts.append("risk_high")
+        if normalized_complexity == "high":
+            why_parts.append("complexity_high")
+        if privacy_risk == "high":
+            why_parts.append("privacy_high")
+    elif resolved_task_type in watchlist_task_types or privacy_risk == "medium":
+        status = "watchlist"
+        fallback_tier = "local_watchlist"
+        if resolved_task_type in watchlist_task_types:
+            why_parts.append(f"watchlist_task_type={resolved_task_type}")
+        if privacy_risk == "medium":
+            why_parts.append("privacy_medium")
+    elif resolved_task_type in allowed_task_types and fallback_tier != "not_allowed":
+        if recommended_model_tier == "mini":
+            status = "not_required"
+            fallback_tier = "not_allowed"
+            why_parts.append("primary_tier_already_mini")
+        else:
+            status = "recommended"
+            fallback_allowed = True
+            why_parts.append(f"allowed_task_type={resolved_task_type}")
+            if explicit_cost_priority == "high":
+                why_parts.append("explicit_cost_saving_request")
+            else:
+                why_parts.append("bounded_low_risk_task")
+    else:
+        status = "not_required"
+        fallback_tier = "not_allowed"
+        if resolved_task_type:
+            why_parts.append(f"task_type_not_fallback_target={resolved_task_type}")
+        else:
+            why_parts.append("task_type_unresolved_for_fallback")
+
+    return {
+        "status": status,
+        "primary_tier": recommended_model_tier,
+        "fallback_tier": fallback_tier,
+        "fallback_allowed": fallback_allowed,
+        "fallback_mode": str(rules.get("fallback_mode", "manual_only")).strip() or "manual_only",
+        "auto_switch_enabled": bool(rules.get("auto_switch_enabled", False)),
+        "allowed_task_types": allowed_task_types,
+        "blocked_task_types": blocked_task_types,
+        "privacy_risk": privacy_risk,
+        "requires_human_approval": True,
+        "why": "; ".join(why_parts) or "manual_fallback_not_needed",
+    }
+
+
 def _infer_task_type(task: str, hints: Dict[str, List[str]], provided: Optional[str]) -> Tuple[Optional[str], bool, List[str]]:
     normalized_provided = _normalize(provided or "")
     if normalized_provided in TASK_TYPES:
@@ -102,12 +201,14 @@ def assess_model_cost_control(
     thresholds = config.get("context_thresholds", {})
     split_rules = config.get("split_task_rules", {})
     confirmation_triggers = config.get("confirmation_triggers", {})
+    fallback_rules = config.get("fallback_manual_rules", {})
 
     normalized_risk = _normalize_level(risk_level, RISK_LEVELS, "medium")
     normalized_complexity = _normalize_level(complexity, COMPLEXITY_LEVELS, "medium")
     resolved_task_type, ambiguous_task_type, task_type_evidence = _infer_task_type(task, hints, task_type)
     context_band, measured_context = _derive_context_band(task, estimated_context_chars, thresholds)
     explicit_cost_priority, cost_evidence = _cost_priority_explicit(task)
+    privacy_risk, privacy_evidence = _detect_privacy_risk(task, fallback_rules)
     normalized_task = _normalize(task)
 
     mixed_planning_and_execution = (
@@ -159,11 +260,26 @@ def assess_model_cost_control(
     if cost_tradeoff_unclear:
         risks.append("cost_vs_quality_not_explicit")
 
+    fallback_posture = _build_fallback_posture(
+        task=task,
+        resolved_task_type=resolved_task_type,
+        recommended_model_tier=recommended_model_tier,
+        normalized_risk=normalized_risk,
+        normalized_complexity=normalized_complexity,
+        privacy_risk=privacy_risk,
+        explicit_cost_priority=explicit_cost_priority,
+        rules=fallback_rules,
+    )
+
     requires_user_confirmation = bool(
         (recommended_model_tier == "strong" and confirmation_triggers.get("strong_tier_requires_confirmation", True))
         or (ambiguous_task_type and confirmation_triggers.get("ambiguous_task_type_requires_confirmation", True))
         or (context_band == "large" and confirmation_triggers.get("large_context_requires_confirmation", True))
         or (cost_tradeoff_unclear and confirmation_triggers.get("cost_vs_quality_unclear_requires_confirmation", True))
+        or (
+            bool(fallback_posture.get("requires_human_approval"))
+            and str(fallback_posture.get("status", "")).strip() in {"recommended", "watchlist", "blocked"}
+        )
     )
 
     if recommended_model_tier == "mini":
@@ -176,6 +292,7 @@ def assess_model_cost_control(
     why_parts = [
         *task_type_evidence,
         *cost_evidence,
+        *privacy_evidence,
         f"risk={normalized_risk}",
         f"complexity={normalized_complexity}",
         f"context_band={context_band}",
@@ -196,6 +313,7 @@ def assess_model_cost_control(
         "split_task_recommended": split_task_recommended,
         "requires_user_confirmation": requires_user_confirmation,
         "risks": risks,
+        "fallback_posture": fallback_posture,
         "why": "; ".join(why_parts),
         "manual_action_required": manual_action_required,
         "advisory_only": bool(config.get("advisory_only", True)),

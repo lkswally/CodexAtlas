@@ -70,6 +70,57 @@
     "large_context_requires_confirmation": true,
     "cost_vs_quality_unclear_requires_confirmation": true
   },
+  "fallback_manual_rules": {
+    "fallback_mode": "manual_only",
+    "auto_switch_enabled": false,
+    "allowed_task_types": [
+      "documentation",
+      "triage",
+      "lightweight_editing"
+    ],
+    "watchlist_task_types": [
+      "audit_review"
+    ],
+    "blocked_task_types": [
+      "planning",
+      "architecture",
+      "code_execution",
+      "security_review",
+      "design_reasoning"
+    ],
+    "watchlist_provider_terms": [
+      "nvidia",
+      "litellm",
+      "ollama",
+      "local model",
+      "provider fallback",
+      "proxy"
+    ],
+    "privacy_signals": {
+      "high": [
+        "secret",
+        "token",
+        "credential",
+        "customer data",
+        "pii",
+        "private key",
+        "auth",
+        "incident"
+      ],
+      "medium": [
+        "internal",
+        "private repo",
+        "confidential",
+        "roadmap",
+        "architecture"
+      ]
+    },
+    "fallback_tier_map": {
+      "strong": "standard",
+      "medium": "basic",
+      "mini": "not_allowed"
+    }
+  },
   "task_type_hints": {
     "planning": [
       "plan",

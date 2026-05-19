@@ -1694,6 +1694,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "split_task_recommended": bool((source_reports["model_cost_control_readiness"]["report"] or {}).get("split_task_recommended")),
             "requires_user_confirmation": bool((source_reports["model_cost_control_readiness"]["report"] or {}).get("requires_user_confirmation")),
             "risks": (source_reports["model_cost_control_readiness"]["report"] or {}).get("risks", []),
+            "fallback_posture": (source_reports["model_cost_control_readiness"]["report"] or {}).get("fallback_posture", {}),
             "manual_action_required": (source_reports["model_cost_control_readiness"]["report"] or {}).get("manual_action_required"),
             "why": (source_reports["model_cost_control_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["model_cost_control_readiness"]["report"] or {}).get("advisory_only", True)),

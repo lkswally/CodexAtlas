@@ -133,6 +133,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert "blocked_profiles" in result["visual_qa_readiness_posture"]
     assert "triggered_signals" in result["error_learning_posture"]
     assert "recommended_model_tier" in result["model_cost_control_posture"]
+    assert "fallback_posture" in result["model_cost_control_posture"]
     assert "configured_mcp_servers" in result["codex_runtime_posture"]
     assert "available_sources" in result["atlas_memory_posture"]
     assert "missing_evidence" in result["evidence_collector_posture"]
