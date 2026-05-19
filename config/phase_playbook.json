@@ -1,6 +1,7 @@
 {
   "idea": {
     "allowed_commands": ["project-bootstrap"],
+    "e2e_required": [],
     "recommended_actions": [
       "define project goal",
       "define scope and constraints",
@@ -13,6 +14,7 @@
   },
   "planning": {
     "allowed_commands": ["project-bootstrap"],
+    "e2e_required": [],
     "recommended_actions": [
       "finalize project brief",
       "choose project type",
@@ -25,6 +27,13 @@
   },
   "bootstrap": {
     "allowed_commands": ["audit-repo"],
+    "e2e_required": [
+      {
+        "flow": "audit-repo",
+        "description": "Verify project structure and governance files are present",
+        "required_for": "move to build phase"
+      }
+    ],
     "recommended_actions": [
       "review generated structure",
       "validate README and AGENTS",
@@ -37,6 +46,13 @@
   },
   "build": {
     "allowed_commands": ["audit-repo"],
+    "e2e_required": [
+      {
+        "flow": "audit-repo",
+        "description": "Periodically verify structure remains sound during implementation",
+        "required_for": "maintain governance compliance"
+      }
+    ],
     "recommended_actions": [
       "implement core features",
       "maintain structure",
@@ -49,6 +65,13 @@
   },
   "audit": {
     "allowed_commands": ["certify-project"],
+    "e2e_required": [
+      {
+        "flow": "certify-project",
+        "description": "Complete governance and structure validation before certification",
+        "required_for": "achieve certified status"
+      }
+    ],
     "recommended_actions": [
       "fix warnings",
       "improve documentation",
@@ -61,6 +84,7 @@
   },
   "certified": {
     "allowed_commands": [],
+    "e2e_required": [],
     "recommended_actions": [
       "start new iteration",
       "expand features",

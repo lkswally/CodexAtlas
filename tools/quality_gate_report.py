@@ -155,6 +155,50 @@ def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _load_phase_playbook(root: Path) -> Dict[str, Any]:
+    """Load phase playbook from config."""
+    try:
+        playbook_path = root / "config" / "phase_playbook.json"
+        if playbook_path.exists():
+            with playbook_path.open("r", encoding="utf-8-sig") as f:
+                return json.load(f)
+    except Exception:
+        pass
+    return {}
+
+
+def _extract_e2e_flows(phase: str, root: Path) -> Dict[str, Any]:
+    """Extract E2E flows required for current phase."""
+    playbook = _load_phase_playbook(root)
+    phase_data = playbook.get(phase, {})
+    e2e_required = phase_data.get("e2e_required", [])
+
+    completed_flows = []
+    missing_flows = []
+
+    for flow_item in e2e_required:
+        flow_name = str(flow_item.get("flow", "")).strip()
+        description = str(flow_item.get("description", "")).strip()
+        required_for = str(flow_item.get("required_for", "")).strip()
+
+        if flow_name:
+            missing_flows.append({
+                "flow": flow_name,
+                "description": description,
+                "required_for": required_for,
+                "status": "not_yet_run"
+            })
+
+    return {
+        "phase": phase,
+        "total_required": len(e2e_required),
+        "completed": len(completed_flows),
+        "missing": len(missing_flows),
+        "flows": missing_flows,
+        "next_action": f"Run E2E flow: {missing_flows[0]['flow']}" if missing_flows else "All E2E flows complete for this phase"
+    }
+
+
 def _build_failed_report(source: str, reason: str) -> Dict[str, Any]:
     return {
         "status": "failed",
@@ -1859,6 +1903,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "why": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("advisory_only", True)),
         },
+        "e2e_flows_posture": _extract_e2e_flows(phase_report.get("current_phase", "unknown"), root),
         "system_learning": source_reports["error_pattern_analyzer"]["report"] if source_reports["error_pattern_analyzer"]["status"] == "ok" else None,
         "blockers": blockers,
         "warnings": warnings,
