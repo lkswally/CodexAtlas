@@ -52,6 +52,7 @@ REQUIRED_ROOT_FILES = (
     "config/change_proposal_rules.json",
     "config/skill_registry_index_first_rules.json",
     "config/ui_ux_design_system_rules.json",
+    "config/repo_graph_readiness_rules.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -109,6 +110,7 @@ REQUIRED_ROOT_FILES = (
     "policies/change_proposal_policy.md",
     "policies/skill_registry_index_first_policy.md",
     "policies/ui_ux_design_system_policy.md",
+    "policies/repo_graph_readiness_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
     "memory/session_summaries.md",
@@ -188,6 +190,7 @@ REQUIRED_ROOT_FILES = (
     "tools/change_proposal_readiness.py",
     "tools/skill_registry_index_first_readiness.py",
     "tools/ui_ux_design_system_readiness.py",
+    "tools/repo_graph_readiness.py",
     "tests/test_atlas_orchestrator.py",
     "tests/test_certify_project.py",
     "tests/test_docs_catalog_report.py",
@@ -226,6 +229,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_change_proposal_readiness.py",
     "tests/test_skill_registry_index_first_readiness.py",
     "tests/test_ui_ux_design_system_readiness.py",
+    "tests/test_repo_graph_readiness.py",
     "tests/test_surface_audit.py",
     "templates/project_bootstrap_profiles.md",
 )
@@ -1018,6 +1022,27 @@ UI_UX_DESIGN_SYSTEM_REQUIRED_MOTION_FIELDS = {
     "triggers_for_recommended_for_react",
     "reduced_motion_policy",
 }
+REPO_GRAPH_READINESS_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "size_thresholds",
+    "source_extensions",
+    "route_detection",
+    "multi_module_markers",
+    "task_fit_signals",
+    "blocked_task_types",
+    "watchlist_terms",
+    "manual_steps",
+}
+REPO_GRAPH_READINESS_REQUIRED_ROUTE_FIELDS = {
+    "path_signals",
+    "file_signals",
+    "content_signals",
+}
+REPO_GRAPH_READINESS_REQUIRED_MANUAL_STEP_FIELDS = {
+    "recommended",
+    "watchlist",
+}
 MODEL_COST_CONTROL_REQUIRED_FIELDS = {
     "version",
     "advisory_only",
@@ -1193,6 +1218,10 @@ def _load_skill_registry_index_first_rules(root: Path) -> Dict[str, Any]:
 
 def _load_ui_ux_design_system_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "ui_ux_design_system_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_repo_graph_readiness_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "repo_graph_readiness_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -2816,6 +2845,73 @@ def _validate_ui_ux_design_system_rules(root: Path, findings: List[str]) -> None
         findings.append("ui_ux_design_system_rules_invalid_accessibility_baseline")
 
 
+def _validate_repo_graph_readiness_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_repo_graph_readiness_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_repo_graph_readiness_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("repo_graph_readiness_rules_not_object")
+        return
+
+    missing_fields = REPO_GRAPH_READINESS_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(f"repo_graph_readiness_rules_missing_fields:{','.join(sorted(missing_fields))}")
+
+    size_thresholds = rules.get("size_thresholds")
+    if not isinstance(size_thresholds, dict) or not size_thresholds:
+        findings.append("repo_graph_readiness_rules_invalid_size_thresholds")
+    else:
+        for field_name in ("small_max_files", "medium_max_files"):
+            if field_name not in size_thresholds:
+                findings.append(f"repo_graph_readiness_rules_missing_size_threshold:{field_name}")
+
+    source_extensions = rules.get("source_extensions")
+    if not isinstance(source_extensions, dict) or not source_extensions:
+        findings.append("repo_graph_readiness_rules_invalid_source_extensions")
+
+    route_detection = rules.get("route_detection")
+    if not isinstance(route_detection, dict) or not route_detection:
+        findings.append("repo_graph_readiness_rules_invalid_route_detection")
+    else:
+        missing_route_fields = REPO_GRAPH_READINESS_REQUIRED_ROUTE_FIELDS - set(route_detection.keys())
+        if missing_route_fields:
+            findings.append(
+                f"repo_graph_readiness_rules_missing_route_detection_fields:{','.join(sorted(missing_route_fields))}"
+            )
+
+    for field_name in ("multi_module_markers", "blocked_task_types", "watchlist_terms"):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not value:
+            findings.append(f"repo_graph_readiness_rules_invalid_{field_name}")
+
+    task_fit_signals = rules.get("task_fit_signals")
+    if not isinstance(task_fit_signals, dict) or not task_fit_signals:
+        findings.append("repo_graph_readiness_rules_invalid_task_fit_signals")
+    else:
+        for field_name in ("high", "medium", "low"):
+            value = task_fit_signals.get(field_name)
+            if not isinstance(value, list) or not value:
+                findings.append(f"repo_graph_readiness_rules_invalid_task_fit_band:{field_name}")
+
+    manual_steps = rules.get("manual_steps")
+    if not isinstance(manual_steps, dict) or not manual_steps:
+        findings.append("repo_graph_readiness_rules_invalid_manual_steps")
+    else:
+        missing_manual_fields = REPO_GRAPH_READINESS_REQUIRED_MANUAL_STEP_FIELDS - set(manual_steps.keys())
+        if missing_manual_fields:
+            findings.append(
+                f"repo_graph_readiness_rules_missing_manual_step_fields:{','.join(sorted(missing_manual_fields))}"
+            )
+        for field_name in REPO_GRAPH_READINESS_REQUIRED_MANUAL_STEP_FIELDS:
+            if field_name in manual_steps:
+                value = manual_steps.get(field_name)
+                if not isinstance(value, list) or not value:
+                    findings.append(f"repo_graph_readiness_rules_invalid_manual_step_list:{field_name}")
+
+
 def _validate_docs_search_catalog(root: Path, findings: List[str]) -> None:
     try:
         catalog = _load_docs_search_catalog(root)
@@ -3693,6 +3789,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_change_proposal_rules(root, findings)
         _validate_skill_registry_index_first_rules(root, findings)
         _validate_ui_ux_design_system_rules(root, findings)
+        _validate_repo_graph_readiness_rules(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)

@@ -88,6 +88,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["skill_registry_index_first_posture"]["advisory_only"] is True
     assert isinstance(result["ui_ux_design_system_posture"], dict)
     assert result["ui_ux_design_system_posture"]["advisory_only"] is True
+    assert isinstance(result["repo_graph_posture"], dict)
+    assert result["repo_graph_posture"]["advisory_only"] is True
     assert isinstance(result["system_learning"], dict)
     assert isinstance(result["execution_plan"], list)
     assert len(result["execution_plan"]) <= 3
@@ -141,6 +143,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert "skills_indexed" in result["skill_registry_index_first_posture"]
     assert "recommended_pattern" in result["ui_ux_design_system_posture"]
     assert "frontend_motion_library_posture" in result["ui_ux_design_system_posture"]
+    assert "repo_graph_recommended" in result["repo_graph_posture"]
+    assert "codegraph_detected" in result["repo_graph_posture"]
     assert "required_fields" in result["visual_intent_posture"]
     assert "missing_fields" in result["visual_intent_posture"]
     assert "required_fields" in result["brand_profile_posture"]
@@ -201,6 +205,9 @@ def test_quality_gate_report_exposes_error_learning_and_codex_runtime_postures()
     assert isinstance(result["ui_ux_design_system_posture"], dict)
     assert result["ui_ux_design_system_posture"]["advisory_only"] is True
     assert "recommended_pattern" in result["ui_ux_design_system_posture"]
+    assert isinstance(result["repo_graph_posture"], dict)
+    assert result["repo_graph_posture"]["advisory_only"] is True
+    assert "repo_graph_recommended" in result["repo_graph_posture"]
 
 
 def test_quality_gate_report_uses_existing_outputs_to_mark_not_ready():

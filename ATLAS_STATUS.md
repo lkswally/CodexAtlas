@@ -70,6 +70,7 @@ As of 2026-05-15, the current Atlas checkout root (`<atlas_root>`) is the canoni
 - Atlas now has an advisory `change_proposal_readiness` layer that makes proposal, specs, design, task, verify and archive coverage explicit before medium or large changes are treated as well-scoped
 - Atlas now has an advisory `skill_registry_index_first_readiness` layer that evaluates whether the current skill catalog is clean enough for a lightweight path-first registry without changing runtime behavior yet
 - Atlas now has an advisory `ui_ux_design_system_readiness` layer that recommends a stronger visual pattern, style, palette, typography, motion posture and accessibility baseline before a derived UI implementation expands
+- Atlas now has an advisory `repo_graph_readiness` layer that evaluates when a local repo graph may be worth considering for deep navigation, impact analysis or route tracing without installing CodeGraph or enabling MCP
 - Atlas now enriches `skill_improvement_review` with curated external-radar fit decisions: `adapt_now`, `design_later`, `watchlist` or `discard`
 - Atlas now has a read-only `error_pattern_analyzer` that reads local Atlas logs to detect repeated blocks, ignored actions, MCP runtime failures and governance drift
 - Atlas now has a read-only `repo_improvement_scout` that evaluates `_reference/claude-vibecoding` as a structured source of safe Atlas improvements
@@ -89,6 +90,7 @@ As of 2026-05-15, the current Atlas checkout root (`<atlas_root>`) is the canoni
 - `quality_gate_report` now also exposes `change_proposal_posture` so medium or large changes can show whether their proposal/spec/design/task/verify/archive chain is missing, partial or ready
 - `quality_gate_report` now also exposes `skill_registry_index_first_posture` so Atlas can communicate whether the skill catalog is ready for index-first discovery without pretending the runtime has already changed
 - `quality_gate_report` now also exposes `ui_ux_design_system_posture` so Atlas can communicate recommended visual-system direction and `frontend_motion_library_posture` without turning Motion, 21st or stack-specific libraries into Atlas-core dependencies
+- `quality_gate_report` now also exposes `repo_graph_posture` so Atlas can communicate when graph-first exploration may help without pretending CodeGraph, SQLite or MCP are active
 - Atlas now has a read-only `priority_engine` that reduces noise and turns existing phase, intent, audit and skill signals into a short execution plan
 - `quality_gate_report` now exposes `execution_plan`, `primary_action` and `why_now` so readiness reports say what to do first instead of only listing signals
 - `quality_gate_report` now enriches each `execution_plan` step with its own model recommendation, fallback, cheaper alternative and confirmation signal without attempting any auto-switch

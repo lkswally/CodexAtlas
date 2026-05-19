@@ -106,6 +106,10 @@ try:
     from tools.ui_ux_design_system_readiness import assess_ui_ux_design_system_readiness
 except ModuleNotFoundError:
     from ui_ux_design_system_readiness import assess_ui_ux_design_system_readiness
+try:
+    from tools.repo_graph_readiness import assess_repo_graph_readiness
+except ModuleNotFoundError:
+    from repo_graph_readiness import assess_repo_graph_readiness
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -614,6 +618,23 @@ def _run_ui_ux_design_system_readiness(
     except Exception as exc:
         return _build_failed_report("ui_ux_design_system_readiness", f"ui_ux_design_system_readiness_failed:{exc}")
     return _build_ok_report("ui_ux_design_system_readiness", report)
+
+
+def _run_repo_graph_readiness(
+    *,
+    root: Path,
+    project: Path,
+    intent_report: Optional[Dict[str, Any]],
+    top_priorities: List[Dict[str, Any]],
+) -> Dict[str, Any]:
+    objective = str((intent_report or {}).get("objective", "")).strip()
+    priority_messages = [str(item.get("message", "")).strip() for item in top_priorities if str(item.get("message", "")).strip()]
+    task = objective or ". ".join(priority_messages[:2]) or "understand repo structure and navigation depth"
+    try:
+        report = assess_repo_graph_readiness(root=root, project=project, task=task)
+    except Exception as exc:
+        return _build_failed_report("repo_graph_readiness", f"repo_graph_readiness_failed:{exc}")
+    return _build_ok_report("repo_graph_readiness", report)
 
 
 def _run_model_cost_control(
@@ -1560,6 +1581,12 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         "recommended_next_steps": phase_data.get("recommended_next_steps", []),
         "top_phase_risks": phase_data.get("common_mistakes", [])[:3],
     }
+    source_reports["repo_graph_readiness"] = _run_repo_graph_readiness(
+        root=root,
+        project=project,
+        intent_report=source_reports["project_intent_analyzer"]["report"] if source_reports["project_intent_analyzer"]["status"] == "ok" else {},
+        top_priorities=top_priorities,
+    )
     source_reports["skill_evaluator"] = _run_skill_signal(root, project, str(current_phase or ""), top_priorities, source_reports["project_intent_analyzer"])
     source_reports["skill_improvement_review"] = _run_skill_improvement_review(root)
     source_reports["creative_pipeline_readiness"] = _run_creative_pipeline_readiness(root)
@@ -1902,6 +1929,20 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "missing_inputs": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("missing_inputs", []),
             "why": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("advisory_only", True)),
+        },
+        "repo_graph_posture": {
+            "status": (source_reports["repo_graph_readiness"]["report"] or {}).get("status"),
+            "repo_graph_recommended": bool((source_reports["repo_graph_readiness"]["report"] or {}).get("repo_graph_recommended")),
+            "project_size": (source_reports["repo_graph_readiness"]["report"] or {}).get("project_size"),
+            "task_fit": (source_reports["repo_graph_readiness"]["report"] or {}).get("task_fit"),
+            "codegraph_detected": bool((source_reports["repo_graph_readiness"]["report"] or {}).get("codegraph_detected")),
+            "codegraph_initialized": bool((source_reports["repo_graph_readiness"]["report"] or {}).get("codegraph_initialized")),
+            "safe_to_initialize_manually": bool((source_reports["repo_graph_readiness"]["report"] or {}).get("safe_to_initialize_manually")),
+            "blocked_reasons": (source_reports["repo_graph_readiness"]["report"] or {}).get("blocked_reasons", []),
+            "watchlist": (source_reports["repo_graph_readiness"]["report"] or {}).get("watchlist", []),
+            "manual_steps": (source_reports["repo_graph_readiness"]["report"] or {}).get("manual_steps", []),
+            "why": (source_reports["repo_graph_readiness"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["repo_graph_readiness"]["report"] or {}).get("advisory_only", True)),
         },
         "e2e_flows_posture": _extract_e2e_flows(phase_report.get("current_phase", "unknown"), root),
         "system_learning": source_reports["error_pattern_analyzer"]["report"] if source_reports["error_pattern_analyzer"]["status"] == "ok" else None,

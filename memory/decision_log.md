@@ -1,6 +1,12 @@
 # Decision Log
 
 ## 2026-05-15
+- Decision: add `repo_graph_readiness` as an Atlas-native advisory layer instead of installing or integrating CodeGraph runtime directly
+- Reason: Atlas needed a governed way to decide when deep repo navigation, impact analysis and route tracing justify graph-first exploration, but the actual CodeGraph runtime would add install, SQLite, MCP and watcher surface that Atlas is not allowed to activate by default
+- Impact: Atlas can now report repo size, language spread, route signals, multi-module complexity, task fit, local CodeGraph hints and manual next steps without creating `.codegraph/`, touching runtime or widening MCP scope
+- Risk: if the posture is misunderstood as active graph support, users could overestimate what Atlas can currently execute and underweight the maintenance cost of a graph runtime
+- Rollback: remove `config/repo_graph_readiness_rules.json`, `policies/repo_graph_readiness_policy.md`, `tools/repo_graph_readiness.py` and the connected governance/quality-gate/test wiring
+
 - Decision: add `ui_ux_design_system_readiness` as an Atlas-native visual-system recommendation layer instead of importing `ui-ux-pro-max-skill`, Framer Motion or 21st Magic runtime
 - Reason: Atlas already had intent, brand, anti-generic and pre-return guardrails, but still lacked one explicit layer that turns product type, audience and stack fit into a stronger design-system recommendation before implementation starts
 - Impact: Atlas can now recommend pattern, style, palette, typography, motion posture, anti-patterns and pre-delivery checks while keeping Framer Motion stack-specific, 21st approval-bound and Atlas core dependency-free

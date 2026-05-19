@@ -1,0 +1,130 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "size_thresholds": {
+    "small_max_files": 120,
+    "medium_max_files": 700
+  },
+  "source_extensions": {
+    ".py": "python",
+    ".js": "javascript",
+    ".mjs": "javascript",
+    ".cjs": "javascript",
+    ".ts": "typescript",
+    ".tsx": "typescript",
+    ".jsx": "javascript",
+    ".java": "java",
+    ".go": "go",
+    ".rs": "rust",
+    ".rb": "ruby",
+    ".php": "php",
+    ".cs": "csharp",
+    ".swift": "swift",
+    ".kt": "kotlin",
+    ".cpp": "cpp",
+    ".cc": "cpp",
+    ".cxx": "cpp",
+    ".c": "c",
+    ".h": "c_header",
+    ".hpp": "cpp_header",
+    ".svelte": "svelte",
+    ".vue": "vue",
+    ".dart": "dart"
+  },
+  "route_detection": {
+    "path_signals": [
+      "app",
+      "pages",
+      "routes",
+      "router",
+      "api"
+    ],
+    "file_signals": [
+      "next.config.js",
+      "next.config.mjs",
+      "next.config.ts",
+      "vite.config.js",
+      "vite.config.ts",
+      "svelte.config.js",
+      "astro.config.mjs",
+      "urls.py"
+    ],
+    "content_signals": [
+      "@app.route(",
+      "@router.",
+      "path(",
+      "re_path(",
+      "createBrowserRouter(",
+      "Route::",
+      "app.get(",
+      "router.get(",
+      "router.post(",
+      "@GetMapping",
+      "@PostMapping"
+    ]
+  },
+  "multi_module_markers": [
+    "apps",
+    "packages",
+    "services",
+    "modules",
+    "libs",
+    "crates",
+    "sdk",
+    "shared"
+  ],
+  "task_fit_signals": {
+    "high": [
+      "impact analysis",
+      "call graph",
+      "callers",
+      "callees",
+      "trace flow",
+      "trace route",
+      "cross-module",
+      "refactor",
+      "architecture review",
+      "how does this work",
+      "where is this implemented"
+    ],
+    "medium": [
+      "explore",
+      "understand structure",
+      "routing",
+      "dependency chain",
+      "entrypoint",
+      "module boundaries"
+    ],
+    "low": [
+      "small fix",
+      "copy edit",
+      "rename one file",
+      "single file"
+    ]
+  },
+  "blocked_task_types": [
+    "single_file_fix",
+    "copy_edit",
+    "small_docs_update"
+  ],
+  "watchlist_terms": [
+    "mcp",
+    "watcher",
+    "daemon",
+    "auto-sync",
+    "global install",
+    "npx",
+    "sqlite runtime"
+  ],
+  "manual_steps": {
+    "recommended": [
+      "Confirm that the task really needs deep structural navigation, impact tracing or route-level understanding before adding graph tooling.",
+      "Review local runtime and approval boundaries before considering any manual CodeGraph initialization.",
+      "If approval exists later, benchmark manual graph-first exploration against direct file exploration on a representative task."
+    ],
+    "watchlist": [
+      "Keep MCP, watcher and install steps blocked until a separate approval explicitly authorizes them.",
+      "Do not create `.codegraph/` or start any graph server from Atlas core."
+    ]
+  }
+}

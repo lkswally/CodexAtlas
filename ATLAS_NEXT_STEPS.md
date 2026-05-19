@@ -90,7 +90,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Keep `design_quality_enforcement` strict enough to block visually weak handoff claims, but evidence-first enough that it does not confuse intentional minimalism with accidental low fidelity
 - Keep external model fallback evaluation separate from Codex Desktop model routing; benchmark NVIDIA candidates manually before adding any profile or adapter
 - Keep `21st_magic` disabled until the exposed key is revoked, a fresh key is stored outside the repo, and a separate approval allows a controlled MCP test
-- Keep `repo_graph_readiness` in watchlist/design-only posture until Atlas proves a local graph would reduce context materially without adding dependency or maintenance drag
+- Keep `repo_graph_readiness` advisory-only and manual; do not let recommendation posture drift into installing CodeGraph, creating `.codegraph/`, enabling SQLite runtime or activating MCP without separate approval
 - Keep memory automation in watchlist posture; if Atlas ever revisits it, prefer a local-first summary/readiness path before any plugin, hook or auto-injection runtime
 - Keep `atlas_memory_readiness` honest about the current boundary: local files are useful continuity, not autonomous memory
 - Keep `evidence_collector_readiness` strict about strong PASS language; advisory confidence is not the same thing as proof
