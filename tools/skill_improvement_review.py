@@ -64,6 +64,31 @@ DEFAULT_RULES = {
             "remote docs",
         ],
     },
+    "external_reference_review": {
+        "decision_types": [
+            "adapt_now",
+            "adapt_later",
+            "readiness",
+            "watchlist",
+            "discard",
+            "already_covered",
+        ],
+        "decision_thresholds": {
+            "adapt_now_min": 88,
+            "adapt_later_min": 70,
+            "readiness_min": 52,
+        },
+        "install_risk_terms": ["install", "postinstall", "curl | bash", "npm install -g", "npx", "uv tool install"],
+        "secret_risk_terms": ["secret", "token", "api key", "provider key", "oauth", "credential"],
+        "mcp_risk_terms": ["mcp", "model context protocol", "mcp server"],
+        "runtime_risk_terms": ["daemon", "worker", "background", "proxy", "runtime", "autonomous", "watcher"],
+        "provider_risk_terms": ["nvidia", "litellm", "ollama", "openrouter", "provider", "vllm"],
+        "global_config_risk_terms": ["global config", "system config", "dotfile", ".claude", "claude.md", "codex config"],
+        "already_covered_terms": ["already covered", "duplicate", "same capability", "overlap"],
+        "readiness_terms": ["readiness", "manual setup", "optional setup", "advisory", "prepare", "watchlist"],
+        "utility_high_terms": ["token saving", "tool-call reduction", "governance", "security", "qa", "testing", "routing", "readiness"],
+        "utility_low_terms": ["template", "boilerplate", "starter", "theme", "marketing"],
+    },
 }
 DOCUMENTATION_HEADINGS = ("## When to use", "## Steps", "## Inputs", "## Outputs", "## Validation")
 ACTIVE_STATES = {"candidate", "experimental", "stable", "deprecated", "archived", "rejected"}
@@ -110,6 +135,32 @@ def _load_rules(root: Path) -> Dict[str, Any]:
     merged["external_dependency_signals"] = {
         **DEFAULT_RULES["external_dependency_signals"],
         **dict(data.get("external_dependency_signals", {})),
+    }
+    default_external_review = DEFAULT_RULES["external_reference_review"]
+    external_review = dict(data.get("external_reference_review", {}))
+    merged["external_reference_review"] = {
+        **default_external_review,
+        **external_review,
+    }
+    for field_name in (
+        "decision_types",
+        "install_risk_terms",
+        "secret_risk_terms",
+        "mcp_risk_terms",
+        "runtime_risk_terms",
+        "provider_risk_terms",
+        "global_config_risk_terms",
+        "already_covered_terms",
+        "readiness_terms",
+        "utility_high_terms",
+        "utility_low_terms",
+    ):
+        merged["external_reference_review"][field_name] = list(
+            external_review.get(field_name, default_external_review.get(field_name, []))
+        )
+    merged["external_reference_review"]["decision_thresholds"] = {
+        **dict(default_external_review.get("decision_thresholds", {})),
+        **dict(external_review.get("decision_thresholds", {})),
     }
     return merged
 
@@ -401,26 +452,34 @@ def _recommend_for_skill(
 def _review_external_candidates(
     root: Path,
     external_candidates: Optional[Sequence[Dict[str, Any]]],
-) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], bool, bool]:
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]], bool, bool]:
     opportunities: List[Dict[str, Any]] = []
     blocked: List[Dict[str, Any]] = []
+    reviewed: List[Dict[str, Any]] = []
     requires_human_approval = False
     requires_decision_council = False
+    rules = _load_rules(root)
+    seen_keys: Set[str] = set()
 
     for candidate in list(external_candidates or []):
         candidate_name = str(candidate.get("candidate_name", "")).strip()
         problem_statement = str(candidate.get("problem_statement", "")).strip()
         source = str(candidate.get("source", "")).strip() or "external_candidate"
+        dedupe_key = _external_candidate_key(candidate)
+        if dedupe_key in seen_keys:
+            continue
+        seen_keys.add(dedupe_key)
 
         if not candidate_name or not problem_statement:
-            blocked.append(
-                {
-                    "source": source,
-                    "candidate_name": candidate_name or "unknown_candidate",
-                    "recommendation": "reject",
-                    "reason": "candidate_name_and_problem_statement_required",
-                }
-            )
+            entry = {
+                "source": source,
+                "candidate_name": candidate_name or "unknown_candidate",
+                "recommendation": "reject",
+                "reason": "candidate_name_and_problem_statement_required",
+                "recommended_decision": "discard",
+            }
+            reviewed.append(entry)
+            blocked.append(entry)
             continue
 
         evaluation = evaluate_skill_candidate(
@@ -440,13 +499,17 @@ def _review_external_candidates(
             "requires_decision_council": bool(evaluation.get("requires_decision_council")),
             "why": evaluation.get("why"),
         }
-        atlas_fit_decision, atlas_fit_reason = _atlas_fit_decision(candidate, evaluation)
+        radar_review = _classify_external_candidate(candidate, evaluation, rules)
+        atlas_fit_decision = str(radar_review["recommended_decision"])
+        atlas_fit_reason = str(radar_review["decision_reason"])
         entry["atlas_fit_decision"] = atlas_fit_decision
         entry["atlas_fit_reason"] = atlas_fit_reason
+        entry.update(radar_review)
         requires_human_approval = requires_human_approval or bool(entry["requires_human_approval"])
         requires_decision_council = requires_decision_council or bool(entry["requires_decision_council"])
+        reviewed.append(entry)
 
-        if atlas_fit_decision == "discard":
+        if atlas_fit_decision in {"discard", "already_covered"}:
             entry["recommendation"] = "reject"
             blocked.append(entry)
         elif entry["requires_decision_council"] or atlas_fit_decision == "watchlist":
@@ -455,35 +518,237 @@ def _review_external_candidates(
         elif atlas_fit_decision == "adapt_now" or entry["lifecycle_recommendation"] == "promote_to_experimental":
             entry["recommendation"] = "candidate_review"
             opportunities.append(entry)
-        elif atlas_fit_decision == "design_later" or entry["lifecycle_recommendation"] == "hold_as_candidate":
+        elif atlas_fit_decision in {"adapt_later", "readiness"} or entry["lifecycle_recommendation"] == "hold_as_candidate":
             entry["recommendation"] = "candidate_review"
             opportunities.append(entry)
         else:
             entry["recommendation"] = "reject"
             blocked.append(entry)
 
-    return opportunities, blocked, requires_human_approval, requires_decision_council
+    return opportunities, blocked, reviewed, requires_human_approval, requires_decision_council
 
 
-def _atlas_fit_decision(candidate: Dict[str, Any], evaluation: Dict[str, Any]) -> Tuple[str, str]:
-    claude_only = bool(candidate.get("claude_only"))
-    requires_runtime = bool(candidate.get("requires_runtime"))
-    requires_secrets = bool(candidate.get("requires_secrets"))
-    duplication_risk = str(evaluation.get("duplication_risk", "low")).strip()
-    dependency_risk = str(evaluation.get("external_dependency_risk", "low")).strip()
-    lifecycle = str(evaluation.get("lifecycle_recommendation", "")).strip()
+def _truthy(candidate: Dict[str, Any], field_name: str) -> bool:
+    value = candidate.get(field_name)
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return bool(value)
+    return _normalize(str(value)) in {"1", "true", "yes", "y", "high"}
 
-    if claude_only:
-        return "discard", "candidate_is_claude_only_or_runtime_locked"
-    if duplication_risk == "high":
-        return "discard", "candidate_overlaps_existing_atlas_capability"
-    if requires_runtime or requires_secrets or dependency_risk == "high" or bool(evaluation.get("requires_decision_council")):
-        return "watchlist", "candidate_requires_runtime_or_secret_surface"
-    if lifecycle == "promote_to_experimental" and not bool(evaluation.get("requires_human_approval")):
-        return "adapt_now", "candidate_fits_atlas_without_new_runtime_surface"
-    if lifecycle in {"promote_to_experimental", "hold_as_candidate"}:
-        return "design_later", "candidate_has_potential_but_needs_human_review"
-    return "discard", "candidate_does_not_improve_atlas_enough"
+
+def _external_candidate_key(candidate: Dict[str, Any]) -> str:
+    repo = str(candidate.get("repo", "")).strip().lower()
+    url = str(candidate.get("url", "")).strip().lower()
+    source = str(candidate.get("source", "")).strip().lower()
+    name = str(candidate.get("candidate_name", "")).strip().lower()
+    if repo:
+        return f"repo::{repo}"
+    if url:
+        return f"url::{url}"
+    return "||".join(part for part in (name, source) if part)
+
+
+def _candidate_surface_text(candidate: Dict[str, Any]) -> str:
+    parts = [
+        candidate.get("candidate_name", ""),
+        candidate.get("problem_statement", ""),
+        candidate.get("source", ""),
+        candidate.get("repo", ""),
+        candidate.get("url", ""),
+        " ".join(str(item) for item in candidate.get("notes", []) if str(item).strip()),
+        " ".join(str(item) for item in candidate.get("capabilities", []) if str(item).strip()),
+    ]
+    return " ".join(str(part) for part in parts if str(part).strip())
+
+
+def _score_term_risk(
+    normalized_surface: str,
+    *,
+    flag: bool,
+    explicit_level: str,
+    terms: Sequence[str],
+    hard_block_threshold: str = "high",
+) -> Tuple[int, str, List[str]]:
+    evidence: List[str] = []
+    level = explicit_level if explicit_level in {"low", "medium", "high"} else "low"
+    hits = [str(term) for term in terms if str(term).strip().lower() in normalized_surface]
+    if hits:
+        evidence.append(f"term_hits={sorted(set(hits))}")
+        if level == "low":
+            level = "high" if hard_block_threshold == "high" else "medium"
+    if flag and level == "low":
+        level = "high" if hard_block_threshold == "high" else "medium"
+        evidence.append("explicit_flag=true")
+    score = {"low": 0, "medium": 45, "high": 85}[level]
+    return score, level, evidence or [f"risk={level}"]
+
+
+def _classify_external_candidate(
+    candidate: Dict[str, Any],
+    evaluation: Dict[str, Any],
+    rules: Dict[str, Any],
+) -> Dict[str, Any]:
+    review_rules = dict(rules.get("external_reference_review", {}))
+    thresholds = dict(review_rules.get("decision_thresholds", {}))
+    normalized_surface = _normalize(_candidate_surface_text(candidate))
+    decision_reason = "candidate_does_not_improve_atlas_enough"
+    evidence: List[str] = []
+
+    install_risk, install_level, install_evidence = _score_term_risk(
+        normalized_surface,
+        flag=any(
+            _truthy(candidate, field_name)
+            for field_name in ("requires_install", "install_script", "postinstall", "modifies_global_config")
+        ),
+        explicit_level=str(candidate.get("install_risk", "")).strip().lower(),
+        terms=review_rules.get("install_risk_terms", []),
+    )
+    secret_risk, secret_level, secret_evidence = _score_term_risk(
+        normalized_surface,
+        flag=any(_truthy(candidate, field_name) for field_name in ("requires_secrets", "provider_keys_required")),
+        explicit_level=str(candidate.get("secret_risk", "")).strip().lower(),
+        terms=review_rules.get("secret_risk_terms", []),
+    )
+    mcp_risk, mcp_level, mcp_evidence = _score_term_risk(
+        normalized_surface,
+        flag=any(_truthy(candidate, field_name) for field_name in ("requires_mcp", "activates_mcp")),
+        explicit_level=str(candidate.get("mcp_risk", "")).strip().lower(),
+        terms=review_rules.get("mcp_risk_terms", []),
+    )
+    runtime_risk, runtime_level, runtime_evidence = _score_term_risk(
+        normalized_surface,
+        flag=any(_truthy(candidate, field_name) for field_name in ("requires_runtime", "background_worker", "daemon")),
+        explicit_level=str(candidate.get("runtime_risk", "")).strip().lower(),
+        terms=review_rules.get("runtime_risk_terms", []),
+    )
+    provider_risk, provider_level, provider_evidence = _score_term_risk(
+        normalized_surface,
+        flag=any(_truthy(candidate, field_name) for field_name in ("requires_provider", "local_model_runtime")),
+        explicit_level=str(candidate.get("provider_risk", "")).strip().lower(),
+        terms=review_rules.get("provider_risk_terms", []),
+        hard_block_threshold="medium",
+    )
+    global_config_risk, global_config_level, global_config_evidence = _score_term_risk(
+        normalized_surface,
+        flag=any(_truthy(candidate, field_name) for field_name in ("requires_config_global", "modifies_global_config")),
+        explicit_level=str(candidate.get("global_config_risk", "")).strip().lower(),
+        terms=review_rules.get("global_config_risk_terms", []),
+    )
+
+    evidence.extend(
+        [
+            f"install_risk={install_level}",
+            *install_evidence,
+            f"secret_risk={secret_level}",
+            *secret_evidence,
+            f"mcp_risk={mcp_level}",
+            *mcp_evidence,
+            f"runtime_risk={runtime_level}",
+            *runtime_evidence,
+            f"provider_risk={provider_level}",
+            *provider_evidence,
+            f"global_config_risk={global_config_level}",
+            *global_config_evidence,
+        ]
+    )
+
+    provenance = str(candidate.get("provenance", "")).strip().lower()
+    provenance_score = 60
+    if provenance in {"official", "maintainer_verified", "trusted_org", "well_documented"}:
+        provenance_score = 88
+    elif provenance in {"community", "documented_repo", "benchmark"}:
+        provenance_score = 72
+    elif provenance in {"unknown", "unverified", "anonymous"}:
+        provenance_score = 35
+    elif provenance:
+        provenance_score = 55
+
+    duplication_risk = str(evaluation.get("duplication_risk", "low")).strip().lower()
+    duplication_score = {"low": 10, "medium": 55, "high": 92}.get(duplication_risk, 40)
+    if _truthy(candidate, "already_covered") or any(
+        str(term).strip().lower() in normalized_surface for term in review_rules.get("already_covered_terms", [])
+    ):
+        duplication_score = max(duplication_score, 95)
+        evidence.append("already_covered_signal=true")
+
+    need_score = int(evaluation.get("need_score", 0))
+    reuse_potential = str(evaluation.get("reuse_potential", "low")).strip().lower()
+    lifecycle = str(evaluation.get("lifecycle_recommendation", "")).strip().lower()
+    utility_score = need_score
+    if reuse_potential == "high":
+        utility_score += 10
+    elif reuse_potential == "low":
+        utility_score -= 15
+    if lifecycle == "promote_to_experimental":
+        utility_score += 8
+    elif lifecycle == "reject_candidate":
+        utility_score -= 15
+    if any(str(term).strip().lower() in normalized_surface for term in review_rules.get("utility_high_terms", [])):
+        utility_score += 8
+        evidence.append("utility_high_term_hit=true")
+    if any(str(term).strip().lower() in normalized_surface for term in review_rules.get("utility_low_terms", [])):
+        utility_score -= 15
+        evidence.append("utility_low_term_hit=true")
+    if _truthy(candidate, "clear_gap") or _truthy(candidate, "improves_existing_layer"):
+        utility_score += 12
+        evidence.append("clear_gap_signal=true")
+    if _truthy(candidate, "popular_only"):
+        utility_score -= 20
+        evidence.append("popular_only_signal=true")
+    utility_score = max(0, min(100, utility_score))
+
+    atlas_fit_score = utility_score
+    if duplication_score >= 90:
+        atlas_fit_score -= 35
+    elif duplication_score >= 55:
+        atlas_fit_score -= 15
+    max_external_risk = max(install_risk, secret_risk, mcp_risk, runtime_risk, provider_risk, global_config_risk)
+    atlas_fit_score -= int(max_external_risk * 0.25)
+    atlas_fit_score += int((provenance_score - 50) * 0.2)
+    atlas_fit_score = max(0, min(100, atlas_fit_score))
+
+    if _truthy(candidate, "claude_only"):
+        recommended_decision = "discard"
+        decision_reason = "candidate_is_claude_only_or_runtime_locked"
+    elif duplication_score >= 90:
+        recommended_decision = "already_covered"
+        decision_reason = "candidate_overlaps_existing_atlas_capability"
+    elif max_external_risk >= 85 or provider_risk >= 45 or bool(evaluation.get("requires_decision_council")):
+        recommended_decision = "watchlist"
+        decision_reason = "candidate_requires_install_runtime_or_secret_surface"
+    elif utility_score < 50 or atlas_fit_score < 45:
+        recommended_decision = "discard"
+        decision_reason = "candidate_does_not_close_a_real_atlas_gap"
+    elif any(str(term).strip().lower() in normalized_surface for term in review_rules.get("readiness_terms", [])):
+        recommended_decision = "readiness"
+        decision_reason = "candidate_is_useful_but_best_kept_as_optional_readiness"
+    elif atlas_fit_score >= int(thresholds.get("adapt_now_min", 88)) and not bool(evaluation.get("requires_human_approval")):
+        recommended_decision = "adapt_now"
+        decision_reason = "candidate_has_clear_fit_and_low_runtime_risk"
+    elif atlas_fit_score >= int(thresholds.get("adapt_later_min", 70)):
+        recommended_decision = "adapt_later"
+        decision_reason = "candidate_has_clear_fit_but_should_wait_for_curated_adoption"
+    elif atlas_fit_score >= int(thresholds.get("readiness_min", 52)):
+        recommended_decision = "readiness"
+        decision_reason = "candidate_could_help_but_needs_optional_setup_or_more_evidence"
+    else:
+        recommended_decision = "discard"
+        decision_reason = "candidate_does_not_improve_atlas_enough"
+
+    return {
+        "utility_score": utility_score,
+        "atlas_fit_score": atlas_fit_score,
+        "install_risk": install_level,
+        "secret_risk": secret_level,
+        "mcp_risk": mcp_level,
+        "runtime_risk": runtime_level,
+        "provenance_score": provenance_score,
+        "duplication_risk": duplication_risk,
+        "recommended_decision": recommended_decision,
+        "decision_reason": decision_reason,
+        "evidence": evidence[:16],
+    }
 
 
 def _build_next_actions(
@@ -568,7 +833,7 @@ def review_skill_catalog(
         requires_human_approval = requires_human_approval or bool(review["requires_human_approval"])
         requires_decision_council = requires_decision_council or bool(review["requires_decision_council"])
 
-    candidate_opportunities, blocked_candidates, candidate_requires_human, candidate_requires_council = _review_external_candidates(
+    candidate_opportunities, blocked_candidates, external_reference_reviews, candidate_requires_human, candidate_requires_council = _review_external_candidates(
         root,
         external_candidates,
     )
@@ -597,6 +862,7 @@ def review_skill_catalog(
         "lifecycle_recommendations": lifecycle_recommendations,
         "candidate_opportunities": candidate_opportunities,
         "blocked_candidates": blocked_candidates,
+        "external_reference_reviews": external_reference_reviews,
         "requires_human_approval": requires_human_approval,
         "requires_decision_council": requires_decision_council,
         "recommended_next_actions": next_actions,

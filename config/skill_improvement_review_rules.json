@@ -94,6 +94,98 @@
       "runtime_expansion_candidate"
     ]
   },
+  "external_reference_review": {
+    "decision_types": [
+      "adapt_now",
+      "adapt_later",
+      "readiness",
+      "watchlist",
+      "discard",
+      "already_covered"
+    ],
+    "decision_thresholds": {
+      "adapt_now_min": 88,
+      "adapt_later_min": 70,
+      "readiness_min": 52
+    },
+    "install_risk_terms": [
+      "install",
+      "postinstall",
+      "curl | bash",
+      "npm install -g",
+      "npx",
+      "uv tool install"
+    ],
+    "secret_risk_terms": [
+      "secret",
+      "token",
+      "api key",
+      "provider key",
+      "oauth",
+      "credential"
+    ],
+    "mcp_risk_terms": [
+      "mcp",
+      "model context protocol",
+      "mcp server"
+    ],
+    "runtime_risk_terms": [
+      "daemon",
+      "worker",
+      "background",
+      "proxy",
+      "runtime",
+      "autonomous",
+      "watcher"
+    ],
+    "provider_risk_terms": [
+      "nvidia",
+      "litellm",
+      "ollama",
+      "openrouter",
+      "provider",
+      "vllm"
+    ],
+    "global_config_risk_terms": [
+      "global config",
+      "system config",
+      "dotfile",
+      ".claude",
+      "claude.md",
+      "codex config"
+    ],
+    "already_covered_terms": [
+      "already covered",
+      "duplicate",
+      "same capability",
+      "overlap"
+    ],
+    "readiness_terms": [
+      "readiness",
+      "manual setup",
+      "optional setup",
+      "advisory",
+      "prepare",
+      "watchlist"
+    ],
+    "utility_high_terms": [
+      "token saving",
+      "tool-call reduction",
+      "governance",
+      "security",
+      "qa",
+      "testing",
+      "routing",
+      "readiness"
+    ],
+    "utility_low_terms": [
+      "template",
+      "boilerplate",
+      "starter",
+      "theme",
+      "marketing"
+    ]
+  },
   "recommendation_types": [
     "keep",
     "improve",
