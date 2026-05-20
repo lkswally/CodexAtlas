@@ -12,3 +12,4 @@ Current read-only commands exposed through the minimal dispatcher:
 - `audit-repo`
 - `certify-project`
 - `surface-audit`
+- `operational-parity-report`

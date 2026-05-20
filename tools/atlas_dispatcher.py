@@ -726,6 +726,12 @@ def _run_workflow(
             problem_statement=problem,
             project=target_root if project_metadata is not None else None,
         )
+    if command_id == "operational-parity-report":
+        try:
+            from tools.operational_parity_readiness import build_operational_parity_report
+        except ModuleNotFoundError:
+            from operational_parity_readiness import build_operational_parity_report
+        return build_operational_parity_report(root)
     return {"status": "error", "summary": {}, "findings": ["workflow_not_implemented_in_minimal_mode"]}
 
 
@@ -784,6 +790,7 @@ def _extract_envelope_tarea(command_id: str) -> str:
         "project-intent-report": "Analyze project intent from brief or metadata",
         "prompt-builder": "Build orchestrator prompt from project context",
         "skill-evaluator": "Evaluate skill candidate against Atlas standards",
+        "operational-parity-report": "Check Codex-native operational parity readiness",
     }
     return task_map.get(command_id, command_id)
 
@@ -1111,7 +1118,7 @@ def dispatch(
             },
         )
 
-    if command_id not in {"audit-repo", "certify-project", "surface-audit", "quality-gate-report", "project-phase-report", "project-intent-report", "prompt-builder", "skill-evaluator"}:
+    if command_id not in {"audit-repo", "certify-project", "surface-audit", "quality-gate-report", "project-phase-report", "project-intent-report", "prompt-builder", "skill-evaluator", "operational-parity-report"}:
         elapsed_ms = int((time.time() - t0) * 1000)
         finished_at = _utc_now_iso()
         return DispatchResult(
@@ -1204,6 +1211,8 @@ def dispatch(
     ok_statuses = {"ok", "partial"}
     if command_id == "project-intent-report":
         ok_statuses.update({"ready", "needs_input"})
+    if command_id == "operational-parity-report":
+        ok_statuses.update({"ready", "needs_improvement"})
     ok = isinstance(result, dict) and result.get("status") in ok_statuses
     if command_id not in {"certify-project", "quality-gate-report"}:
         ok = ok and bool(governance_after.get("ok", False))

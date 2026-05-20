@@ -37,6 +37,18 @@ def test_audit_repo_returns_useful_structure_report_for_atlas_root():
     assert report["recommended_next_steps"]
 
 
+def test_dispatch_operational_parity_report_is_read_only_and_enveloped():
+    result = dispatch("operational-parity-report", root=ROOT)
+
+    assert result.ok is True
+    report = result.output["result"]
+    assert report["status"] == "ready"
+    assert report["advisory_only"] is True
+    assert report["components"]["manual_quality_hook_bundle"]["status"] == "ready"
+    assert result.output["envelope"]["status"] == "ready"
+    assert result.output["envelope"]["tarea"] == "Check Codex-native operational parity readiness"
+
+
 def test_audit_repo_reports_missing_governance_files_from_evidence():
     case_root = _make_case_dir("missing_governance")
     try:

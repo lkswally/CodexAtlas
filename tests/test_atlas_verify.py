@@ -17,6 +17,7 @@ def test_atlas_verify_returns_real_read_only_summary_for_atlas_root():
     assert result["checks"]["governance_check"]["ok"] is True
     assert result["checks"]["audit_repo"]["ok"] is True
     assert result["checks"]["surface_audit"]["ok"] is True
+    assert result["checks"]["operational_parity_report"]["ok"] is True
     assert result["failed_checks"] == []
     assert result["next_action"]
 
@@ -34,6 +35,10 @@ def test_atlas_verify_marks_project_follow_up_without_duplicating_quality_gate_l
         "surface-audit": {
             "ok": True,
             "result": {"status": "ok", "summary": {"root": str(ATLAS_ROOT)}, "findings": []},
+        },
+        "operational-parity-report": {
+            "ok": True,
+            "result": {"status": "ready", "warnings": [], "blockers": []},
         },
         "quality-gate-report": {
             "ok": True,

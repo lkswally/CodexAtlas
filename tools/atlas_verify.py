@@ -54,11 +54,13 @@ def build_verify_report(root: Path, project: Optional[Path] = None) -> Dict[str,
     governance = run_check(root=root, project=project)
     audit_repo = dispatch("audit-repo", root=root, project=project).output
     surface_audit = dispatch("surface-audit", root=root).output
+    operational_parity = dispatch("operational-parity-report", root=root).output
 
     checks: Dict[str, Dict[str, Any]] = {
         "governance_check": _governance_summary(governance),
         "audit_repo": _summarize_dispatch("audit-repo", audit_repo),
         "surface_audit": _summarize_dispatch("surface-audit", surface_audit),
+        "operational_parity_report": _summarize_dispatch("operational-parity-report", operational_parity),
     }
 
     if project is not None:

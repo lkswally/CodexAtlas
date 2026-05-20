@@ -8,3 +8,4 @@ Current documents:
 - `codex_system_prompt.md`
 - `claude_vibecoding_assessment.md`
 - `mcp_read_only_evaluation.md`
+- `operational_parity_codex_native.md`

@@ -334,6 +334,33 @@
         "reasoning"
       ],
       "rollback": "No aplica: read_only."
+    },
+    {
+      "id": "operational-parity-report",
+      "alias": "atlas operational-parity-report",
+      "purpose": "Verificar en modo read-only la paridad operativa Codex-native frente a patrones utiles de claude-vibecoding sin copiar runtime Claude-only.",
+      "fit": "high",
+      "execution_mode": "read_only",
+      "allowed_paths": [
+        "docs",
+        "policies",
+        "commands",
+        "memory",
+        "tools"
+      ],
+      "guards": [
+        "No crear .claude, CLAUDE.md, hooks automaticos ni instaladores.",
+        "No activar MCPs, Engram, deploys ni runtime externo.",
+        "Mantener toda salida como advisory/readiness y basada en evidencia local."
+      ],
+      "outputs": [
+        "components",
+        "evidence_index",
+        "blockers",
+        "warnings",
+        "manual_quality_hook_bundle"
+      ],
+      "rollback": "No aplica: read_only."
     }
   ]
 }

@@ -37,6 +37,7 @@ Capas principales:
 - `tools/atlas_mcp_manager.py`: lifecycle controlado de MCPs experimentales
 - `tools/docs_search_adapter.py`: adapter interno read-only sobre catálogo curado
 - `tools/docs_catalog_report.py`: reporte read-only de salud y frescura del catálogo
+- `tools/operational_parity_readiness.py`: reporte read-only de paridad operativa Codex-native frente a patrones útiles de `claude-vibecoding`
 
 `00_SISTEMA/_meta/atlas/` se conserva solo como mirror legacy de compatibilidad. No es la fuente principal.
 
@@ -53,6 +54,7 @@ Capas principales:
 - observabilidad append-only para routing, governance, MCPs y proyectos derivados
 - adapter interno `docs_search` con ranking, deduplicación, summary, confidence y política de frescura
 - reporte read-only del catálogo curado de documentación oficial
+- paridad operativa Codex-native con handoff envelope, evidence index, stop rules, resume protocol y quality hook bundle manual
 
 ## Skills disponibles
 
@@ -113,6 +115,7 @@ Auditar Atlas desde la raíz del repo:
 python tools/atlas_governance_check.py
 python tools/atlas_dispatcher.py audit-repo
 python tools/atlas_dispatcher.py surface-audit
+python tools/atlas_dispatcher.py operational-parity-report
 ```
 
 Auditar un derivado:
