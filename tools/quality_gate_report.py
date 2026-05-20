@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -1283,6 +1284,164 @@ def _build_evidence_collector_warnings(review: Optional[Dict[str, Any]]) -> List
     return warnings
 
 
+FILE_CHANGE_DECLARATION_CANDIDATES = (
+    ".atlas-file-change-declaration.json",
+    ".atlas/file-change-declaration.json",
+    "docs/file_change_declaration.json",
+)
+
+
+def _normalize_change_path(value: Any) -> str:
+    text = str(value or "").strip().replace("\\", "/")
+    while text.startswith("./"):
+        text = text[2:]
+    return text.strip("/")
+
+
+def _normalize_change_paths(values: Any) -> List[str]:
+    if not isinstance(values, list):
+        return []
+    normalized: List[str] = []
+    seen: set[str] = set()
+    for value in values:
+        path = _normalize_change_path(value)
+        if path and path not in seen:
+            seen.add(path)
+            normalized.append(path)
+    return normalized
+
+
+def _extract_declared_change_files(payload: Any) -> List[str]:
+    if isinstance(payload, list):
+        return _normalize_change_paths(payload)
+    if not isinstance(payload, dict):
+        return []
+    for key in ("files", "declared_files", "changed_files", "touched_files", "modified_files"):
+        declared = _normalize_change_paths(payload.get(key))
+        if declared:
+            return declared
+    return []
+
+
+def _load_file_change_declaration(project: Path) -> Tuple[Optional[Path], List[str], Optional[str]]:
+    for relative in FILE_CHANGE_DECLARATION_CANDIDATES:
+        candidate = project / relative
+        if not candidate.exists() or not candidate.is_file():
+            continue
+        try:
+            payload = json.loads(candidate.read_text(encoding="utf-8"))
+        except Exception as exc:  # pragma: no cover - defensive guardrail for malformed project artifacts.
+            return candidate, [], f"invalid_json:{exc}"
+        return candidate, _extract_declared_change_files(payload), None
+    return None, [], None
+
+
+def _git_changed_files(project: Path) -> Tuple[List[str], Optional[str]]:
+    try:
+        process = subprocess.run(
+            ["git", "-C", str(project), "status", "--porcelain", "--untracked-files=all"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    except Exception as exc:  # pragma: no cover - depends on local git availability.
+        return [], f"git_status_failed:{exc}"
+
+    if process.returncode != 0:
+        message = (process.stderr or process.stdout or "").strip()
+        return [], f"git_status_failed:{message or process.returncode}"
+
+    changed: List[str] = []
+    seen: set[str] = set()
+    for line in process.stdout.splitlines():
+        if not line.strip():
+            continue
+        raw_path = line[3:] if len(line) > 3 else line
+        if " -> " in raw_path:
+            raw_path = raw_path.split(" -> ", 1)[1]
+        path = _normalize_change_path(raw_path)
+        if path and path not in seen:
+            seen.add(path)
+            changed.append(path)
+    return changed, None
+
+
+def verify_file_change_declaration(declared_files: List[str], actual_files: List[str]) -> Dict[str, Any]:
+    declared = _normalize_change_paths(declared_files)
+    actual = _normalize_change_paths(actual_files)
+    declared_set = set(declared)
+    actual_set = set(actual)
+    missing_from_declaration = sorted(actual_set - declared_set)
+    declared_but_not_changed = sorted(declared_set - actual_set)
+
+    if not actual and not declared:
+        status = "not_applicable"
+    elif actual and not declared:
+        status = "missing_declaration"
+    elif missing_from_declaration or declared_but_not_changed:
+        status = "mismatch"
+    else:
+        status = "ready"
+
+    return {
+        "status": status,
+        "declared_files": declared,
+        "actual_files": actual,
+        "missing_from_declaration": missing_from_declaration,
+        "declared_but_not_changed": declared_but_not_changed,
+        "advisory_only": True,
+    }
+
+
+def _build_file_change_declaration_posture(project: Path) -> Dict[str, Any]:
+    declaration_path, declared_files, declaration_error = _load_file_change_declaration(project)
+    actual_files, git_error = _git_changed_files(project)
+    report = verify_file_change_declaration(declared_files, actual_files)
+    report["declaration_path"] = str(declaration_path.relative_to(project)).replace("\\", "/") if declaration_path else None
+    report["declaration_error"] = declaration_error
+    report["git_error"] = git_error
+    if declaration_error:
+        report["status"] = "invalid_declaration"
+    elif git_error:
+        report["status"] = "unknown"
+    if report["status"] == "ready":
+        report["why"] = "Declared file changes match the current git working tree."
+    elif report["status"] == "not_applicable":
+        report["why"] = "No declared or actual file changes were detected."
+    elif report["status"] == "missing_declaration":
+        report["why"] = "The working tree has file changes but no file-change declaration artifact was found."
+    elif report["status"] == "mismatch":
+        report["why"] = "Declared file changes do not match the current git working tree."
+    elif report["status"] == "invalid_declaration":
+        report["why"] = "A file-change declaration artifact exists but could not be parsed."
+    else:
+        report["why"] = "Atlas could not verify file changes against git status in this environment."
+    return report
+
+
+def _build_file_change_declaration_warnings(review: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not isinstance(review, dict):
+        return []
+    status = str(review.get("status", "")).strip()
+    if status in {"ready", "not_applicable"}:
+        return []
+    evidence = list(review.get("missing_from_declaration", []))[:3] or list(review.get("declared_but_not_changed", []))[:3]
+    if review.get("declaration_error"):
+        evidence = [str(review.get("declaration_error"))]
+    if review.get("git_error"):
+        evidence = [str(review.get("git_error"))]
+    return [
+        {
+            "source": "file_change_declaration_verification",
+            "check": f"file_change_declaration_{status or 'unknown'}",
+            "severity": "medium" if status == "missing_declaration" else "high",
+            "message": str(review.get("why") or "File change declaration needs review before handoff."),
+            "evidence": evidence,
+        }
+    ]
+
+
 def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     root = root.resolve()
     project = project.resolve()
@@ -1474,6 +1633,10 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "is_contract_change": bool(source_reports["intent_clarifier_contract"].get("report")),
         },
     )
+    source_reports["file_change_declaration_verification"] = _build_ok_report(
+        "file_change_declaration_verification",
+        _build_file_change_declaration_posture(project),
+    )
 
     blockers = _extract_certify_blockers(source_reports["certify-project"])
     warnings: List[Dict[str, Any]] = []
@@ -1520,6 +1683,9 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
     for item in _build_evidence_collector_warnings(source_reports["evidence_collector_readiness"].get("report")):
+        _unique_priority_append(candidate_priorities, item, candidate_seen)
+        _unique_priority_append(warnings, item, seen)
+    for item in _build_file_change_declaration_warnings(source_reports["file_change_declaration_verification"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
 
@@ -1946,6 +2112,16 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "missing_artifacts": (source_reports["change_proposal_readiness"]["report"] or {}).get("missing_artifacts", []),
             "why": (source_reports["change_proposal_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["change_proposal_readiness"]["report"] or {}).get("advisory_only", True)),
+        },
+        "file_change_declaration_posture": {
+            "status": (source_reports["file_change_declaration_verification"]["report"] or {}).get("status"),
+            "declaration_path": (source_reports["file_change_declaration_verification"]["report"] or {}).get("declaration_path"),
+            "declared_files": (source_reports["file_change_declaration_verification"]["report"] or {}).get("declared_files", []),
+            "actual_files": (source_reports["file_change_declaration_verification"]["report"] or {}).get("actual_files", []),
+            "missing_from_declaration": (source_reports["file_change_declaration_verification"]["report"] or {}).get("missing_from_declaration", []),
+            "declared_but_not_changed": (source_reports["file_change_declaration_verification"]["report"] or {}).get("declared_but_not_changed", []),
+            "why": (source_reports["file_change_declaration_verification"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["file_change_declaration_verification"]["report"] or {}).get("advisory_only", True)),
         },
         "skill_registry_index_first_posture": {
             "status": (source_reports["skill_registry_index_first_readiness"]["report"] or {}).get("status"),

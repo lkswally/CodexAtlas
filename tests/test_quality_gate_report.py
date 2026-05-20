@@ -5,7 +5,42 @@ from unittest.mock import patch
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
 from tests._support_paths import ATLAS_ROOT, WEB_ROOT
-from tools.quality_gate_report import build_quality_gate_report
+from tools.quality_gate_report import build_quality_gate_report, verify_file_change_declaration
+
+
+def test_file_change_declaration_verification_ready_when_sets_match():
+    result = verify_file_change_declaration(
+        declared_files=["./tools/example.py", "tests\\test_example.py"],
+        actual_files=["tools/example.py", "tests/test_example.py"],
+    )
+    assert result["status"] == "ready"
+    assert result["missing_from_declaration"] == []
+    assert result["declared_but_not_changed"] == []
+    assert result["advisory_only"] is True
+
+
+def test_file_change_declaration_verification_flags_missing_declaration():
+    result = verify_file_change_declaration(declared_files=[], actual_files=["tools/example.py"])
+    assert result["status"] == "missing_declaration"
+    assert result["missing_from_declaration"] == ["tools/example.py"]
+    assert result["declared_but_not_changed"] == []
+
+
+def test_file_change_declaration_verification_flags_mismatch_both_ways():
+    result = verify_file_change_declaration(
+        declared_files=["tools/declared.py", "tests/shared.py"],
+        actual_files=["tools/actual.py", "tests/shared.py"],
+    )
+    assert result["status"] == "mismatch"
+    assert result["missing_from_declaration"] == ["tools/actual.py"]
+    assert result["declared_but_not_changed"] == ["tools/declared.py"]
+
+
+def test_file_change_declaration_verification_not_applicable_without_changes():
+    result = verify_file_change_declaration(declared_files=[], actual_files=[])
+    assert result["status"] == "not_applicable"
+    assert result["declared_files"] == []
+    assert result["actual_files"] == []
 
 
 
@@ -85,6 +120,9 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["evidence_collector_posture"]["advisory_only"] is True
     assert isinstance(result["change_proposal_posture"], dict)
     assert result["change_proposal_posture"]["advisory_only"] is True
+    assert isinstance(result["file_change_declaration_posture"], dict)
+    assert result["file_change_declaration_posture"]["advisory_only"] is True
+    assert result["source_reports"]["file_change_declaration_verification"]["status"] == "ok"
     assert isinstance(result["skill_registry_index_first_posture"], dict)
     assert result["skill_registry_index_first_posture"]["advisory_only"] is True
     assert isinstance(result["ui_ux_design_system_posture"], dict)
