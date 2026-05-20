@@ -53,6 +53,7 @@ REQUIRED_ROOT_FILES = (
     "config/skill_registry_index_first_rules.json",
     "config/ui_ux_design_system_rules.json",
     "config/repo_graph_readiness_rules.json",
+    "config/business_idea_simulation_rules.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -111,6 +112,7 @@ REQUIRED_ROOT_FILES = (
     "policies/skill_registry_index_first_policy.md",
     "policies/ui_ux_design_system_policy.md",
     "policies/repo_graph_readiness_policy.md",
+    "policies/business_idea_simulation_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
     "memory/session_summaries.md",
@@ -151,6 +153,9 @@ REQUIRED_ROOT_FILES = (
     "skills/design-system-review/skill.md",
     "skills/design-system-review/skill.json",
     "skills/design-system-review/behavior.json",
+    "skills/business-idea-evaluator/skill.md",
+    "skills/business-idea-evaluator/skill.json",
+    "skills/business-idea-evaluator/behavior.json",
     "workflows/orchestrator_routing.md",
     "tools/atlas_orchestrator.py",
     "tools/design_intelligence_audit.py",
@@ -191,6 +196,7 @@ REQUIRED_ROOT_FILES = (
     "tools/skill_registry_index_first_readiness.py",
     "tools/ui_ux_design_system_readiness.py",
     "tools/repo_graph_readiness.py",
+    "tools/business_idea_simulation_readiness.py",
     "tests/test_atlas_orchestrator.py",
     "tests/test_certify_project.py",
     "tests/test_docs_catalog_report.py",
@@ -230,6 +236,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_skill_registry_index_first_readiness.py",
     "tests/test_ui_ux_design_system_readiness.py",
     "tests/test_repo_graph_readiness.py",
+    "tests/test_business_idea_simulation_readiness.py",
     "tests/test_surface_audit.py",
     "templates/project_bootstrap_profiles.md",
 )
@@ -1043,6 +1050,47 @@ REPO_GRAPH_READINESS_REQUIRED_MANUAL_STEP_FIELDS = {
     "recommended",
     "watchlist",
 }
+BUSINESS_IDEA_SIMULATION_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "required_inputs",
+    "input_aliases",
+    "core_inputs",
+    "scenario_ready_inputs",
+    "profitability_inputs",
+    "blocked_prediction_terms",
+    "research_required_inputs",
+    "risk_categories",
+    "risk_signals",
+    "signal_thresholds",
+    "experiment_catalog",
+}
+BUSINESS_IDEA_SIMULATION_REQUIRED_INPUTS = {
+    "problem",
+    "customer",
+    "value_proposition",
+    "competition",
+    "pricing",
+    "costs",
+    "channels",
+    "acquisition",
+    "retention",
+}
+BUSINESS_IDEA_SIMULATION_REQUIRED_RISK_CATEGORIES = {
+    "legal",
+    "technical",
+    "commercial",
+}
+BUSINESS_IDEA_SIMULATION_REQUIRED_THRESHOLDS = {
+    "promising_min_present",
+    "incomplete_min_present",
+}
+BUSINESS_IDEA_SIMULATION_REQUIRED_EXPERIMENT_FIELDS = {
+    "id",
+    "objective",
+    "time_estimate",
+    "success_signal",
+}
 MODEL_COST_CONTROL_REQUIRED_FIELDS = {
     "version",
     "advisory_only",
@@ -1222,6 +1270,10 @@ def _load_ui_ux_design_system_rules(root: Path) -> Dict[str, Any]:
 
 def _load_repo_graph_readiness_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "repo_graph_readiness_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_business_idea_simulation_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "business_idea_simulation_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -2912,6 +2964,88 @@ def _validate_repo_graph_readiness_rules(root: Path, findings: List[str]) -> Non
                     findings.append(f"repo_graph_readiness_rules_invalid_manual_step_list:{field_name}")
 
 
+def _validate_business_idea_simulation_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_business_idea_simulation_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_business_idea_simulation_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("business_idea_simulation_rules_not_object")
+        return
+
+    missing_fields = BUSINESS_IDEA_SIMULATION_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(f"business_idea_simulation_rules_missing_fields:{','.join(sorted(missing_fields))}")
+
+    required_inputs = rules.get("required_inputs")
+    if not isinstance(required_inputs, list) or not required_inputs:
+        findings.append("business_idea_simulation_rules_invalid_required_inputs")
+    else:
+        required_input_set = {str(item).strip() for item in required_inputs if str(item).strip()}
+        missing_required_inputs = BUSINESS_IDEA_SIMULATION_REQUIRED_INPUTS - required_input_set
+        if missing_required_inputs:
+            findings.append(
+                f"business_idea_simulation_rules_missing_required_inputs:{','.join(sorted(missing_required_inputs))}"
+            )
+
+    input_aliases = rules.get("input_aliases")
+    if not isinstance(input_aliases, dict) or not input_aliases:
+        findings.append("business_idea_simulation_rules_invalid_input_aliases")
+
+    for field_name in (
+        "core_inputs",
+        "scenario_ready_inputs",
+        "profitability_inputs",
+        "blocked_prediction_terms",
+        "research_required_inputs",
+    ):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not value:
+            findings.append(f"business_idea_simulation_rules_invalid_{field_name}")
+
+    risk_categories = rules.get("risk_categories")
+    if not isinstance(risk_categories, list) or not risk_categories:
+        findings.append("business_idea_simulation_rules_invalid_risk_categories")
+    else:
+        risk_category_set = {str(item).strip() for item in risk_categories if str(item).strip()}
+        missing_risk_categories = BUSINESS_IDEA_SIMULATION_REQUIRED_RISK_CATEGORIES - risk_category_set
+        if missing_risk_categories:
+            findings.append(
+                f"business_idea_simulation_rules_missing_risk_categories:{','.join(sorted(missing_risk_categories))}"
+            )
+
+    risk_signals = rules.get("risk_signals")
+    if not isinstance(risk_signals, dict) or not risk_signals:
+        findings.append("business_idea_simulation_rules_invalid_risk_signals")
+
+    signal_thresholds = rules.get("signal_thresholds")
+    if not isinstance(signal_thresholds, dict) or not signal_thresholds:
+        findings.append("business_idea_simulation_rules_invalid_signal_thresholds")
+    else:
+        missing_thresholds = BUSINESS_IDEA_SIMULATION_REQUIRED_THRESHOLDS - set(signal_thresholds.keys())
+        if missing_thresholds:
+            findings.append(
+                f"business_idea_simulation_rules_missing_signal_thresholds:{','.join(sorted(missing_thresholds))}"
+            )
+
+    experiment_catalog = rules.get("experiment_catalog")
+    if not isinstance(experiment_catalog, list) or not experiment_catalog:
+        findings.append("business_idea_simulation_rules_invalid_experiment_catalog")
+    else:
+        for idx, experiment in enumerate(experiment_catalog, start=1):
+            if not isinstance(experiment, dict):
+                findings.append(f"business_idea_simulation_rules_invalid_experiment:{idx}")
+                continue
+            missing_experiment_fields = BUSINESS_IDEA_SIMULATION_REQUIRED_EXPERIMENT_FIELDS - set(experiment.keys())
+            if missing_experiment_fields:
+                findings.append(
+                    "business_idea_simulation_rules_missing_experiment_fields:"
+                    f"{idx}:{','.join(sorted(missing_experiment_fields))}"
+                )
+
+
 def _validate_docs_search_catalog(root: Path, findings: List[str]) -> None:
     try:
         catalog = _load_docs_search_catalog(root)
@@ -3790,6 +3924,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_skill_registry_index_first_rules(root, findings)
         _validate_ui_ux_design_system_rules(root, findings)
         _validate_repo_graph_readiness_rules(root, findings)
+        _validate_business_idea_simulation_rules(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)

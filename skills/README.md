@@ -85,6 +85,7 @@ Current skills:
 - `anti-generic-ui-audit`: run a read-only design audit with evidence, warnings and next action
 - `design-system-review`: review typography, spacing, hierarchy and layout coherence without changing files
 - `market-research-benchmark`: benchmark Atlas against `_reference/claude-vibecoding` and documented radar repos without scraping, installing or mutating anything
+- `business-idea-evaluator`: evaluate startup or product ideas with hypotheses, scenarios, missing data and validation experiments without pretending to predict the future
 - `ui_pre_return_audit` (tool-level advisory): cross-check final UI readiness against visual intent, brand profile, CTA clarity, anti-generic risk and evidence before stronger PASS claims
 - `creative_pipeline_readiness` (tool-level advisory): report whether logo, image, video, component-inspiration or visual-brand-review paths look locally ready without generating assets or activating providers
 - `component_inspiration_readiness` (tool-level advisory): report whether 21st/Context7-backed component inspiration looks locally ready without generating components, activating MCPs or bypassing local design direction

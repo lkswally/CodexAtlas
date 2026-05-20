@@ -1,0 +1,60 @@
+{
+  "name": "business-idea-evaluator",
+  "intent_keywords": [
+    "business idea",
+    "startup idea",
+    "product hypothesis",
+    "pricing risk",
+    "market validation",
+    "mvp experiment",
+    "go to market hypothesis",
+    "profitability assumptions"
+  ],
+  "agent": "planner",
+  "workflow": "atlas_project_pipeline",
+  "model_profile": "deep_reasoning",
+  "risk_level": "medium",
+  "requires_human_approval": false,
+  "supports_execution": true,
+  "required_inputs": [
+    "idea_summary",
+    "target_customer_or_audience",
+    "problem_statement_if_known"
+  ],
+  "execution_mode": "read_only",
+  "allowed_paths_policy": "no_filesystem_writes",
+  "expected_outputs": [
+    "business idea evaluation",
+    "hypotheses and scenarios",
+    "missing data list",
+    "validation experiments"
+  ],
+  "safety_limits": [
+    "do not claim guaranteed profitability",
+    "do not assign exact success probabilities",
+    "do not run external simulations or providers",
+    "do not present opinion as market evidence"
+  ],
+  "forbidden_actions": [
+    "promise profitability",
+    "promise product-market fit",
+    "use Docker, APIs or provider keys automatically",
+    "scrape external data automatically",
+    "modify derived projects as part of idea evaluation"
+  ],
+  "human_approval_triggers": [
+    "the user asks for guaranteed prediction or exact success probability",
+    "the task requests external data collection, scraping or provider-backed simulation",
+    "the task turns into investment, legal or compliance advice"
+  ],
+  "rollback_manual": [
+    "no rollback needed because the skill is read-only",
+    "if notes are exported elsewhere, review them manually before using them as a decision basis"
+  ],
+  "validations": [
+    "output includes missing inputs",
+    "output includes risks and validation experiments",
+    "must_not_claim_prediction remains true",
+    "profitability confidence stays conservative when data is weak"
+  ]
+}

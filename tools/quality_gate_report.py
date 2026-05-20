@@ -110,6 +110,10 @@ try:
     from tools.repo_graph_readiness import assess_repo_graph_readiness
 except ModuleNotFoundError:
     from repo_graph_readiness import assess_repo_graph_readiness
+try:
+    from tools.business_idea_simulation_readiness import assess_business_idea_simulation_readiness
+except ModuleNotFoundError:
+    from business_idea_simulation_readiness import assess_business_idea_simulation_readiness
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -658,6 +662,28 @@ def _run_model_cost_control(
     except Exception as exc:
         return _build_failed_report("model_cost_control_readiness", f"model_cost_control_readiness_failed:{exc}")
     return _build_ok_report("model_cost_control_readiness", report)
+
+
+def _run_business_idea_simulation_readiness(
+    *,
+    root: Path,
+    intent_report: Optional[Dict[str, Any]],
+) -> Dict[str, Any]:
+    contract = ((intent_report or {}).get("visual_intent_contract") or {}).get("contract") or {}
+    payload = {
+        "idea_summary": str((intent_report or {}).get("objective", "")).strip(),
+        "customer": str(contract.get("audience", "")).strip(),
+        "value_proposition": str((intent_report or {}).get("objective", "")).strip(),
+        "project_type": str((intent_report or {}).get("project_type", "")).strip(),
+    }
+    try:
+        report = assess_business_idea_simulation_readiness(payload, root=root)
+    except Exception as exc:
+        return _build_failed_report(
+            "business_idea_simulation_readiness",
+            f"business_idea_simulation_readiness_failed:{exc}",
+        )
+    return _build_ok_report("business_idea_simulation_readiness", report)
 
 
 def _extract_certify_blockers(certify_report: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -1587,6 +1613,10 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         intent_report=source_reports["project_intent_analyzer"]["report"] if source_reports["project_intent_analyzer"]["status"] == "ok" else {},
         top_priorities=top_priorities,
     )
+    source_reports["business_idea_simulation_readiness"] = _run_business_idea_simulation_readiness(
+        root=root,
+        intent_report=source_reports["project_intent_analyzer"]["report"] if source_reports["project_intent_analyzer"]["status"] == "ok" else {},
+    )
     source_reports["skill_evaluator"] = _run_skill_signal(root, project, str(current_phase or ""), top_priorities, source_reports["project_intent_analyzer"])
     source_reports["skill_improvement_review"] = _run_skill_improvement_review(root)
     source_reports["creative_pipeline_readiness"] = _run_creative_pipeline_readiness(root)
@@ -1769,6 +1799,21 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "manual_action_required": (source_reports["model_cost_control_readiness"]["report"] or {}).get("manual_action_required"),
             "why": (source_reports["model_cost_control_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["model_cost_control_readiness"]["report"] or {}).get("advisory_only", True)),
+        },
+        "business_idea_simulation_posture": {
+            "status": (source_reports["business_idea_simulation_readiness"]["report"] or {}).get("status"),
+            "signal": (source_reports["business_idea_simulation_readiness"]["report"] or {}).get("signal"),
+            "readiness_state": (source_reports["business_idea_simulation_readiness"]["report"] or {}).get("readiness_state"),
+            "can_estimate_profitability": bool((source_reports["business_idea_simulation_readiness"]["report"] or {}).get("can_estimate_profitability")),
+            "profitability_confidence": (source_reports["business_idea_simulation_readiness"]["report"] or {}).get("profitability_confidence"),
+            "must_not_claim_prediction": bool((source_reports["business_idea_simulation_readiness"]["report"] or {}).get("must_not_claim_prediction", True)),
+            "missing_inputs": (source_reports["business_idea_simulation_readiness"]["report"] or {}).get("missing_inputs", []),
+            "risks": (source_reports["business_idea_simulation_readiness"]["report"] or {}).get("risks", []),
+            "experiments": (source_reports["business_idea_simulation_readiness"]["report"] or {}).get("experiments", []),
+            "recommended_next_step": (source_reports["business_idea_simulation_readiness"]["report"] or {}).get("recommended_next_step"),
+            "model_cost_guidance": (source_reports["business_idea_simulation_readiness"]["report"] or {}).get("model_cost_guidance", {}),
+            "why": (source_reports["business_idea_simulation_readiness"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["business_idea_simulation_readiness"]["report"] or {}).get("advisory_only", True)),
         },
         "error_learning_posture": {
             "status": (source_reports["atlas_error_learning_review"]["report"] or {}).get("status"),

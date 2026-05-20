@@ -38,6 +38,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert isinstance(result["intent_analysis"], dict)
     assert isinstance(result["design_quality_posture"], dict)
     assert isinstance(result["model_cost_control_posture"], dict)
+    assert isinstance(result["business_idea_simulation_posture"], dict)
     assert isinstance(result["visual_intent_posture"], dict)
     assert result["visual_intent_posture"]["advisory_only"] is True
     assert isinstance(result["brand_profile_posture"], dict)
@@ -90,6 +91,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["ui_ux_design_system_posture"]["advisory_only"] is True
     assert isinstance(result["repo_graph_posture"], dict)
     assert result["repo_graph_posture"]["advisory_only"] is True
+    assert result["business_idea_simulation_posture"]["advisory_only"] is True
     assert isinstance(result["system_learning"], dict)
     assert isinstance(result["execution_plan"], list)
     assert len(result["execution_plan"]) <= 3
@@ -136,6 +138,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert "triggered_signals" in result["error_learning_posture"]
     assert "recommended_model_tier" in result["model_cost_control_posture"]
     assert "fallback_posture" in result["model_cost_control_posture"]
+    assert "must_not_claim_prediction" in result["business_idea_simulation_posture"]
+    assert "recommended_next_step" in result["business_idea_simulation_posture"]
     assert "configured_mcp_servers" in result["codex_runtime_posture"]
     assert "available_sources" in result["atlas_memory_posture"]
     assert "missing_evidence" in result["evidence_collector_posture"]

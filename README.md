@@ -64,6 +64,7 @@ Capas principales:
 - `visual-direction-checkpoint`
 - `anti-generic-ui-audit`
 - `design-system-review`
+- `business-idea-evaluator`
 
 ## Workflows disponibles
 

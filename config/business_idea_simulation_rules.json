@@ -1,0 +1,95 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "required_inputs": [
+    "problem",
+    "customer",
+    "value_proposition",
+    "competition",
+    "pricing",
+    "costs",
+    "channels",
+    "acquisition",
+    "retention"
+  ],
+  "input_aliases": {
+    "problem": ["problem", "pain_point", "customer_problem", "problem_statement"],
+    "customer": ["customer", "client", "audience", "target_customer", "user"],
+    "value_proposition": ["value_proposition", "offer", "product_promise", "benefit"],
+    "competition": ["competition", "competitors", "alternatives", "substitutes"],
+    "pricing": ["pricing", "price", "pricing_model", "revenue_model"],
+    "costs": ["costs", "cost_structure", "unit_costs", "delivery_costs"],
+    "channels": ["channels", "distribution", "go_to_market", "sales_channel"],
+    "acquisition": ["acquisition", "cac", "lead_source", "customer_acquisition"],
+    "retention": ["retention", "repeat_usage", "churn", "renewal"],
+    "legal_risks": ["legal_risks", "compliance", "regulation"],
+    "technical_risks": ["technical_risks", "technical_constraints", "implementation_risks"],
+    "commercial_risks": ["commercial_risks", "market_risks", "sales_risks"]
+  },
+  "core_inputs": ["problem", "customer", "value_proposition"],
+  "scenario_ready_inputs": ["problem", "customer", "value_proposition", "pricing", "costs"],
+  "profitability_inputs": ["pricing", "costs", "acquisition", "retention"],
+  "blocked_prediction_terms": [
+    "guarantee profitability",
+    "guaranteed profitability",
+    "guaranteed success",
+    "predict exactly",
+    "exact probability of success",
+    "tell me if it will succeed",
+    "will be profitable for sure",
+    "future certainty"
+  ],
+  "research_required_inputs": ["competition", "channels", "acquisition", "retention"],
+  "risk_categories": ["legal", "technical", "commercial"],
+  "risk_signals": {
+    "legal": ["health", "medical", "payments", "fintech", "insurance", "children", "biometric", "regulated"],
+    "technical": ["real-time", "hardware", "computer vision", "scraping", "multimodal", "agent swarm", "browser automation"],
+    "commercial": ["marketplace", "two-sided", "enterprise sales", "high churn", "consumer subscription"]
+  },
+  "signal_thresholds": {
+    "promising_min_present": 7,
+    "incomplete_min_present": 4
+  },
+  "experiment_catalog": [
+    {
+      "id": "customer_interviews",
+      "trigger_inputs": ["problem", "customer"],
+      "applies_when_missing_any": ["problem", "customer"],
+      "objective": "Confirm the problem is urgent and frequent for a specific customer segment.",
+      "time_estimate": "3-5 days",
+      "success_signal": "At least 5 target users describe the problem in their own words and rank it as important."
+    },
+    {
+      "id": "pricing_test",
+      "trigger_inputs": ["pricing", "costs"],
+      "applies_when_missing_any": ["pricing", "costs"],
+      "objective": "Validate willingness to pay and rough unit economics before building fully.",
+      "time_estimate": "2-7 days",
+      "success_signal": "A first price hypothesis gets positive reactions, deposits or qualified follow-up interest."
+    },
+    {
+      "id": "channel_smoke_test",
+      "trigger_inputs": ["channels", "acquisition"],
+      "applies_when_missing_any": ["channels", "acquisition"],
+      "objective": "Test whether a realistic acquisition path can generate qualified demand.",
+      "time_estimate": "3-10 days",
+      "success_signal": "A small channel test produces qualified conversations or signups at an acceptable cost range."
+    },
+    {
+      "id": "concierge_mvp",
+      "trigger_inputs": ["retention", "value_proposition"],
+      "applies_when_missing_any": ["retention"],
+      "objective": "Learn whether users come back or continue paying after manual delivery.",
+      "time_estimate": "1-3 weeks",
+      "success_signal": "Early users repeat usage, ask for continuation or accept a manual paid pilot."
+    },
+    {
+      "id": "competitive_teardown",
+      "trigger_inputs": ["competition"],
+      "applies_when_missing_any": ["competition"],
+      "objective": "Map substitutes and find a real wedge instead of assuming novelty.",
+      "time_estimate": "1-2 days",
+      "success_signal": "You can clearly explain why a buyer would switch from current alternatives."
+    }
+  ]
+}

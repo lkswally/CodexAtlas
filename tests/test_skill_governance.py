@@ -30,6 +30,7 @@ from tools.atlas_governance_check import (
     _load_change_proposal_rules,
     _load_skill_registry_index_first_rules,
     _load_ui_ux_design_system_rules,
+    _load_business_idea_simulation_rules,
     _validate_external_tool_policy,
     _validate_mcp_profiles,
     _validate_docs_search_catalog,
@@ -53,6 +54,7 @@ from tools.atlas_governance_check import (
     _validate_change_proposal_rules,
     _validate_skill_registry_index_first_rules,
     _validate_ui_ux_design_system_rules,
+    _validate_business_idea_simulation_rules,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
@@ -233,6 +235,23 @@ def test_ui_ux_design_system_rules_require_motion_library_fields():
 
     assert any(
         finding.startswith("ui_ux_design_system_rules_missing_motion_library_fields:")
+        for finding in findings
+    )
+
+
+def test_business_idea_simulation_rules_require_core_inputs():
+    findings = []
+    invalid_rules = _load_business_idea_simulation_rules(ROOT)
+    invalid_rules["required_inputs"] = ["problem", "customer"]
+
+    with patch(
+        "tools.atlas_governance_check._load_business_idea_simulation_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_business_idea_simulation_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("business_idea_simulation_rules_missing_required_inputs:")
         for finding in findings
     )
 
