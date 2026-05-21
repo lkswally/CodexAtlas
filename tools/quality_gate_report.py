@@ -489,6 +489,38 @@ def _run_component_inspiration_readiness(root: Path) -> Dict[str, Any]:
     return _build_ok_report("component_inspiration_readiness", report)
 
 
+def _detect_frontend_stack(project: Path) -> Tuple[str, bool]:
+    package_json = project / "package.json"
+    dependencies: Dict[str, Any] = {}
+    if package_json.exists():
+        try:
+            payload = json.loads(package_json.read_text(encoding="utf-8-sig"))
+            dependencies = {
+                **dict(payload.get("dependencies", {}) or {}),
+                **dict(payload.get("devDependencies", {}) or {}),
+            }
+        except Exception:
+            dependencies = {}
+
+    dep_names = {str(name).strip().lower() for name in dependencies.keys() if str(name).strip()}
+    has_tailwind = (
+        "tailwindcss" in dep_names
+        or "@tailwindcss/forms" in dep_names
+        or "tailwind-merge" in dep_names
+        or any((project / candidate).exists() for candidate in ("tailwind.config.js", "tailwind.config.ts", "tailwind.config.cjs"))
+    )
+
+    if "next" in dep_names:
+        return "nextjs", has_tailwind
+    if "vite" in dep_names and "react" in dep_names:
+        return "react-vite", has_tailwind
+    if "react" in dep_names:
+        return "react", has_tailwind
+    if has_tailwind:
+        return "html-tailwind", True
+    return "unknown", False
+
+
 def _run_playwright_visual_qa_readiness(root: Path) -> Dict[str, Any]:
     try:
         report = check_playwright_visual_qa_readiness(root=root)
@@ -1509,6 +1541,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     source_reports["codex_runtime_compatibility_check"] = _run_codex_runtime_compatibility(root)
     source_reports["atlas_memory_readiness"] = _run_atlas_memory_readiness(root)
     source_reports["skill_registry_index_first_readiness"] = _run_skill_registry_index_first_readiness(root)
+    detected_stack, uses_tailwind = _detect_frontend_stack(project)
     source_reports["ui_ux_design_system_readiness"] = _run_ui_ux_design_system_readiness(
         root=root,
         payload={
@@ -1518,13 +1551,22 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             or project.name,
             "audience": ((visual_intent_from_design or visual_intent_from_intent or {}).get("contract") or {}).get("audience")
             or ((design_report.get("brand_profile_review") or {}).get("profile") or {}).get("audience"),
-            "stack": "unknown",
+            "stack": detected_stack,
+            "uses_tailwind": uses_tailwind,
             "visual_intent_contract": ((visual_intent_from_design or visual_intent_from_intent or {}).get("contract") or {}),
             "brand_profile": ((design_report.get("brand_profile_review") or {}).get("profile") or {}),
             "needs_complex_hero_motion": "hero" in " ".join(design_report.get("warnings", [])).lower(),
             "needs_microinteractions": bool(design_report.get("ui_pre_return_review")),
             "needs_transition_heavy_ui": "dashboard" in str(((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else "")).lower(),
             "needs_scroll_reveal": "landing" in str(((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else "")).lower(),
+            "needs_forms": "form" in str(((source_reports["project_intent_analyzer"]["report"] or {}).get("objective") if source_reports["project_intent_analyzer"]["status"] == "ok" else "")).lower(),
+            "needs_cards": "landing" in str(((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else "")).lower(),
+            "needs_tables": "dashboard" in str(((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else "")).lower(),
+            "needs_dashboard_blocks": "dashboard" in str(((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else "")).lower(),
+            "needs_landing_sections": any(
+                term in str(((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else "")).lower()
+                for term in ("landing", "marketing")
+            ),
         },
     )
     source_reports["atlas_error_learning_review"] = _run_atlas_error_learning_review(
@@ -2147,10 +2189,12 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "stack_recommendation": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("stack_recommendation"),
             "accessibility_baseline": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("accessibility_baseline", []),
             "frontend_motion_library_posture": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("frontend_motion_library_posture"),
+            "component_library_posture": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("component_library_posture", {}),
             "missing_inputs": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("missing_inputs", []),
             "why": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("advisory_only", True)),
         },
+        "component_library_posture": (source_reports["ui_ux_design_system_readiness"]["report"] or {}).get("component_library_posture", {}),
         "repo_graph_posture": {
             "status": (source_reports["repo_graph_readiness"]["report"] or {}).get("status"),
             "repo_graph_recommended": bool((source_reports["repo_graph_readiness"]["report"] or {}).get("repo_graph_recommended")),

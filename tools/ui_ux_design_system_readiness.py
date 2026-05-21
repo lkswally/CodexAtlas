@@ -34,6 +34,10 @@ def _normalize_stack(value: Any) -> str:
     return aliases.get(raw, raw)
 
 
+def _joined_text(*parts: Any) -> str:
+    return " ".join(_normalize_text(part) for part in parts if _normalize_text(part))
+
+
 def _extract_contract_value(contract: Dict[str, Any], key: str) -> str:
     if not isinstance(contract, dict):
         return ""
@@ -121,6 +125,156 @@ def _stack_recommendation(
     return profile_recommendation
 
 
+def _detect_component_needs(payload: Dict[str, Any], project_type: str, product_type: str) -> List[str]:
+    explicit_flags = {
+        "forms": bool(payload.get("needs_forms")),
+        "cards": bool(payload.get("needs_cards")),
+        "tabs": bool(payload.get("needs_tabs")),
+        "tables": bool(payload.get("needs_tables")),
+        "dashboard_blocks": bool(payload.get("needs_dashboard_blocks")),
+        "landing_sections": bool(payload.get("needs_landing_sections")),
+    }
+    inferred_text = _joined_text(project_type, product_type, payload.get("objective"), payload.get("domain_context")).lower()
+    inferred_flags = {
+        "forms": any(term in inferred_text for term in ("form", "onboarding", "signup", "contact", "checkout")),
+        "cards": any(term in inferred_text for term in ("card", "landing", "dashboard", "feature grid", "pricing")),
+        "tabs": "tab" in inferred_text,
+        "tables": any(term in inferred_text for term in ("table", "analytics", "admin", "dashboard", "operations")),
+        "dashboard_blocks": any(term in inferred_text for term in ("dashboard", "analytics", "admin", "internal tool", "backoffice")),
+        "landing_sections": project_type.lower() in {"landing_page", "marketing_site"} or any(
+            term in inferred_text for term in ("hero", "pricing", "testimonial", "social proof", "cta section")
+        ),
+    }
+
+    return [
+        need
+        for need, enabled in {**inferred_flags, **explicit_flags}.items()
+        if enabled
+    ]
+
+
+def _component_library_posture(
+    *,
+    rules: Dict[str, Any],
+    project_type: str,
+    stack: str,
+    uses_tailwind: bool,
+    product_type: str,
+    component_needs: List[str],
+    identity_customness: str,
+    style_profile_id: str,
+) -> Dict[str, Any]:
+    component_rules = rules.get("component_library_posture") or {}
+    best_for = [str(item).strip() for item in component_rules.get("best_for", []) if str(item).strip()]
+    risks = [str(item).strip() for item in component_rules.get("risks", []) if str(item).strip()]
+    react_eligible = {str(item).strip().lower() for item in component_rules.get("react_eligible_stacks", []) if str(item).strip()}
+    static_or_css_first = {str(item).strip().lower() for item in component_rules.get("static_or_css_first_stacks", []) if str(item).strip()}
+    high_fit_project_types = {str(item).strip().lower() for item in component_rules.get("high_fit_project_types", []) if str(item).strip()}
+    custom_identity_signals = {str(item).strip().lower() for item in component_rules.get("custom_identity_signals", []) if str(item).strip()}
+
+    normalized_identity = identity_customness.lower()
+    lower_product_text = _joined_text(product_type, style_profile_id).lower()
+    custom_identity = normalized_identity in {"high", "very_high"} or any(
+        signal in lower_product_text for signal in custom_identity_signals
+    )
+    matched_needs = [need for need in component_needs if need in best_for]
+
+    if not project_type or project_type.lower() not in {str(item).strip().lower() for item in rules.get("frontend_project_types", [])}:
+        return {
+            "tailgrids_fit": "not_applicable",
+            "recommended_use": "discard",
+            "requires_install": True,
+            "should_auto_install": False,
+            "best_for": best_for,
+            "risks": risks,
+            "matched_needs": [],
+            "why": "TailGrids only makes sense for frontend UI surfaces; Atlas should not recommend it for non-UI project types.",
+        }
+
+    if stack in static_or_css_first and stack not in react_eligible:
+        return {
+            "tailgrids_fit": "not_applicable",
+            "recommended_use": "discard",
+            "requires_install": True,
+            "should_auto_install": False,
+            "best_for": best_for,
+            "risks": risks,
+            "matched_needs": matched_needs,
+            "why": "TailGrids is React-first and CLI-installed, so Atlas should not recommend it for static or CSS-first stacks.",
+        }
+
+    if custom_identity:
+        return {
+            "tailgrids_fit": "low",
+            "recommended_use": "inspiration_only",
+            "requires_install": True,
+            "should_auto_install": False,
+            "best_for": best_for,
+            "risks": risks,
+            "matched_needs": matched_needs,
+            "why": "The project signals a stronger custom identity, so TailGrids is safer as pattern inspiration than as an installed UI kit.",
+        }
+
+    if stack not in react_eligible:
+        return {
+            "tailgrids_fit": "low",
+            "recommended_use": "watchlist",
+            "requires_install": True,
+            "should_auto_install": False,
+            "best_for": best_for,
+            "risks": risks,
+            "matched_needs": matched_needs,
+            "why": "TailGrids targets React-family stacks; without a React-compatible stack Atlas should keep it on watchlist.",
+        }
+
+    if not uses_tailwind:
+        return {
+            "tailgrids_fit": "medium",
+            "recommended_use": "watchlist",
+            "requires_install": True,
+            "should_auto_install": False,
+            "best_for": best_for,
+            "risks": risks,
+            "matched_needs": matched_needs,
+            "why": "The stack looks React-compatible but Tailwind is not explicit yet, so TailGrids would expand dependencies and configuration surface.",
+        }
+
+    if project_type.lower() in high_fit_project_types and matched_needs:
+        return {
+            "tailgrids_fit": "high",
+            "recommended_use": "manual_install_with_approval",
+            "requires_install": True,
+            "should_auto_install": False,
+            "best_for": best_for,
+            "risks": risks,
+            "matched_needs": matched_needs,
+            "why": "TailGrids can accelerate common React + Tailwind UI surfaces here, but only with explicit approval because the CLI mutates project files and dependencies.",
+        }
+
+    if uses_tailwind:
+        return {
+            "tailgrids_fit": "medium",
+            "recommended_use": "inspiration_only",
+            "requires_install": True,
+            "should_auto_install": False,
+            "best_for": best_for,
+            "risks": risks,
+            "matched_needs": matched_needs,
+            "why": "The stack is compatible, but the current need is not strong enough to justify a library install over local-first UI refinement.",
+        }
+
+    return {
+        "tailgrids_fit": "low",
+        "recommended_use": "discard",
+        "requires_install": True,
+        "should_auto_install": False,
+        "best_for": best_for,
+        "risks": risks,
+        "matched_needs": matched_needs,
+        "why": "TailGrids does not close a strong enough gap for this UI surface right now.",
+    }
+
+
 def assess_ui_ux_design_system_readiness(
     *,
     payload: Dict[str, Any],
@@ -139,6 +293,8 @@ def assess_ui_ux_design_system_readiness(
         or project_type
     )
     stack = _normalize_stack(payload.get("stack"))
+    uses_tailwind = bool(payload.get("uses_tailwind")) or "tailwind" in stack
+    identity_customness = _normalize_text(payload.get("identity_customness")) or _extract_contract_value(visual_contract, "originality_level")
 
     missing_inputs: List[str] = []
     for required in rules.get("required_inputs", []):
@@ -149,6 +305,7 @@ def assess_ui_ux_design_system_readiness(
 
     profile = _match_profile(rules, product_type)
     modifiers = _audience_modifiers(rules, audience)
+    component_needs = _detect_component_needs(payload, project_type, product_type)
     motion_signals = [
         name
         for name, enabled in {
@@ -187,6 +344,16 @@ def assess_ui_ux_design_system_readiness(
         if not missing_inputs
         else "Atlas should not pretend a design system is explicit when project type or audience are still missing."
     )
+    component_library_posture = _component_library_posture(
+        rules=rules,
+        project_type=project_type,
+        stack=stack,
+        uses_tailwind=uses_tailwind,
+        product_type=product_type,
+        component_needs=component_needs,
+        identity_customness=identity_customness,
+        style_profile_id=_normalize_text(profile.get("id")),
+    )
 
     return {
         "status": status,
@@ -205,6 +372,7 @@ def assess_ui_ux_design_system_readiness(
         "accessibility_baseline": list(rules.get("accessibility_baseline", [])),
         "frontend_motion_library_posture": motion_posture,
         "motion_signals": motion_signals,
+        "component_library_posture": component_library_posture,
         "missing_inputs": missing_inputs,
         "advisory_only": bool(rules.get("advisory_only", True)),
         "why": why,

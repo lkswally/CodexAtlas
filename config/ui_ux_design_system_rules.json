@@ -152,6 +152,59 @@
     ],
     "reduced_motion_policy": "respect_prefers_reduced_motion"
   },
+  "component_library_posture": {
+    "decision_types": [
+      "inspiration_only",
+      "readiness",
+      "watchlist",
+      "manual_install_with_approval",
+      "discard"
+    ],
+    "react_eligible_stacks": ["react", "vite", "react-vite", "next", "nextjs", "remix"],
+    "static_or_css_first_stacks": ["html", "html-css", "html-tailwind", "astro", "laravel-blade"],
+    "tailwind_signals": [
+      "tailwind",
+      "tailwindcss",
+      "@tailwindcss/forms",
+      "tailwind-merge"
+    ],
+    "high_fit_project_types": [
+      "landing_page",
+      "marketing_site",
+      "frontend_app",
+      "dashboard",
+      "internal_tool",
+      "ui_surface"
+    ],
+    "best_for": [
+      "forms",
+      "cards",
+      "tabs",
+      "tables",
+      "dashboard_blocks",
+      "landing_sections"
+    ],
+    "custom_identity_signals": [
+      "portfolio",
+      "agency",
+      "studio",
+      "editorial",
+      "highly_custom_brand"
+    ],
+    "generic_design_blockers": [
+      "signature brand identity required",
+      "css retouch is enough",
+      "cli would mutate too much project surface",
+      "project should avoid utility-ui-kit sameness"
+    ],
+    "risks": [
+      "cli_mutation",
+      "dependency_sprawl",
+      "generic_design"
+    ],
+    "manual_install_required": true,
+    "should_auto_install": false
+  },
   "pre_delivery_checklist": [
     "hero hierarchy is obvious in the first viewport",
     "CTA intent and visual priority are explicit",

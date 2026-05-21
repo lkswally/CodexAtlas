@@ -239,6 +239,25 @@ def test_ui_ux_design_system_rules_require_motion_library_fields():
     )
 
 
+def test_ui_ux_design_system_rules_require_component_library_fields():
+    findings = []
+    invalid_rules = _load_ui_ux_design_system_rules(ROOT)
+    invalid_rules["component_library_posture"] = {
+        "decision_types": ["manual_install_with_approval"]
+    }
+
+    with patch(
+        "tools.atlas_governance_check._load_ui_ux_design_system_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_ui_ux_design_system_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("ui_ux_design_system_rules_missing_component_library_fields:")
+        for finding in findings
+    )
+
+
 def test_business_idea_simulation_rules_require_core_inputs():
     findings = []
     invalid_rules = _load_business_idea_simulation_rules(ROOT)

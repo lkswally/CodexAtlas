@@ -1008,6 +1008,7 @@ UI_UX_DESIGN_SYSTEM_REQUIRED_FIELDS = {
     "product_profiles",
     "audience_modifiers",
     "motion_library_posture",
+    "component_library_posture",
     "pre_delivery_checklist",
     "accessibility_baseline",
 }
@@ -1028,6 +1029,19 @@ UI_UX_DESIGN_SYSTEM_REQUIRED_MOTION_FIELDS = {
     "css_first_stacks",
     "triggers_for_recommended_for_react",
     "reduced_motion_policy",
+}
+UI_UX_DESIGN_SYSTEM_REQUIRED_COMPONENT_LIBRARY_FIELDS = {
+    "decision_types",
+    "react_eligible_stacks",
+    "static_or_css_first_stacks",
+    "tailwind_signals",
+    "high_fit_project_types",
+    "best_for",
+    "custom_identity_signals",
+    "generic_design_blockers",
+    "risks",
+    "manual_install_required",
+    "should_auto_install",
 }
 REPO_GRAPH_READINESS_REQUIRED_FIELDS = {
     "version",
@@ -2886,6 +2900,19 @@ def _validate_ui_ux_design_system_rules(root: Path, findings: List[str]) -> None
         if missing_motion_fields:
             findings.append(
                 f"ui_ux_design_system_rules_missing_motion_library_fields:{','.join(sorted(missing_motion_fields))}"
+            )
+
+    component_library_posture = rules.get("component_library_posture")
+    if not isinstance(component_library_posture, dict) or not component_library_posture:
+        findings.append("ui_ux_design_system_rules_invalid_component_library_posture")
+    else:
+        missing_component_library_fields = UI_UX_DESIGN_SYSTEM_REQUIRED_COMPONENT_LIBRARY_FIELDS - set(
+            component_library_posture.keys()
+        )
+        if missing_component_library_fields:
+            findings.append(
+                "ui_ux_design_system_rules_missing_component_library_fields:"
+                f"{','.join(sorted(missing_component_library_fields))}"
             )
 
     pre_delivery_checklist = rules.get("pre_delivery_checklist")
