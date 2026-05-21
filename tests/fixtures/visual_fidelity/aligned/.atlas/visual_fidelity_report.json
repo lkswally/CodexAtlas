@@ -1,0 +1,18 @@
+{
+  "judge_summary": "Desktop and mobile screenshots align with the intended dark-tech hierarchy and CTA emphasis.",
+  "provided_viewports": [
+    "desktop",
+    "mobile"
+  ],
+  "compared_layers": [
+    "visual_intent_contract",
+    "brand_profile",
+    "ui_pre_return",
+    "design_quality"
+  ],
+  "matched_signals": [
+    "Hero hierarchy matches the intended one-glance message.",
+    "Accent and surface roles align with the brand profile."
+  ],
+  "drift_signals": []
+}

@@ -31,6 +31,7 @@ from tools.atlas_governance_check import (
     _load_skill_registry_index_first_rules,
     _load_ui_ux_design_system_rules,
     _load_business_idea_simulation_rules,
+    _load_visual_fidelity_judge_rules,
     _validate_external_tool_policy,
     _validate_mcp_profiles,
     _validate_docs_search_catalog,
@@ -55,6 +56,7 @@ from tools.atlas_governance_check import (
     _validate_skill_registry_index_first_rules,
     _validate_ui_ux_design_system_rules,
     _validate_business_idea_simulation_rules,
+    _validate_visual_fidelity_judge_rules,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
@@ -271,6 +273,28 @@ def test_business_idea_simulation_rules_require_core_inputs():
 
     assert any(
         finding.startswith("business_idea_simulation_rules_missing_required_inputs:")
+        for finding in findings
+    )
+
+
+def test_visual_fidelity_judge_rules_require_core_layers_and_viewports():
+    findings = []
+    invalid_rules = _load_visual_fidelity_judge_rules(ROOT)
+    invalid_rules["required_viewports"] = ["desktop"]
+    invalid_rules["core_compared_layers"] = ["visual_intent_contract"]
+
+    with patch(
+        "tools.atlas_governance_check._load_visual_fidelity_judge_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_visual_fidelity_judge_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("visual_fidelity_judge_rules_missing_required_viewports:")
+        for finding in findings
+    )
+    assert any(
+        finding.startswith("visual_fidelity_judge_rules_missing_core_layers:")
         for finding in findings
     )
 

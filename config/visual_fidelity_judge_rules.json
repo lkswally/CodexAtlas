@@ -1,0 +1,51 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "frontend_project_types": [
+    "frontend_app",
+    "fullstack",
+    "internal_tool"
+  ],
+  "candidate_report_paths": [
+    ".atlas/visual_fidelity_report.json",
+    "docs/visual_fidelity_report.json",
+    "visual_fidelity_report.json"
+  ],
+  "candidate_screenshot_dirs": [
+    ".atlas/screenshots",
+    "docs/screenshots",
+    "screenshots",
+    "evidence/screenshots"
+  ],
+  "required_viewports": [
+    "desktop",
+    "mobile"
+  ],
+  "viewport_filename_tokens": {
+    "desktop": [
+      "desktop",
+      "wide",
+      "xl"
+    ],
+    "mobile": [
+      "mobile",
+      "phone",
+      "sm"
+    ]
+  },
+  "core_compared_layers": [
+    "visual_intent_contract",
+    "brand_profile"
+  ],
+  "supporting_compared_layers": [
+    "ui_pre_return",
+    "design_quality"
+  ],
+  "minimum_signal_count": 2,
+  "warning_codes": [
+    "visual_fidelity_missing_evidence",
+    "visual_fidelity_missing_report",
+    "visual_fidelity_drift_detected",
+    "visual_fidelity_invalid_report"
+  ]
+}

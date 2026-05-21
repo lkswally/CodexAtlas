@@ -1,0 +1,11 @@
+{
+  "provided_viewports": [
+    "desktop",
+    "mobile"
+  ],
+  "compared_layers": [
+    "visual_intent_contract"
+  ],
+  "matched_signals": [],
+  "drift_signals": []
+}

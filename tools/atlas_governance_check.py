@@ -44,6 +44,7 @@ REQUIRED_ROOT_FILES = (
     "config/creative_pipeline_profiles.json",
     "config/component_inspiration_profiles.json",
     "config/playwright_visual_qa_profiles.json",
+    "config/visual_fidelity_judge_rules.json",
     "config/design_quality_enforcement_rules.json",
     "config/atlas_error_learning_rules.json",
     "config/codex_runtime_compatibility_rules.json",
@@ -103,6 +104,7 @@ REQUIRED_ROOT_FILES = (
     "policies/creative_pipeline_readiness_policy.md",
     "policies/component_inspiration_readiness_policy.md",
     "policies/playwright_visual_qa_readiness_policy.md",
+    "policies/visual_fidelity_judge_policy.md",
     "policies/design_quality_enforcement_policy.md",
     "policies/atlas_error_learning_policy.md",
     "policies/codex_runtime_compatibility_policy.md",
@@ -187,6 +189,7 @@ REQUIRED_ROOT_FILES = (
     "tools/creative_pipeline_readiness.py",
     "tools/component_inspiration_readiness.py",
     "tools/playwright_visual_qa_readiness.py",
+    "tools/visual_fidelity_judge.py",
     "tools/design_quality_enforcement.py",
     "tools/atlas_error_learning_review.py",
     "tools/codex_runtime_compatibility_check.py",
@@ -227,6 +230,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_creative_pipeline_readiness.py",
     "tests/test_component_inspiration_readiness.py",
     "tests/test_playwright_visual_qa_readiness.py",
+    "tests/test_visual_fidelity_judge.py",
     "tests/test_design_quality_enforcement.py",
     "tests/test_atlas_error_learning_review.py",
     "tests/test_codex_runtime_compatibility_check.py",
@@ -1105,6 +1109,27 @@ BUSINESS_IDEA_SIMULATION_REQUIRED_EXPERIMENT_FIELDS = {
     "time_estimate",
     "success_signal",
 }
+VISUAL_FIDELITY_JUDGE_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "frontend_project_types",
+    "candidate_report_paths",
+    "candidate_screenshot_dirs",
+    "required_viewports",
+    "viewport_filename_tokens",
+    "core_compared_layers",
+    "supporting_compared_layers",
+    "minimum_signal_count",
+    "warning_codes",
+}
+VISUAL_FIDELITY_JUDGE_REQUIRED_VIEWPORTS = {
+    "desktop",
+    "mobile",
+}
+VISUAL_FIDELITY_JUDGE_REQUIRED_CORE_LAYERS = {
+    "visual_intent_contract",
+    "brand_profile",
+}
 MODEL_COST_CONTROL_REQUIRED_FIELDS = {
     "version",
     "advisory_only",
@@ -1288,6 +1313,10 @@ def _load_repo_graph_readiness_rules(root: Path) -> Dict[str, Any]:
 
 def _load_business_idea_simulation_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "business_idea_simulation_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_visual_fidelity_judge_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "visual_fidelity_judge_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -3073,6 +3102,70 @@ def _validate_business_idea_simulation_rules(root: Path, findings: List[str]) ->
                 )
 
 
+def _validate_visual_fidelity_judge_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_visual_fidelity_judge_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_visual_fidelity_judge_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("visual_fidelity_judge_rules_not_object")
+        return
+
+    missing_fields = VISUAL_FIDELITY_JUDGE_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(f"visual_fidelity_judge_rules_missing_fields:{','.join(sorted(missing_fields))}")
+
+    for field_name in (
+        "frontend_project_types",
+        "candidate_report_paths",
+        "candidate_screenshot_dirs",
+        "required_viewports",
+        "core_compared_layers",
+        "supporting_compared_layers",
+        "warning_codes",
+    ):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not value:
+            findings.append(f"visual_fidelity_judge_rules_invalid_{field_name}")
+
+    required_viewports = {
+        str(item).strip()
+        for item in rules.get("required_viewports", [])
+        if str(item).strip()
+    }
+    missing_viewports = VISUAL_FIDELITY_JUDGE_REQUIRED_VIEWPORTS - required_viewports
+    if missing_viewports:
+        findings.append(
+            f"visual_fidelity_judge_rules_missing_required_viewports:{','.join(sorted(missing_viewports))}"
+        )
+
+    core_layers = {
+        str(item).strip()
+        for item in rules.get("core_compared_layers", [])
+        if str(item).strip()
+    }
+    missing_core_layers = VISUAL_FIDELITY_JUDGE_REQUIRED_CORE_LAYERS - core_layers
+    if missing_core_layers:
+        findings.append(
+            f"visual_fidelity_judge_rules_missing_core_layers:{','.join(sorted(missing_core_layers))}"
+        )
+
+    viewport_filename_tokens = rules.get("viewport_filename_tokens")
+    if not isinstance(viewport_filename_tokens, dict) or not viewport_filename_tokens:
+        findings.append("visual_fidelity_judge_rules_invalid_viewport_filename_tokens")
+    else:
+        for viewport in VISUAL_FIDELITY_JUDGE_REQUIRED_VIEWPORTS:
+            value = viewport_filename_tokens.get(viewport)
+            if not isinstance(value, list) or not value:
+                findings.append(f"visual_fidelity_judge_rules_missing_viewport_tokens:{viewport}")
+
+    minimum_signal_count = rules.get("minimum_signal_count")
+    if not isinstance(minimum_signal_count, int) or minimum_signal_count < 1:
+        findings.append("visual_fidelity_judge_rules_invalid_minimum_signal_count")
+
+
 def _validate_docs_search_catalog(root: Path, findings: List[str]) -> None:
     try:
         catalog = _load_docs_search_catalog(root)
@@ -3952,6 +4045,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_ui_ux_design_system_rules(root, findings)
         _validate_repo_graph_readiness_rules(root, findings)
         _validate_business_idea_simulation_rules(root, findings)
+        _validate_visual_fidelity_judge_rules(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)
