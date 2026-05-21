@@ -1,0 +1,17 @@
+{
+  "judge_summary": "Screenshots reveal drift in spacing density and CTA emphasis.",
+  "provided_viewports": [
+    "desktop",
+    "mobile"
+  ],
+  "compared_layers": [
+    "visual_intent_contract",
+    "brand_profile"
+  ],
+  "matched_signals": [
+    "Base palette follows the intended direction."
+  ],
+  "drift_signals": [
+    "Hero CTA is visually buried under equal-weight secondary blocks."
+  ]
+}

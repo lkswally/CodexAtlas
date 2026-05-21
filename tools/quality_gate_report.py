@@ -115,6 +115,10 @@ try:
     from tools.business_idea_simulation_readiness import assess_business_idea_simulation_readiness
 except ModuleNotFoundError:
     from business_idea_simulation_readiness import assess_business_idea_simulation_readiness
+try:
+    from tools.visual_fidelity_judge import assess_visual_fidelity_judge
+except ModuleNotFoundError:
+    from visual_fidelity_judge import assess_visual_fidelity_judge
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -623,6 +627,19 @@ def _run_evidence_collector_readiness(
     except Exception as exc:
         return _build_failed_report("evidence_collector_readiness", f"evidence_collector_readiness_failed:{exc}")
     return _build_ok_report("evidence_collector_readiness", report)
+
+
+def _run_visual_fidelity_judge(
+    *,
+    root: Path,
+    project: Path,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    try:
+        report = assess_visual_fidelity_judge(payload, root=root, project=project)
+    except Exception as exc:
+        return _build_failed_report("visual_fidelity_judge", f"visual_fidelity_judge_failed:{exc}")
+    return _build_ok_report("visual_fidelity_judge", report)
 
 
 def _run_change_proposal_readiness(
@@ -1316,6 +1333,55 @@ def _build_evidence_collector_warnings(review: Optional[Dict[str, Any]]) -> List
     return warnings
 
 
+def _build_visual_fidelity_warnings(review: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    review = review or {}
+    warnings: List[Dict[str, Any]] = []
+    fidelity_state = str(review.get("fidelity_state", "")).strip()
+
+    if fidelity_state == "blocked":
+        warnings.append(
+            {
+                "source": "visual_fidelity_judge",
+                "check": "visual_fidelity_invalid_report",
+                "severity": "high",
+                "message": "Visual fidelity evidence exists, but Atlas cannot trust the report because the structured judge artifact is malformed.",
+                "evidence": [str(review.get("report_error", "")).strip()] if str(review.get("report_error", "")).strip() else [],
+            }
+        )
+    elif fidelity_state == "drift_detected":
+        warnings.append(
+            {
+                "source": "visual_fidelity_judge",
+                "check": "visual_fidelity_drift_detected",
+                "severity": "high",
+                "message": "Screenshot-backed comparison found visual drift against the intended spec or brand system.",
+                "evidence": list(review.get("drift_signals", []))[:4],
+            }
+        )
+    elif bool(review.get("screenshot_evidence_present")) and not bool(review.get("can_support_visual_pass")):
+        warnings.append(
+            {
+                "source": "visual_fidelity_judge",
+                "check": "visual_fidelity_missing_report",
+                "severity": "medium",
+                "message": "Screenshot evidence exists, but Atlas still lacks a strong screenshot-versus-intent comparison report.",
+                "evidence": list(review.get("missing_viewports", []))[:2] + list(review.get("missing_compared_layers", []))[:2],
+            }
+        )
+    elif fidelity_state == "insufficient_evidence":
+        warnings.append(
+            {
+                "source": "visual_fidelity_judge",
+                "check": "visual_fidelity_missing_evidence",
+                "severity": "medium",
+                "message": "Atlas cannot judge visual fidelity strongly yet because screenshot-backed comparison evidence is still missing.",
+                "evidence": list(review.get("missing_viewports", []))[:2],
+            }
+        )
+
+    return warnings
+
+
 FILE_CHANGE_DECLARATION_CANDIDATES = (
     ".atlas-file-change-declaration.json",
     ".atlas/file-change-declaration.json",
@@ -1646,6 +1712,18 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             ],
         },
     )
+    source_reports["visual_fidelity_judge"] = _run_visual_fidelity_judge(
+        root=root,
+        project=project,
+        payload={
+            "project_type": ((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "unknown",
+            "visual_intent_contract_review": visual_intent_from_design or visual_intent_from_intent or {},
+            "brand_profile_review": brand_profile_review or {},
+            "ui_pre_return_review": ui_pre_return_review or {},
+            "design_quality_review": design_quality_review or {},
+            "provided_evidence": (source_reports["evidence_collector_readiness"]["report"] or {}).get("provided_evidence", []),
+        },
+    )
     inferred_complexity = (
         str((source_reports["project_intent_analyzer"]["report"] or {}).get("complexity", "low")).strip().lower()
         if source_reports["project_intent_analyzer"]["status"] == "ok"
@@ -1727,6 +1805,9 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     for item in _build_evidence_collector_warnings(source_reports["evidence_collector_readiness"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
+    for item in _build_visual_fidelity_warnings(source_reports["visual_fidelity_judge"].get("report")):
+        _unique_priority_append(candidate_priorities, item, candidate_seen)
+        _unique_priority_append(warnings, item, seen)
     for item in _build_file_change_declaration_warnings(source_reports["file_change_declaration_verification"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
@@ -1772,6 +1853,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     brand_json_v2_review = source_reports["brand_json_v2_readiness"].get("report") or {}
     frontend_auto_audit_review = source_reports["frontend_auto_audit_rules"].get("report") or {}
     evidence_collector_review = source_reports["evidence_collector_readiness"].get("report") or {}
+    visual_fidelity_review = source_reports["visual_fidelity_judge"].get("report") or {}
     if overall_status == "ready":
         if str(intent_clarifier_review.get("status", "")).strip() not in {"", "ready", "skipped"}:
             overall_status = "needs_improvement"
@@ -1782,6 +1864,10 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         if str((source_reports["atlas_error_learning_review"].get("report") or {}).get("status", "")).strip() == "needs_improvement":
             overall_status = "needs_improvement"
         if not bool(evidence_collector_review.get("can_claim_ready", False)) and str(evidence_collector_review.get("readiness_state", "")).strip() in {"evidence_missing", "evidence_partial"}:
+            overall_status = "needs_improvement"
+        if str(visual_fidelity_review.get("fidelity_state", "")).strip() == "drift_detected":
+            overall_status = "needs_improvement"
+        if bool(visual_fidelity_review.get("screenshot_evidence_present")) and not bool(visual_fidelity_review.get("can_support_visual_pass", False)):
             overall_status = "needs_improvement"
     confidence_level = _derive_confidence_level(source_reports)
     if confidence_level == "high" and overall_status == "needs_improvement":
@@ -2104,6 +2190,26 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "requires_decision_council": bool((source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("requires_decision_council")),
             "why": (source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["playwright_visual_qa_readiness"]["report"] or {}).get("advisory_only", True)),
+        },
+        "visual_fidelity_posture": {
+            "status": (source_reports["visual_fidelity_judge"]["report"] or {}).get("status"),
+            "fidelity_state": (source_reports["visual_fidelity_judge"]["report"] or {}).get("fidelity_state"),
+            "report_detected": bool((source_reports["visual_fidelity_judge"]["report"] or {}).get("report_detected")),
+            "report_path": (source_reports["visual_fidelity_judge"]["report"] or {}).get("report_path"),
+            "screenshot_evidence_present": bool((source_reports["visual_fidelity_judge"]["report"] or {}).get("screenshot_evidence_present")),
+            "required_viewports": (source_reports["visual_fidelity_judge"]["report"] or {}).get("required_viewports", []),
+            "provided_viewports": (source_reports["visual_fidelity_judge"]["report"] or {}).get("provided_viewports", []),
+            "missing_viewports": (source_reports["visual_fidelity_judge"]["report"] or {}).get("missing_viewports", []),
+            "compared_layers": (source_reports["visual_fidelity_judge"]["report"] or {}).get("compared_layers", []),
+            "missing_compared_layers": (source_reports["visual_fidelity_judge"]["report"] or {}).get("missing_compared_layers", []),
+            "matched_signals": (source_reports["visual_fidelity_judge"]["report"] or {}).get("matched_signals", []),
+            "drift_signals": (source_reports["visual_fidelity_judge"]["report"] or {}).get("drift_signals", []),
+            "confidence": (source_reports["visual_fidelity_judge"]["report"] or {}).get("confidence"),
+            "can_support_visual_pass": bool((source_reports["visual_fidelity_judge"]["report"] or {}).get("can_support_visual_pass")),
+            "must_not_claim_visual_pass_without_evidence": bool((source_reports["visual_fidelity_judge"]["report"] or {}).get("must_not_claim_visual_pass_without_evidence", True)),
+            "manual_next_steps": (source_reports["visual_fidelity_judge"]["report"] or {}).get("manual_next_steps", []),
+            "why": (source_reports["visual_fidelity_judge"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["visual_fidelity_judge"]["report"] or {}).get("advisory_only", True)),
         },
         "codex_runtime_posture": {
             "status": (source_reports["codex_runtime_compatibility_check"]["report"] or {}).get("status"),

@@ -110,6 +110,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["component_inspiration_posture"]["advisory_only"] is True
     assert isinstance(result["visual_qa_readiness_posture"], dict)
     assert result["visual_qa_readiness_posture"]["advisory_only"] is True
+    assert isinstance(result["visual_fidelity_posture"], dict)
+    assert result["visual_fidelity_posture"]["advisory_only"] is True
     assert isinstance(result["error_learning_posture"], dict)
     assert result["error_learning_posture"]["advisory_only"] is True
     assert isinstance(result["codex_runtime_posture"], dict)
@@ -174,6 +176,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert "blocked_profiles" in result["component_inspiration_posture"]
     assert "playwright_available" in result["visual_qa_readiness_posture"]
     assert "blocked_profiles" in result["visual_qa_readiness_posture"]
+    assert "fidelity_state" in result["visual_fidelity_posture"]
+    assert "can_support_visual_pass" in result["visual_fidelity_posture"]
     assert "triggered_signals" in result["error_learning_posture"]
     assert "recommended_model_tier" in result["model_cost_control_posture"]
     assert "fallback_posture" in result["model_cost_control_posture"]
@@ -226,6 +230,14 @@ def test_quality_gate_report_exposes_visual_qa_readiness_posture():
     assert result["visual_qa_readiness_posture"]["advisory_only"] is True
     assert "playwright_available" in result["visual_qa_readiness_posture"]
     assert "blocked_profiles" in result["visual_qa_readiness_posture"]
+
+
+def test_quality_gate_report_exposes_visual_fidelity_posture():
+    result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+    assert isinstance(result["visual_fidelity_posture"], dict)
+    assert result["visual_fidelity_posture"]["advisory_only"] is True
+    assert "fidelity_state" in result["visual_fidelity_posture"]
+    assert "must_not_claim_visual_pass_without_evidence" in result["visual_fidelity_posture"]
 
 
 def test_quality_gate_report_exposes_error_learning_and_codex_runtime_postures():
@@ -1128,3 +1140,85 @@ def test_quality_gate_report_exposes_brand_json_v2_and_frontend_auto_audit_postu
     assert result["frontend_auto_audit_posture"]["status"] == "needs_improvement"
     assert "brand_json_v2_missing" in warning_codes
     assert "frontend_auto_audit_not_ready" in warning_codes
+
+
+def test_quality_gate_report_downgrades_ready_when_visual_fidelity_detects_drift():
+    phase_report = {
+        "ok": True,
+        "result": {
+            "status": "ok",
+            "current_phase": "audit",
+            "confidence": "high",
+            "blocked_actions": [],
+            "next_valid_phases": ["certified"],
+            "recommended_actions": ["Run certify-project once audit findings are resolved."],
+        },
+    }
+    fake_audit = {"ok": True, "result": {"status": "ok", "findings": []}}
+    fake_certify = {"ok": True, "result": {"status": "ok", "blockers": [], "warnings": []}}
+    fake_surface = {"ok": True, "result": {"status": "ok", "warnings": [], "recommendations": []}}
+    fake_design = {
+        "status": "pass",
+        "public_readiness": "ready",
+        "landing_score": 94,
+        "warnings": [],
+        "quick_wins": [],
+        "checks": [{"id": "responsive_baseline", "status": "pass", "evidence": ["viewport_meta=true"]}],
+        "recommendation_sources": [],
+        "visual_intent_contract_review": {"status": "ready", "contract": {"project_type": "frontend_app", "audience": "for developers", "evidence_expectations": ["proof"]}},
+        "brand_profile_review": {"status": "ready", "explicit_profile_present": True, "profile": {}},
+        "ui_pre_return_review": {"status": "pass", "pass_ready": True, "warnings": [], "blockers": [], "missing_evidence": []},
+        "design_quality_review": {"status": "ready", "ready_for_handoff": True, "detected_risks": [], "warnings": [], "blockers": []},
+    }
+    fake_intent = {
+        "status": "ready",
+        "project_type": "frontend_app",
+        "objective": "Create an Atlas landing page.",
+        "risk_level": "medium",
+        "complexity": "medium",
+        "visual_intent_contract": {"status": "ready", "contract": {"project_type": "frontend_app", "audience": "for developers"}},
+    }
+
+    def fake_dispatch(command_id, root=None, project=None):
+        class _Res:
+            def __init__(self, output):
+                self.output = output
+
+        mapping = {
+            "project-phase-report": phase_report,
+            "audit-repo": fake_audit,
+            "certify-project": fake_certify,
+            "surface-audit": fake_surface,
+        }
+        return _Res(mapping[command_id])
+
+    fake_visual_fidelity = {
+        "status": "needs_attention",
+        "fidelity_state": "drift_detected",
+        "report_detected": True,
+        "report_path": "docs/visual_fidelity_report.json",
+        "screenshot_evidence_present": True,
+        "required_viewports": ["desktop", "mobile"],
+        "provided_viewports": ["desktop", "mobile"],
+        "missing_viewports": [],
+        "compared_layers": ["visual_intent_contract", "brand_profile"],
+        "missing_compared_layers": [],
+        "matched_signals": ["Palette intent is still visible."],
+        "drift_signals": ["CTA hierarchy is visually buried."],
+        "confidence": "medium",
+        "can_support_visual_pass": False,
+        "must_not_claim_visual_pass_without_evidence": True,
+        "manual_next_steps": ["Resolve the reported drift before claiming a strong PASS."],
+        "why": "Drift detected.",
+        "advisory_only": True,
+    }
+
+    with patch("tools.quality_gate_report._dispatch_output", side_effect=lambda command_id, root=None, project=None: fake_dispatch(command_id, root=root, project=project).output):
+        with patch("tools.quality_gate_report.anti_generic_ui_audit", return_value=fake_design):
+            with patch("tools.quality_gate_report.analyze_project_intent", return_value=fake_intent):
+                with patch("tools.quality_gate_report.assess_visual_fidelity_judge", return_value=fake_visual_fidelity):
+                    result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+
+    assert result["overall_status"] == "needs_improvement"
+    assert result["visual_fidelity_posture"]["fidelity_state"] == "drift_detected"
+    assert any(item["check"] == "visual_fidelity_drift_detected" for item in result["warnings"])
