@@ -64,4 +64,5 @@ def test_atlas_run_reaches_full_mode_when_git_and_governance_are_present():
     assert result["agent_selected"] is True
     assert result["codex_executor_ready"] is True
     assert result["executor"]["status"] == "ready"
+    assert "--ask-for-approval" not in result["executor"]["command_preview"]
     assert result["envelope"]["status"] == "ready"

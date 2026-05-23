@@ -27,6 +27,71 @@ def _build_codex_prompt(*, project_path: Path, task: str, plan: List[str], workf
     )
 
 
+def _detect_codex_exec_capabilities() -> Dict[str, Any]:
+    try:
+        process = subprocess.run(
+            ["codex", "exec", "--help"],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+    except Exception as exc:
+        return {
+            "detected": False,
+            "reason": f"codex_exec_help_unavailable:{exc}",
+            "supports_cd": False,
+            "supports_sandbox": False,
+            "supports_output_last_message": False,
+            "supports_ask_for_approval": False,
+        }
+
+    help_text = "\n".join(part for part in ((process.stdout or ""), (process.stderr or "")) if part)
+    return {
+        "detected": process.returncode == 0,
+        "reason": "codex_exec_help_available" if process.returncode == 0 else "codex_exec_help_not_callable",
+        "supports_cd": "--cd" in help_text or "-C, --cd" in help_text,
+        "supports_sandbox": "--sandbox" in help_text,
+        "supports_output_last_message": "--output-last-message" in help_text,
+        "supports_ask_for_approval": "--ask-for-approval" in help_text,
+    }
+
+
+def _build_codex_exec_command(
+    *,
+    project_path: Path,
+    prompt: str,
+    output_file: Optional[Path],
+    capabilities: Dict[str, Any],
+) -> tuple[List[str], List[str]]:
+    command = ["codex", "exec"]
+    warnings: List[str] = []
+
+    if capabilities.get("supports_cd"):
+        command.extend(["--cd", str(project_path)])
+    else:
+        warnings.append("missing_exec_flag:cd")
+
+    if capabilities.get("supports_sandbox"):
+        command.extend(["--sandbox", "workspace-write"])
+    else:
+        warnings.append("missing_exec_flag:sandbox")
+
+    if capabilities.get("supports_ask_for_approval"):
+        command.extend(["--ask-for-approval", "on-request"])
+    else:
+        warnings.append("missing_exec_flag:ask_for_approval")
+
+    if output_file is not None:
+        if capabilities.get("supports_output_last_message"):
+            command.extend(["--output-last-message", str(output_file)])
+        else:
+            warnings.append("missing_exec_flag:output_last_message")
+
+    command.append(prompt)
+    return command, warnings
+
+
 def codex_executor_readiness() -> Dict[str, Any]:
     try:
         process = subprocess.run(
@@ -42,12 +107,14 @@ def codex_executor_readiness() -> Dict[str, Any]:
             "codex_executor_ready": False,
             "reason": f"codex_cli_unavailable:{exc}",
         }
+    capabilities = _detect_codex_exec_capabilities()
     return {
         "status": "ready" if process.returncode == 0 else "blocked",
         "codex_executor_ready": process.returncode == 0,
         "stdout": (process.stdout or "").strip(),
         "stderr": (process.stderr or "").strip(),
         "reason": "codex_cli_available" if process.returncode == 0 else "codex_cli_not_callable",
+        "capabilities": capabilities,
     }
 
 
@@ -65,6 +132,7 @@ def execute_via_atlas_codex(
     readiness = codex_executor_readiness()
     if not readiness.get("codex_executor_ready"):
         return readiness
+    capabilities = readiness.get("capabilities", {})
 
     prompt = _build_codex_prompt(
         project_path=project_path,
@@ -75,6 +143,13 @@ def execute_via_atlas_codex(
         skill=skill,
     )
 
+    preview_command, compatibility_warnings = _build_codex_exec_command(
+        project_path=project_path,
+        prompt=prompt,
+        output_file=None,
+        capabilities=capabilities,
+    )
+
     if dry_run or mode != "execute":
         return {
             "status": "ready",
@@ -82,36 +157,21 @@ def execute_via_atlas_codex(
             "invoked": False,
             "mode": mode,
             "dry_run": dry_run,
-            "command_preview": [
-                "codex",
-                "exec",
-                "--cd",
-                str(project_path),
-                "--sandbox",
-                "workspace-write",
-                "--ask-for-approval",
-                "on-request",
-                prompt,
-            ],
+            "capabilities": capabilities,
+            "compatibility_warnings": compatibility_warnings,
+            "command_preview": preview_command,
             "reason": "executor_ready_but_not_invoked",
         }
 
     with tempfile.NamedTemporaryFile(prefix="atlas-codex-last-message-", suffix=".txt", delete=False) as handle:
         output_file = Path(handle.name)
 
-    command = [
-        "codex",
-        "exec",
-        "--cd",
-        str(project_path),
-        "--sandbox",
-        "workspace-write",
-        "--ask-for-approval",
-        "on-request",
-        "--output-last-message",
-        str(output_file),
-        prompt,
-    ]
+    command, compatibility_warnings = _build_codex_exec_command(
+        project_path=project_path,
+        prompt=prompt,
+        output_file=output_file,
+        capabilities=capabilities,
+    )
     process = subprocess.run(
         command,
         check=False,
@@ -130,6 +190,8 @@ def execute_via_atlas_codex(
         "stdout": (process.stdout or "").strip(),
         "stderr": (process.stderr or "").strip(),
         "last_message": last_message.strip(),
+        "capabilities": capabilities,
+        "compatibility_warnings": compatibility_warnings,
         "command_preview": command,
     }
 
