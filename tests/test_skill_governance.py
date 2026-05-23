@@ -60,6 +60,7 @@ from tools.atlas_governance_check import (
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
+    _validate_global_project_templates,
     _validate_behavior_metadata,
     _validate_skill_behavior_consistency,
     _validate_skill_metadata,
@@ -776,6 +777,55 @@ def test_bootstrap_templates_reject_invalid_placeholders():
             "recommendation=ensure_the_placeholder_is_whitelisted_and_rendered_or_convert_it_to_static_text"
             for finding in findings
         )
+
+
+def test_global_project_templates_render_cleanly():
+    findings = []
+    _validate_global_project_templates(ROOT, findings)
+    assert findings == []
+
+
+def test_global_project_templates_reject_invalid_placeholders():
+    template_name = "AGENTS.md.template"
+    relative_path = "templates/project/AGENTS.md.template"
+    template_text = "# {project_name}\n\nUnsupported {project_profile}\n"
+
+    original_read_text = _read_text
+    original_exists = Path.exists
+
+    def fake_read_text(path, supplied_text=template_text):
+        if str(path).endswith(relative_path.replace("/", "\\")):
+            return supplied_text
+        return original_read_text(path)
+
+    def fake_exists(self):
+        if str(self).endswith(relative_path.replace("/", "\\")):
+            return True
+        return original_exists(self)
+
+    with patch("tools.atlas_governance_check._read_text", side_effect=fake_read_text):
+        with patch.object(Path, "exists", new=fake_exists):
+            findings = []
+            _validate_global_project_templates(ROOT, findings)
+
+    assert any(
+        finding
+        == "atlas_project_bootstrap:invalid_template_placeholder:"
+        "profile=global_project_governance:template=AGENTS:"
+        "file=templates/project/AGENTS.md.template:"
+        "placeholder={project_profile}:"
+        "recommendation=replace_with_whitelisted_placeholder_or_static_text"
+        for finding in findings
+    )
+    assert any(
+        finding
+        == "atlas_project_bootstrap:unresolved_template_placeholder:"
+        "profile=global_project_governance:template=AGENTS:"
+        "file=templates/project/AGENTS.md.template:"
+        "placeholder={project_profile}:"
+        "recommendation=ensure_the_placeholder_is_whitelisted_and_rendered_or_convert_it_to_static_text"
+        for finding in findings
+    )
 
 
 def test_governance_detects_forbidden_canonical_root_artifacts():

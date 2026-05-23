@@ -1,0 +1,13 @@
+{
+  "schema_version": "1.0",
+  "project_name": "{project_name}",
+  "project_type": "atlas-derived-project",
+  "project_profile": "{project_type}",
+  "atlas_root": "{atlas_root}",
+  "derived_from": "Codex-Atlas",
+  "bootstrap_tool": "atlas_project_bootstrap",
+  "generated_from_skill": "{generated_from_skill}",
+  "status_file": "SPRINT_STATUS.md",
+  "project_goal": "{project_goal}",
+  "scope_summary": "{scope}"
+}

@@ -1,0 +1,39 @@
+# SPRINT_STATUS - {project_name}
+
+## Governance
+- Atlas root: `{atlas_root}`
+- Generated from skill/tool: `{generated_from_skill}`
+- Project profile: `{project_type}`
+- Functional implementation requires `ATLAS completo` through `atlas_run.py` or `atlas.ps1`.
+
+## Current Sprint
+- Status: `bootstrap-governance`
+- Goal: {scope}
+
+## In Scope Now
+- create or repair `AGENTS.md`
+- create or repair `.atlas-project.json`
+- create or repair `SPRINT_STATUS.md`
+- audit project context and stack
+- define validation boundaries
+
+## Out of Scope Now
+- feature implementation
+- architecture rewrites
+- external integrations
+- hidden automation or MCP activation
+
+## Functional Work Gate
+
+Functional implementation is blocked until:
+1. governance files are present
+2. Git root exists
+3. project scope is explicit
+4. required checks are known
+
+## Required Checks
+- `python C:\\Proyectos\\Codex-Atlas\\tools\\atlas_context_audit.py --project "<project_root>"`
+- project build/test commands once approved
+
+## Next Step
+- move from bootstrap-governance to scoped implementation only after Atlas audit is green

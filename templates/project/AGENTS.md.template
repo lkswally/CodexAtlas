@@ -1,0 +1,71 @@
+# AGENTS.md - {project_name}
+
+## ATLAS Governance
+
+- This project is governed by CODEX ATLAS from `{atlas_root}`.
+- Generated from skill/tool: `{generated_from_skill}`.
+- Functional implementation requires `ATLAS completo` through `atlas_run.py` or `atlas.ps1`.
+- Do not work as direct/basic Codex in this project unless Lucas explicitly asks for it.
+
+## Mandatory Audit Before Changes
+
+Before modifying functional code, report:
+1. current working directory
+2. Git repo root
+3. global instruction files read
+4. local instruction files read
+5. whether `.atlas-project.json` exists
+6. whether `AGENTS.md` exists
+7. whether `SPRINT_STATUS.md` or `PROJECT_STATUS.md` exists
+8. whether the project is linked to Atlas
+9. whether the Atlas dispatcher exists
+10. whether the Atlas command registry exists
+11. allowed work
+12. blocked work
+13. mandatory checks
+14. active operating mode
+
+## Blocking Rule
+
+If any of these are missing:
+- Git root
+- `AGENTS.md`
+- `.atlas-project.json`
+- `SPRINT_STATUS.md` or `PROJECT_STATUS.md`
+
+then functional implementation must stop.
+
+Only these actions are allowed:
+- create or repair governance files
+- prepare bootstrap
+- generate an audit report
+- initialize Git only with explicit approval
+
+## Local Scope
+
+- Project profile: `{project_type}`
+- Goal summary: {project_goal}
+- Scope summary: {scope}
+
+## Default Boundaries
+
+- Keep Atlas core outside this repo.
+- Do not copy Atlas runtime internals into the project.
+- Do not add MCP, hidden hooks or automatic dependency installers during governance bootstrap.
+- Respect sprint and phase boundaries before implementation.
+
+## Required Checks
+
+- Atlas context audit
+- relevant project build/test checks once governance is present
+- any phase-specific checks recorded in `SPRINT_STATUS.md`
+
+## Task Closeout
+
+Before closing, report:
+- modified files
+- operating mode used
+- checks executed
+- results
+- pending items
+- whether ATLAS was respected

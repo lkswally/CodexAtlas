@@ -3702,6 +3702,46 @@ def _validate_bootstrap_templates(root: Path, contract: Dict[str, Any], findings
                     )
 
 
+def _validate_global_project_templates(root: Path, findings: List[str]) -> None:
+    sample_values = _sample_bootstrap_template_values("frontend_app")
+    template_specs = (
+        ("templates/project/AGENTS.md.template", "AGENTS"),
+        ("templates/project/.atlas-project.json.template", "PROJECT_METADATA"),
+        ("templates/project/SPRINT_STATUS.md.template", "SPRINT_STATUS"),
+    )
+
+    for relative_path, template_label in template_specs:
+        template_path = root / relative_path
+        if not template_path.exists():
+            findings.append(f"atlas_project_bootstrap:missing_template_file:{relative_path}")
+            continue
+
+        template_text = _read_text(template_path)
+        placeholders = _extract_template_placeholders(template_text)
+        for raw_placeholder, placeholder_name in placeholders:
+            if placeholder_name not in ALLOWED_BOOTSTRAP_TEMPLATE_PLACEHOLDERS:
+                findings.append(
+                    "atlas_project_bootstrap:"
+                    "invalid_template_placeholder:"
+                    "profile=global_project_governance:"
+                    f"template={template_label}:file={relative_path}:"
+                    f"placeholder={raw_placeholder}:"
+                    "recommendation=replace_with_whitelisted_placeholder_or_static_text"
+                )
+
+        rendered = _render_template_with_sample_values(template_text, sample_values)
+        unresolved = _extract_template_placeholders(rendered)
+        for raw_placeholder, _placeholder_name in unresolved:
+            findings.append(
+                "atlas_project_bootstrap:"
+                "unresolved_template_placeholder:"
+                "profile=global_project_governance:"
+                f"template={template_label}:file={relative_path}:"
+                f"placeholder={raw_placeholder}:"
+                "recommendation=ensure_the_placeholder_is_whitelisted_and_rendered_or_convert_it_to_static_text"
+            )
+
+
 def _validate_bootstrap_contract_consistency(
     metadata: Dict[str, Any],
     behavior: Dict[str, Any],
@@ -4049,6 +4089,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)
+        _validate_global_project_templates(root, findings)
         _check_legacy_mirror(_primary_registry_path(root), _legacy_registry_path(root), "atomic_command_registry", findings)
         _check_legacy_mirror(_primary_mcp_policy_path(root), _legacy_mcp_policy_path(root), "mcp_connector_policy", findings)
         _check_legacy_mirror(_primary_context_protocol_path(root), _legacy_context_protocol_path(root), "context_refresh_protocol", findings)
