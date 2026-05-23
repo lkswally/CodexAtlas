@@ -1353,6 +1353,16 @@ def _execute_project_bootstrap(
         ),
     )
     _write_file_if_missing(
+        target / "PROJECT_STATUS.md",
+        _render_template_text(
+            _load_template_text(
+                resolved_root,
+                str(contract.get("project_status_template", "templates/project_bootstrap/PROJECT_STATUS.md.template")),
+            ),
+            template_variables,
+        ),
+    )
+    _write_file_if_missing(
         target / ".atlas-project.json",
         json.dumps(
             {
@@ -1364,6 +1374,8 @@ def _execute_project_bootstrap(
                 "generated_from_skill": "project-bootstrap",
                 "derived_from": "Codex-Atlas",
                 "atlas_root": str(DEFAULT_ROOT),
+                "governance_mode": "atlas_full",
+                "project_status_file": "PROJECT_STATUS.md",
                 "audit_paths": directories,
                 "status": "bootstrapped",
             },

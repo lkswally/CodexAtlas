@@ -32,9 +32,11 @@
   "required_files": [
     "README.md",
     "AGENTS.md",
-    ".atlas-project.json"
+    ".atlas-project.json",
+    "PROJECT_STATUS.md"
   ],
   "optional_files": [],
+  "project_status_template": "templates/project_bootstrap/PROJECT_STATUS.md.template",
   "forbidden_outputs": [
     "runtime business logic modules",
     "automatic dependency installers",
@@ -208,6 +210,7 @@
     "README.md exists",
     "AGENTS.md exists",
     ".atlas-project.json exists",
+    "PROJECT_STATUS.md exists",
     "metadata marks the project as atlas-derived-project"
   ],
   "safety_limits": [

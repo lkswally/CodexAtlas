@@ -1,0 +1,31 @@
+# PROJECT_STATUS for {{project_name}}
+
+## Governance Mode
+- Default mode: `ATLAS full governance`
+- Atlas root: `{{atlas_root}}`
+- Bootstrap source: `{{generated_from_skill}}`
+
+## Current Phase
+- Status: `bootstrap`
+- Project profile: `{{project_type}}`
+- Scope summary: {{scope}}
+
+## Allowed Work Right Now
+- clarify scope, architecture and validation paths
+- create governance, docs and local plans
+- prepare runtime implementation only after the project contract is explicit
+
+## Blocked Work Right Now
+- functional implementation without local governance context
+- hidden automation, MCP activation or dependency installers
+- major architecture changes without explicit approval
+
+## Required Checks Before Functional Work
+1. Confirm local `AGENTS.md` exists.
+2. Confirm local `.atlas-project.json` exists.
+3. Confirm this `PROJECT_STATUS.md` is current.
+4. Confirm the project is still governed from `{{atlas_root}}`.
+5. Confirm the next approved phase and validation target.
+
+## Next Update Trigger
+- update this file when phase, scope, blockers or validation targets change

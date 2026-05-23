@@ -6,7 +6,7 @@
   "execution_helper": "project_bootstrap_scaffold",
   "side_effects": [
     "creates a minimal derived-project scaffold under the explicit output_dir",
-    "writes README.md, AGENTS.md and .atlas-project.json"
+    "writes README.md, AGENTS.md, .atlas-project.json and PROJECT_STATUS.md"
   ],
   "requires_project_path": false,
   "requires_output_dir": true,

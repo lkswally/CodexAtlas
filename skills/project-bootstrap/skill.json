@@ -44,7 +44,8 @@
     "files": [
       "README.md",
       "AGENTS.md",
-      ".atlas-project.json"
+      ".atlas-project.json",
+      "PROJECT_STATUS.md"
     ]
   },
   "safety_limits": [
@@ -76,6 +77,7 @@
     "README.md exists",
     "AGENTS.md exists",
     ".atlas-project.json exists",
+    "PROJECT_STATUS.md exists",
     "metadata marks the project as atlas-derived-project"
   ]
 }

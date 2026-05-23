@@ -75,7 +75,7 @@ Optional quality input:
 
 Minimum generated structure:
 - directories: `docs`, `memory`, `workflows`, `policies`, `tools`
-- files: `README.md`, `AGENTS.md`, `.atlas-project.json`
+- files: `README.md`, `AGENTS.md`, `.atlas-project.json`, `PROJECT_STATUS.md`
 - additional directories and content focus depend on the selected `project_type`
 
 Safety limits:
@@ -95,6 +95,7 @@ Validation checks:
 - `README.md` exists
 - `AGENTS.md` exists
 - `.atlas-project.json` exists
+- `PROJECT_STATUS.md` exists
 - metadata declares `project_type = atlas-derived-project`
 
 The execution helper must consume this contract from metadata rather than rebuilding it inline.

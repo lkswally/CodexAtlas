@@ -3,11 +3,13 @@
 ## Project Context
 - This is an Atlas-derived `{{project_type}}` scaffold.
 - Runtime-specific frontend decisions must stay local to this derived project.
+- Default operating mode is `ATLAS full governance`.
 
 ## Working Boundaries
 - Keep Atlas governance and mother configuration outside this repo.
 - Define audience, visual direction and component boundaries before implementation.
 - Do not enable deploy automation, MCPs or hidden hooks during bootstrap.
+- If `AGENTS.md`, `.atlas-project.json` or `PROJECT_STATUS.md` are missing, block functional implementation and repair governance first.
 
 ## Recommended Roles
 - `ux_brand` for audience and direction.
@@ -18,3 +20,4 @@
 - Document the target audience and UX direction in README.md and docs/.
 - Use app/, ui/ and assets/ only as structure placeholders until the design direction is explicit.
 - Keep implementation decisions subordinate to the documented product intent.
+- Report the active ATLAS operating mode before closing any task.

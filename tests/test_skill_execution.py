@@ -103,9 +103,17 @@ def test_project_bootstrap_execution_returns_contract_and_expected_writes():
     assert str(ATLAS_ROOT) in written_files["README.md"]
     assert "Project Context" in written_files["AGENTS.md"]
     assert "ai_agent_system" in written_files["AGENTS.md"]
+    assert "ATLAS full governance" in written_files["AGENTS.md"]
+    assert "PROJECT_STATUS.md" in written_files["AGENTS.md"]
     assert "{{" not in written_files["README.md"]
     assert "{{" not in written_files["AGENTS.md"]
+    assert "ATLAS full governance" in written_files["PROJECT_STATUS.md"]
+    assert "PROJECT_STATUS for DerivedProject" in written_files["PROJECT_STATUS.md"]
+    assert str(ATLAS_ROOT) in written_files["PROJECT_STATUS.md"]
+    assert "{{" not in written_files["PROJECT_STATUS.md"]
     assert '"project_profile": "ai_agent_system"' in written_files[".atlas-project.json"]
+    assert '"governance_mode": "atlas_full"' in written_files[".atlas-project.json"]
+    assert '"project_status_file": "PROJECT_STATUS.md"' in written_files[".atlas-project.json"]
     assert len(derived_project_events) == 1
     _, event_payload = derived_project_events[0]
     assert event_payload["project_name"] == "DerivedProject"
@@ -199,8 +207,13 @@ def test_project_bootstrap_templates_render_minimum_content_for_all_profiles():
         assert "Bootstrap source: `project-bootstrap`" in written_files["README.md"]
         assert str(ATLAS_ROOT) in written_files["README.md"]
         assert execution["project_type"] in written_files["AGENTS.md"]
+        assert "ATLAS full governance" in written_files["AGENTS.md"]
+        assert "PROJECT_STATUS.md" in written_files["AGENTS.md"]
+        assert "ATLAS full governance" in written_files["PROJECT_STATUS.md"]
+        assert execution["project_type"] in written_files["PROJECT_STATUS.md"]
         assert "{{" not in written_files["README.md"]
         assert "{{" not in written_files["AGENTS.md"]
+        assert "{{" not in written_files["PROJECT_STATUS.md"]
 
 
 def test_product_branding_review_execution_returns_checklist():
