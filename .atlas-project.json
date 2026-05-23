@@ -1,0 +1,21 @@
+{
+  "schema_version": "1.0",
+  "project_name": "Codex-Atlas",
+  "project_type": "atlas-factory-core",
+  "project_profile": "backend_service",
+  "governance_mode": "atlas_completo",
+  "atlas_root": "C:\\Proyectos\\Codex-Atlas",
+  "status_file": "SPRINT_STATUS.md",
+  "project_goal": "CODEX ATLAS factory for governing derived projects, dispatcher-led workflows, registries, phase gates, and Codex execution.",
+  "scope_summary": "Enable ATLAS governance for the factory itself without changing functional code.",
+  "runtime_markers": [
+    "pyproject.toml",
+    "README.md",
+    "tools",
+    "commands",
+    "config",
+    "workflows",
+    "agents",
+    "policies"
+  ]
+}
