@@ -70,6 +70,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["source_reports"]["feedback_analyzer"]["status"] == "ok"
     assert result["source_reports"]["model_router"]["status"] == "ok"
     assert result["source_reports"]["error_pattern_analyzer"]["status"] == "ok"
+    assert result["source_reports"]["chrome_devtools_mcp_readiness"]["status"] == "ok"
     assert isinstance(result["intent_analysis"], dict)
     assert isinstance(result["design_quality_posture"], dict)
     assert isinstance(result["model_cost_control_posture"], dict)
@@ -112,6 +113,9 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["visual_qa_readiness_posture"]["advisory_only"] is True
     assert isinstance(result["visual_fidelity_posture"], dict)
     assert result["visual_fidelity_posture"]["advisory_only"] is True
+    assert isinstance(result["chrome_devtools_mcp_posture"], dict)
+    assert result["chrome_devtools_mcp_posture"]["auto_activate"] is False
+    assert result["chrome_devtools_mcp_posture"]["telemetry_risk"] in {"low", "medium", "high"}
     assert isinstance(result["error_learning_posture"], dict)
     assert result["error_learning_posture"]["advisory_only"] is True
     assert isinstance(result["codex_runtime_posture"], dict)
@@ -178,6 +182,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert "blocked_profiles" in result["visual_qa_readiness_posture"]
     assert "fidelity_state" in result["visual_fidelity_posture"]
     assert "can_support_visual_pass" in result["visual_fidelity_posture"]
+    assert "recommended_flags" in result["chrome_devtools_mcp_posture"]
+    assert "--no-usage-statistics" in result["chrome_devtools_mcp_posture"]["recommended_flags"]
     assert "triggered_signals" in result["error_learning_posture"]
     assert "recommended_model_tier" in result["model_cost_control_posture"]
     assert "fallback_posture" in result["model_cost_control_posture"]
@@ -238,6 +244,16 @@ def test_quality_gate_report_exposes_visual_fidelity_posture():
     assert result["visual_fidelity_posture"]["advisory_only"] is True
     assert "fidelity_state" in result["visual_fidelity_posture"]
     assert "must_not_claim_visual_pass_without_evidence" in result["visual_fidelity_posture"]
+
+
+def test_quality_gate_report_exposes_chrome_devtools_mcp_posture():
+    result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+    assert isinstance(result["chrome_devtools_mcp_posture"], dict)
+    assert result["chrome_devtools_mcp_posture"]["auto_activate"] is False
+    assert result["chrome_devtools_mcp_posture"]["activation_mode"] == "manual_opt_in"
+    assert result["chrome_devtools_mcp_posture"]["telemetry_risk"] in {"low", "medium", "high"}
+    assert result["chrome_devtools_mcp_posture"]["browser_profile_risk"] in {"low", "medium", "high"}
+    assert "--no-usage-statistics" in result["chrome_devtools_mcp_posture"]["recommended_flags"]
 
 
 def test_quality_gate_report_exposes_error_learning_and_codex_runtime_postures():

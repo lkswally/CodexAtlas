@@ -32,6 +32,7 @@ from tools.atlas_governance_check import (
     _load_ui_ux_design_system_rules,
     _load_business_idea_simulation_rules,
     _load_visual_fidelity_judge_rules,
+    _load_chrome_devtools_mcp_rules,
     _validate_external_tool_policy,
     _validate_mcp_profiles,
     _validate_docs_search_catalog,
@@ -57,6 +58,7 @@ from tools.atlas_governance_check import (
     _validate_ui_ux_design_system_rules,
     _validate_business_idea_simulation_rules,
     _validate_visual_fidelity_judge_rules,
+    _validate_chrome_devtools_mcp_rules,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
@@ -298,6 +300,25 @@ def test_visual_fidelity_judge_rules_require_core_layers_and_viewports():
         finding.startswith("visual_fidelity_judge_rules_missing_core_layers:")
         for finding in findings
     )
+
+
+def test_chrome_devtools_mcp_rules_require_core_fields_and_flag():
+    findings = []
+    invalid_rules = _load_chrome_devtools_mcp_rules(ROOT)
+    invalid_rules["best_for"] = ["layout_debugging"]
+    invalid_rules["recommended_flags"] = []
+
+    with patch(
+        "tools.atlas_governance_check._load_chrome_devtools_mcp_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_chrome_devtools_mcp_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("chrome_devtools_mcp_rules_missing_best_for:")
+        for finding in findings
+    )
+    assert "chrome_devtools_mcp_rules_missing_no_usage_statistics_flag" in findings
 
 
 def test_intent_clarifier_contract_rules_require_core_fields():

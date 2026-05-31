@@ -119,6 +119,10 @@ try:
     from tools.visual_fidelity_judge import assess_visual_fidelity_judge
 except ModuleNotFoundError:
     from visual_fidelity_judge import assess_visual_fidelity_judge
+try:
+    from tools.chrome_devtools_mcp_readiness import assess_chrome_devtools_mcp_readiness
+except ModuleNotFoundError:
+    from chrome_devtools_mcp_readiness import assess_chrome_devtools_mcp_readiness
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -640,6 +644,19 @@ def _run_visual_fidelity_judge(
     except Exception as exc:
         return _build_failed_report("visual_fidelity_judge", f"visual_fidelity_judge_failed:{exc}")
     return _build_ok_report("visual_fidelity_judge", report)
+
+
+def _run_chrome_devtools_mcp_readiness(
+    *,
+    root: Path,
+    project: Path,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    try:
+        report = assess_chrome_devtools_mcp_readiness(payload, root=root, project=project)
+    except Exception as exc:
+        return _build_failed_report("chrome_devtools_mcp_readiness", f"chrome_devtools_mcp_readiness_failed:{exc}")
+    return _build_ok_report("chrome_devtools_mcp_readiness", report)
 
 
 def _run_change_proposal_readiness(
@@ -1724,6 +1741,22 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "provided_evidence": (source_reports["evidence_collector_readiness"]["report"] or {}).get("provided_evidence", []),
         },
     )
+    source_reports["chrome_devtools_mcp_readiness"] = _run_chrome_devtools_mcp_readiness(
+        root=root,
+        project=project,
+        payload={
+            "project_type": ((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "unknown",
+            "objective": ((source_reports["project_intent_analyzer"]["report"] or {}).get("objective") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "",
+            "visual_intent_contract_review": visual_intent_from_design or visual_intent_from_intent or {},
+            "brand_profile_review": brand_profile_review or {},
+            "ui_pre_return_review": ui_pre_return_review or {},
+            "design_quality_review": design_quality_review or {},
+            "visual_fidelity_posture": source_reports["visual_fidelity_judge"]["report"] or {},
+            "design_checks": design_report.get("checks", []),
+            "design_warnings": design_report.get("warnings", []),
+            "recommendation_sources": design_report.get("recommendation_sources", []),
+        },
+    )
     inferred_complexity = (
         str((source_reports["project_intent_analyzer"]["report"] or {}).get("complexity", "low")).strip().lower()
         if source_reports["project_intent_analyzer"]["status"] == "ok"
@@ -2211,6 +2244,10 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "why": (source_reports["visual_fidelity_judge"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["visual_fidelity_judge"]["report"] or {}).get("advisory_only", True)),
         },
+        "chrome_devtools_mcp_posture": (source_reports["chrome_devtools_mcp_readiness"]["report"] or {}).get(
+            "chrome_devtools_mcp_posture",
+            {},
+        ),
         "codex_runtime_posture": {
             "status": (source_reports["codex_runtime_compatibility_check"]["report"] or {}).get("status"),
             "codex_cli_available": bool((source_reports["codex_runtime_compatibility_check"]["report"] or {}).get("codex_cli_available")),

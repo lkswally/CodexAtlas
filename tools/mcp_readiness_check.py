@@ -16,6 +16,13 @@ except ModuleNotFoundError:
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
 GLOBAL_CODEX_CONFIG = Path.home() / ".codex" / "config.toml"
+CHROME_DEVTOOLS_MCP_ALIASES = {
+    "chrome-devtools-mcp",
+    "chrome_devtools_mcp",
+    "chrome-devtools",
+    "chrome_devtools",
+    "chrome",
+}
 
 
 def _utc_now_iso() -> str:
@@ -38,6 +45,18 @@ def _extract_configured_mcp_servers(config_text: str) -> List[str]:
         if server and server not in servers:
             servers.append(server)
     return servers
+
+
+def _normalize_server_name(name: str) -> str:
+    return str(name or "").strip().lower().replace(" ", "_")
+
+
+def _detect_chrome_devtools_mcp_servers(configured_servers: List[str]) -> List[str]:
+    return [
+        server
+        for server in configured_servers
+        if _normalize_server_name(server) in CHROME_DEVTOOLS_MCP_ALIASES
+    ]
 
 
 def _probe_codex_mcp_list() -> Dict[str, object]:
@@ -112,6 +131,7 @@ def check_mcp_readiness(*, root: Optional[Path] = None) -> Dict[str, object]:
     config_path = Path(str(runtime.get("config_path") or GLOBAL_CODEX_CONFIG))
     config_text = _read_text_if_exists(config_path)
     configured_servers = _extract_configured_mcp_servers(config_text)
+    chrome_devtools_servers = _detect_chrome_devtools_mcp_servers(configured_servers)
     docs_configured = "openaiDeveloperDocs" in configured_servers or bool(runtime.get("configured_in_global_codex"))
     mcp_list = _probe_codex_mcp_list()
     mcp_cli_functional = bool(mcp_list.get("functional"))
@@ -137,6 +157,8 @@ def check_mcp_readiness(*, root: Optional[Path] = None) -> Dict[str, object]:
         "codex_mcp_list_error": mcp_list.get("error"),
         "configured_mcp_servers": configured_servers,
         "configured_mcp_server_count": len(configured_servers),
+        "chrome_devtools_mcp_configured": bool(chrome_devtools_servers),
+        "chrome_devtools_mcp_servers": chrome_devtools_servers,
         "openai_docs_mcp_configured": docs_configured,
         "openai_docs_mcp_functional": bool(real_mcp_safe and docs_configured and mcp_cli_functional),
         "real_mcp_safe_to_configure": real_mcp_safe,

@@ -25,6 +25,8 @@ def test_mcp_readiness_check_keeps_adapter_when_cli_is_blocked():
     assert result["real_mcp_safe_to_configure"] is False
     assert result["readiness_state"] == "codex_cli_unavailable"
     assert result["fallback"] == "docs_search_adapter"
+    assert result["chrome_devtools_mcp_configured"] is False
+    assert result["chrome_devtools_mcp_servers"] == []
     assert "do not modify" in result["recommended_action"].lower()
 
 
@@ -47,6 +49,7 @@ def test_mcp_readiness_distinguishes_cli_ready_from_configured_mcp():
     assert result["codex_mcp_cli_functional"] is True
     assert result["configured_mcp_servers"] == []
     assert result["configured_mcp_server_count"] == 0
+    assert result["chrome_devtools_mcp_configured"] is False
     assert result["openai_docs_mcp_configured"] is False
     assert result["openai_docs_mcp_functional"] is False
     assert result["real_mcp_safe_to_configure"] is False
@@ -60,6 +63,9 @@ def test_mcp_readiness_lists_configured_servers_without_claiming_functional_use(
 url = "https://developers.openai.com/mcp"
 
 [mcp_servers."21st_magic"]
+command = "npx"
+
+[mcp_servers.chrome-devtools-mcp]
 command = "npx"
 """
     with patch(
@@ -76,7 +82,9 @@ command = "npx"
             with patch("tools.mcp_readiness_check._probe_codex_mcp_list", return_value={"functional": True, "error": None, "stdout_preview": "openaiDeveloperDocs\n21st_magic", "stderr_preview": ""}):
                 result = check_mcp_readiness()
 
-    assert result["configured_mcp_servers"] == ["openaiDeveloperDocs", "21st_magic"]
+    assert result["configured_mcp_servers"] == ["openaiDeveloperDocs", "21st_magic", "chrome-devtools-mcp"]
+    assert result["chrome_devtools_mcp_configured"] is True
+    assert result["chrome_devtools_mcp_servers"] == ["chrome-devtools-mcp"]
     assert result["openai_docs_mcp_configured"] is True
     assert result["openai_docs_mcp_functional"] is False
     assert result["readiness_state"] == "configured_but_not_functionally_verified"

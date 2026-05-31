@@ -45,6 +45,7 @@ REQUIRED_ROOT_FILES = (
     "config/component_inspiration_profiles.json",
     "config/playwright_visual_qa_profiles.json",
     "config/visual_fidelity_judge_rules.json",
+    "config/chrome_devtools_mcp_rules.json",
     "config/design_quality_enforcement_rules.json",
     "config/atlas_error_learning_rules.json",
     "config/codex_runtime_compatibility_rules.json",
@@ -105,6 +106,7 @@ REQUIRED_ROOT_FILES = (
     "policies/component_inspiration_readiness_policy.md",
     "policies/playwright_visual_qa_readiness_policy.md",
     "policies/visual_fidelity_judge_policy.md",
+    "policies/chrome_devtools_mcp_policy.md",
     "policies/design_quality_enforcement_policy.md",
     "policies/atlas_error_learning_policy.md",
     "policies/codex_runtime_compatibility_policy.md",
@@ -190,6 +192,7 @@ REQUIRED_ROOT_FILES = (
     "tools/component_inspiration_readiness.py",
     "tools/playwright_visual_qa_readiness.py",
     "tools/visual_fidelity_judge.py",
+    "tools/chrome_devtools_mcp_readiness.py",
     "tools/design_quality_enforcement.py",
     "tools/atlas_error_learning_review.py",
     "tools/codex_runtime_compatibility_check.py",
@@ -231,6 +234,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_component_inspiration_readiness.py",
     "tests/test_playwright_visual_qa_readiness.py",
     "tests/test_visual_fidelity_judge.py",
+    "tests/test_chrome_devtools_mcp_readiness.py",
     "tests/test_design_quality_enforcement.py",
     "tests/test_atlas_error_learning_review.py",
     "tests/test_codex_runtime_compatibility_check.py",
@@ -627,6 +631,30 @@ BRAND_JSON_V2_REQUIRED_FIELDS = {
     "mood_vector_dimensions",
     "explicit_profile_required_for_ready",
     "minimum_evidence_expectations",
+}
+CHROME_DEVTOOLS_MCP_RULES_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "frontend_project_types",
+    "layout_debug_signals",
+    "console_debug_signals",
+    "network_debug_signals",
+    "performance_debug_signals",
+    "drift_trigger_states",
+    "screenshot_gap_signals",
+    "configured_server_aliases",
+    "best_for",
+    "recommended_flags",
+    "manual_setup_steps",
+    "risks",
+    "recommendation_thresholds",
+}
+REQUIRED_CHROME_DEVTOOLS_MCP_BEST_FOR = {
+    "layout_debugging",
+    "css_inspection",
+    "console_errors",
+    "network",
+    "performance",
 }
 REQUIRED_BRAND_JSON_V2_SECTIONS = {
     "brand_name",
@@ -1317,6 +1345,10 @@ def _load_business_idea_simulation_rules(root: Path) -> Dict[str, Any]:
 
 def _load_visual_fidelity_judge_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "visual_fidelity_judge_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_chrome_devtools_mcp_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "chrome_devtools_mcp_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -3102,6 +3134,67 @@ def _validate_business_idea_simulation_rules(root: Path, findings: List[str]) ->
                 )
 
 
+def _validate_chrome_devtools_mcp_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_chrome_devtools_mcp_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_chrome_devtools_mcp_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("chrome_devtools_mcp_rules_not_object")
+        return
+
+    missing_fields = CHROME_DEVTOOLS_MCP_RULES_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(f"chrome_devtools_mcp_rules_missing_fields:{','.join(sorted(missing_fields))}")
+
+    for field_name in (
+        "frontend_project_types",
+        "layout_debug_signals",
+        "console_debug_signals",
+        "network_debug_signals",
+        "performance_debug_signals",
+        "drift_trigger_states",
+        "screenshot_gap_signals",
+        "configured_server_aliases",
+        "best_for",
+        "recommended_flags",
+        "manual_setup_steps",
+    ):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not value:
+            findings.append(f"chrome_devtools_mcp_rules_invalid_{field_name}")
+
+    best_for = {str(item).strip() for item in rules.get("best_for", []) if str(item).strip()}
+    missing_best_for = REQUIRED_CHROME_DEVTOOLS_MCP_BEST_FOR - best_for
+    if missing_best_for:
+        findings.append(
+            f"chrome_devtools_mcp_rules_missing_best_for:{','.join(sorted(missing_best_for))}"
+        )
+
+    recommended_flags = {str(item).strip() for item in rules.get("recommended_flags", []) if str(item).strip()}
+    if "--no-usage-statistics" not in recommended_flags:
+        findings.append("chrome_devtools_mcp_rules_missing_no_usage_statistics_flag")
+
+    risks = rules.get("risks")
+    if not isinstance(risks, dict) or not risks:
+        findings.append("chrome_devtools_mcp_rules_invalid_risks")
+    else:
+        for field_name in ("telemetry_risk", "browser_profile_risk", "privacy_risk"):
+            value = str(risks.get(field_name, "")).strip()
+            if value not in {"low", "medium", "high"}:
+                findings.append(f"chrome_devtools_mcp_rules_invalid_risk:{field_name}")
+
+    thresholds = rules.get("recommendation_thresholds")
+    if not isinstance(thresholds, dict) or not thresholds:
+        findings.append("chrome_devtools_mcp_rules_invalid_recommendation_thresholds")
+    else:
+        minimum_symptom_count = thresholds.get("minimum_symptom_count")
+        if not isinstance(minimum_symptom_count, int) or minimum_symptom_count < 1:
+            findings.append("chrome_devtools_mcp_rules_invalid_minimum_symptom_count")
+
+
 def _validate_visual_fidelity_judge_rules(root: Path, findings: List[str]) -> None:
     try:
         rules = _load_visual_fidelity_judge_rules(root)
@@ -4086,6 +4179,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_repo_graph_readiness_rules(root, findings)
         _validate_business_idea_simulation_rules(root, findings)
         _validate_visual_fidelity_judge_rules(root, findings)
+        _validate_chrome_devtools_mcp_rules(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)

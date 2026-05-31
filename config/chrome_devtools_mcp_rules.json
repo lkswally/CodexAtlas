@@ -1,0 +1,89 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "frontend_project_types": [
+    "frontend_app",
+    "landing_page",
+    "marketing_site",
+    "dashboard",
+    "ui_surface",
+    "internal_tool"
+  ],
+  "layout_debug_signals": [
+    "layout",
+    "css",
+    "responsive",
+    "overflow",
+    "alignment",
+    "spacing",
+    "breakpoint",
+    "stacking",
+    "z-index",
+    "fold"
+  ],
+  "console_debug_signals": [
+    "console",
+    "javascript error",
+    "hydration",
+    "runtime error",
+    "warning",
+    "exception"
+  ],
+  "network_debug_signals": [
+    "network",
+    "request",
+    "fetch",
+    "api error",
+    "asset load",
+    "resource failed"
+  ],
+  "performance_debug_signals": [
+    "performance",
+    "slow",
+    "lag",
+    "layout shift",
+    "jank",
+    "lcp",
+    "cls",
+    "render blocking"
+  ],
+  "drift_trigger_states": [
+    "drift_detected"
+  ],
+  "screenshot_gap_signals": [
+    "missing_viewports",
+    "missing_compared_layers",
+    "cannot_support_visual_pass"
+  ],
+  "configured_server_aliases": [
+    "chrome-devtools-mcp",
+    "chrome_devtools_mcp",
+    "chrome-devtools",
+    "chrome_devtools",
+    "chrome"
+  ],
+  "best_for": [
+    "layout_debugging",
+    "css_inspection",
+    "console_errors",
+    "network",
+    "performance"
+  ],
+  "recommended_flags": [
+    "--no-usage-statistics"
+  ],
+  "manual_setup_steps": [
+    "Keep Atlas local audits as the first pass before considering browser-truth debugging.",
+    "Only configure Chrome DevTools MCP after explicit human approval.",
+    "Prefer --no-usage-statistics if the MCP is configured manually in the future.",
+    "Use a non-sensitive or isolated browser profile when real browser inspection is needed."
+  ],
+  "risks": {
+    "telemetry_risk": "medium",
+    "browser_profile_risk": "medium",
+    "privacy_risk": "medium"
+  },
+  "recommendation_thresholds": {
+    "minimum_symptom_count": 1
+  }
+}
