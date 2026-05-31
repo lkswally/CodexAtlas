@@ -56,6 +56,7 @@ REQUIRED_ROOT_FILES = (
     "config/ui_ux_design_system_rules.json",
     "config/repo_graph_readiness_rules.json",
     "config/business_idea_simulation_rules.json",
+    "config/copywriting_conversion_rules.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -117,6 +118,7 @@ REQUIRED_ROOT_FILES = (
     "policies/ui_ux_design_system_policy.md",
     "policies/repo_graph_readiness_policy.md",
     "policies/business_idea_simulation_policy.md",
+    "policies/copywriting_conversion_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
     "memory/session_summaries.md",
@@ -160,6 +162,9 @@ REQUIRED_ROOT_FILES = (
     "skills/business-idea-evaluator/skill.md",
     "skills/business-idea-evaluator/skill.json",
     "skills/business-idea-evaluator/behavior.json",
+    "skills/conversion-copywriter/skill.md",
+    "skills/conversion-copywriter/skill.json",
+    "skills/conversion-copywriter/behavior.json",
     "workflows/orchestrator_routing.md",
     "tools/atlas_orchestrator.py",
     "tools/design_intelligence_audit.py",
@@ -203,6 +208,7 @@ REQUIRED_ROOT_FILES = (
     "tools/ui_ux_design_system_readiness.py",
     "tools/repo_graph_readiness.py",
     "tools/business_idea_simulation_readiness.py",
+    "tools/copywriting_conversion_readiness.py",
     "tests/test_atlas_orchestrator.py",
     "tests/test_certify_project.py",
     "tests/test_docs_catalog_report.py",
@@ -245,6 +251,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_ui_ux_design_system_readiness.py",
     "tests/test_repo_graph_readiness.py",
     "tests/test_business_idea_simulation_readiness.py",
+    "tests/test_copywriting_conversion_readiness.py",
     "tests/test_surface_audit.py",
     "templates/project_bootstrap_profiles.md",
 )
@@ -655,6 +662,32 @@ REQUIRED_CHROME_DEVTOOLS_MCP_BEST_FOR = {
     "console_errors",
     "network",
     "performance",
+}
+COPYWRITING_CONVERSION_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "applicable_project_types",
+    "input_aliases",
+    "project_scan_files",
+    "blocked_claim_terms",
+    "instant_diagnosis_terms",
+    "generic_ai_phrases",
+    "aggressive_sales_phrases",
+    "strong_cta_terms",
+    "weak_cta_terms",
+    "audience_keywords",
+    "problem_keywords",
+    "value_keywords",
+    "form_follow_up_terms",
+    "consent_terms",
+    "trust_terms",
+    "ready_thresholds",
+}
+COPYWRITING_CONVERSION_REQUIRED_THRESHOLDS = {
+    "clarity_score",
+    "conversion_score",
+    "trust_score",
+    "tone_consistency_score",
 }
 REQUIRED_BRAND_JSON_V2_SECTIONS = {
     "brand_name",
@@ -1349,6 +1382,10 @@ def _load_visual_fidelity_judge_rules(root: Path) -> Dict[str, Any]:
 
 def _load_chrome_devtools_mcp_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "chrome_devtools_mcp_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_copywriting_conversion_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "copywriting_conversion_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -3195,6 +3232,62 @@ def _validate_chrome_devtools_mcp_rules(root: Path, findings: List[str]) -> None
             findings.append("chrome_devtools_mcp_rules_invalid_minimum_symptom_count")
 
 
+def _validate_copywriting_conversion_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_copywriting_conversion_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_copywriting_conversion_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("copywriting_conversion_rules_not_object")
+        return
+
+    missing_fields = COPYWRITING_CONVERSION_REQUIRED_FIELDS - set(rules.keys())
+    if missing_fields:
+        findings.append(f"copywriting_conversion_rules_missing_fields:{','.join(sorted(missing_fields))}")
+
+    for field_name in (
+        "applicable_project_types",
+        "project_scan_files",
+        "blocked_claim_terms",
+        "instant_diagnosis_terms",
+        "generic_ai_phrases",
+        "aggressive_sales_phrases",
+        "strong_cta_terms",
+        "weak_cta_terms",
+        "audience_keywords",
+        "problem_keywords",
+        "value_keywords",
+        "form_follow_up_terms",
+        "consent_terms",
+        "trust_terms",
+    ):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not value:
+            findings.append(f"copywriting_conversion_rules_invalid_{field_name}")
+
+    input_aliases = rules.get("input_aliases")
+    if not isinstance(input_aliases, dict) or not input_aliases:
+        findings.append("copywriting_conversion_rules_invalid_input_aliases")
+
+    thresholds = rules.get("ready_thresholds")
+    if not isinstance(thresholds, dict) or not thresholds:
+        findings.append("copywriting_conversion_rules_invalid_ready_thresholds")
+    else:
+        missing_thresholds = COPYWRITING_CONVERSION_REQUIRED_THRESHOLDS - set(thresholds.keys())
+        if missing_thresholds:
+            findings.append(
+                f"copywriting_conversion_rules_missing_ready_thresholds:{','.join(sorted(missing_thresholds))}"
+            )
+        for field_name in COPYWRITING_CONVERSION_REQUIRED_THRESHOLDS:
+            if field_name not in thresholds:
+                continue
+            value = thresholds.get(field_name)
+            if not isinstance(value, int) or value < 0 or value > 100:
+                findings.append(f"copywriting_conversion_rules_invalid_threshold:{field_name}")
+
+
 def _validate_visual_fidelity_judge_rules(root: Path, findings: List[str]) -> None:
     try:
         rules = _load_visual_fidelity_judge_rules(root)
@@ -4180,6 +4273,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_business_idea_simulation_rules(root, findings)
         _validate_visual_fidelity_judge_rules(root, findings)
         _validate_chrome_devtools_mcp_rules(root, findings)
+        _validate_copywriting_conversion_rules(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)

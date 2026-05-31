@@ -1,0 +1,174 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "applicable_project_types": [
+    "frontend_app",
+    "landing_page",
+    "marketing_site",
+    "dashboard",
+    "ui_surface",
+    "internal_tool"
+  ],
+  "input_aliases": {
+    "target_audience": ["target_audience", "audience", "customer", "user_segment"],
+    "problem": ["problem", "pain_point", "problem_statement", "customer_problem"],
+    "value_proposition": ["value_proposition", "offer", "promise", "benefit"],
+    "hero_text": ["hero_text", "hero_copy", "headline", "hero_message"],
+    "cta_labels": ["cta_labels", "cta", "cta_text", "buttons"],
+    "next_step": ["next_step", "what_happens_next", "follow_up", "next_action"],
+    "form_microcopy": ["form_microcopy", "form_text", "form_copy", "microcopy"],
+    "data_handling": ["data_handling", "privacy_note", "consent_copy", "privacy_copy"],
+    "proof_points": ["proof_points", "evidence", "social_proof", "trust_signals"],
+    "brand_tone": ["brand_tone", "tone", "voice", "tone_notes"],
+    "page_text": ["page_text", "copy_text", "landing_copy", "body_copy"]
+  },
+  "project_scan_files": [
+    "index.html",
+    "README.md",
+    "app/page.tsx",
+    "app/page.jsx",
+    "pages/index.tsx",
+    "pages/index.jsx",
+    "src/pages/index.tsx",
+    "src/pages/index.jsx",
+    "src/app/page.tsx",
+    "src/app/page.jsx",
+    "validar-idea/index.html"
+  ],
+  "blocked_claim_terms": [
+    "rentabilidad garantizada",
+    "ganancias garantizadas",
+    "guaranteed profitability",
+    "guaranteed revenue",
+    "guaranteed conversion",
+    "ventas garantizadas"
+  ],
+  "instant_diagnosis_terms": [
+    "diagnóstico instantáneo",
+    "diagnostico instantaneo",
+    "instant diagnosis",
+    "instant report",
+    "resultado inmediato"
+  ],
+  "generic_ai_phrases": [
+    "transformá tu negocio con ia",
+    "transforma tu negocio con ia",
+    "revolucioná tu negocio",
+    "revoluciona tu negocio",
+    "lleva tu negocio al siguiente nivel",
+    "unlock the power of ai",
+    "powered by ai",
+    "next generation solution"
+  ],
+  "aggressive_sales_phrases": [
+    "comprá ahora",
+    "compra ahora",
+    "before it's too late",
+    "no te quedes afuera",
+    "last chance",
+    "limited time only",
+    "guaranteed results fast"
+  ],
+  "strong_cta_terms": [
+    "start",
+    "create",
+    "book",
+    "contact",
+    "request",
+    "send",
+    "download",
+    "validate",
+    "configurar",
+    "crear",
+    "agendar",
+    "escribir",
+    "enviar",
+    "probar"
+  ],
+  "weak_cta_terms": [
+    "learn more",
+    "see more",
+    "discover",
+    "explore",
+    "más info",
+    "ver más",
+    "leer más"
+  ],
+  "audience_keywords": [
+    "teams",
+    "founders",
+    "builders",
+    "developers",
+    "designers",
+    "product teams",
+    "startups",
+    "equipos",
+    "equipos de producto",
+    "technical pms"
+  ],
+  "problem_keywords": [
+    "chaos",
+    "waste",
+    "friction",
+    "slow",
+    "manual",
+    "sin sistema",
+    "improvisación",
+    "improvisacion",
+    "caos",
+    "pierde tiempo",
+    "dolor"
+  ],
+  "value_keywords": [
+    "clarity",
+    "structure",
+    "governance",
+    "control",
+    "audit",
+    "quality gate",
+    "factory",
+    "claridad",
+    "estructura",
+    "control",
+    "auditoría",
+    "auditoria"
+  ],
+  "form_follow_up_terms": [
+    "what happens next",
+    "next step",
+    "te vamos a escribir",
+    "te contactamos",
+    "we will contact",
+    "you will receive",
+    "recibirás",
+    "recibiras",
+    "manual review"
+  ],
+  "consent_terms": [
+    "privacy",
+    "privacidad",
+    "consent",
+    "consentimiento",
+    "datos",
+    "data",
+    "no spam",
+    "tratamiento"
+  ],
+  "trust_terms": [
+    "no guarantee",
+    "sin garantía",
+    "does not replace",
+    "no reemplaza",
+    "human review",
+    "revisión humana",
+    "revision humana",
+    "validación real",
+    "validacion real"
+  ],
+  "ready_thresholds": {
+    "clarity_score": 75,
+    "conversion_score": 70,
+    "trust_score": 75,
+    "tone_consistency_score": 70
+  }
+}

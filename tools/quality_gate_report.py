@@ -123,6 +123,10 @@ try:
     from tools.chrome_devtools_mcp_readiness import assess_chrome_devtools_mcp_readiness
 except ModuleNotFoundError:
     from chrome_devtools_mcp_readiness import assess_chrome_devtools_mcp_readiness
+try:
+    from tools.copywriting_conversion_readiness import assess_copywriting_conversion_readiness
+except ModuleNotFoundError:
+    from copywriting_conversion_readiness import assess_copywriting_conversion_readiness
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -657,6 +661,19 @@ def _run_chrome_devtools_mcp_readiness(
     except Exception as exc:
         return _build_failed_report("chrome_devtools_mcp_readiness", f"chrome_devtools_mcp_readiness_failed:{exc}")
     return _build_ok_report("chrome_devtools_mcp_readiness", report)
+
+
+def _run_copywriting_conversion_readiness(
+    *,
+    root: Path,
+    project: Path,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    try:
+        report = assess_copywriting_conversion_readiness(payload, root=root, project=project)
+    except Exception as exc:
+        return _build_failed_report("copywriting_conversion_readiness", f"copywriting_conversion_readiness_failed:{exc}")
+    return _build_ok_report("copywriting_conversion_readiness", report)
 
 
 def _run_change_proposal_readiness(
@@ -1557,6 +1574,40 @@ def _build_file_change_declaration_warnings(review: Optional[Dict[str, Any]]) ->
     ]
 
 
+def _build_copywriting_conversion_warnings(review: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not isinstance(review, dict):
+        return []
+    state = str(review.get("copy_readiness_state", "")).strip()
+    if state in {"", "ready", "not_applicable"}:
+        return []
+
+    items: List[Dict[str, Any]] = []
+    must_not_claim = list(review.get("must_not_claim", []))
+    if state == "blocked":
+        items.append(
+            {
+                "source": "copywriting_conversion_readiness",
+                "check": "copy_blocked_claims",
+                "severity": "blocker",
+                "message": str(review.get("recommended_next_step") or "Copy contains blocked commercial claims."),
+                "evidence": must_not_claim[:3] or list(review.get("warnings", []))[:3],
+            }
+        )
+
+    for warning in list(review.get("warnings", []))[:3]:
+        severity = "high" if any(term in str(warning).lower() for term in ("guaranteed", "instant", "privacy", "consent")) else "medium"
+        items.append(
+            {
+                "source": "copywriting_conversion_readiness",
+                "check": "copy_warning",
+                "severity": severity,
+                "message": str(warning),
+                "evidence": list(review.get("recommended_changes", []))[:2],
+            }
+        )
+    return items
+
+
 def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     root = root.resolve()
     project = project.resolve()
@@ -1757,6 +1808,20 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "recommendation_sources": design_report.get("recommendation_sources", []),
         },
     )
+    source_reports["copywriting_conversion_readiness"] = _run_copywriting_conversion_readiness(
+        root=root,
+        project=project,
+        payload={
+            "project_type": ((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "unknown",
+            "target_audience": ((visual_intent_from_design or visual_intent_from_intent or {}).get("contract") or {}).get("audience")
+            or ((brand_profile_review or {}).get("profile") or {}).get("audience"),
+            "problem": ((visual_intent_from_design or visual_intent_from_intent or {}).get("contract") or {}).get("problem")
+            or ((source_reports["project_intent_analyzer"]["report"] or {}).get("problem_statement") if source_reports["project_intent_analyzer"]["status"] == "ok" else None),
+            "value_proposition": ((visual_intent_from_design or visual_intent_from_intent or {}).get("contract") or {}).get("value_proposition")
+            or ((source_reports["project_intent_analyzer"]["report"] or {}).get("objective") if source_reports["project_intent_analyzer"]["status"] == "ok" else None),
+            "brand_tone": ((brand_profile_review or {}).get("profile") or {}).get("voice_attributes"),
+        },
+    )
     inferred_complexity = (
         str((source_reports["project_intent_analyzer"]["report"] or {}).get("complexity", "low")).strip().lower()
         if source_reports["project_intent_analyzer"]["status"] == "ok"
@@ -1841,6 +1906,9 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     for item in _build_visual_fidelity_warnings(source_reports["visual_fidelity_judge"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
+    for item in _build_copywriting_conversion_warnings(source_reports["copywriting_conversion_readiness"].get("report")):
+        _unique_priority_append(candidate_priorities, item, candidate_seen)
+        _unique_priority_append(warnings, item, seen)
     for item in _build_file_change_declaration_warnings(source_reports["file_change_declaration_verification"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
@@ -1887,6 +1955,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     frontend_auto_audit_review = source_reports["frontend_auto_audit_rules"].get("report") or {}
     evidence_collector_review = source_reports["evidence_collector_readiness"].get("report") or {}
     visual_fidelity_review = source_reports["visual_fidelity_judge"].get("report") or {}
+    copywriting_review = source_reports["copywriting_conversion_readiness"].get("report") or {}
     if overall_status == "ready":
         if str(intent_clarifier_review.get("status", "")).strip() not in {"", "ready", "skipped"}:
             overall_status = "needs_improvement"
@@ -1901,6 +1970,10 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         if str(visual_fidelity_review.get("fidelity_state", "")).strip() == "drift_detected":
             overall_status = "needs_improvement"
         if bool(visual_fidelity_review.get("screenshot_evidence_present")) and not bool(visual_fidelity_review.get("can_support_visual_pass", False)):
+            overall_status = "needs_improvement"
+        if str(copywriting_review.get("copy_readiness_state", "")).strip() == "blocked":
+            overall_status = "not_ready"
+        elif str(copywriting_review.get("copy_readiness_state", "")).strip() == "needs_improvement":
             overall_status = "needs_improvement"
     confidence_level = _derive_confidence_level(source_reports)
     if confidence_level == "high" and overall_status == "needs_improvement":
@@ -2141,6 +2214,20 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "model_cost_guidance": (source_reports["business_idea_simulation_readiness"]["report"] or {}).get("model_cost_guidance", {}),
             "why": (source_reports["business_idea_simulation_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["business_idea_simulation_readiness"]["report"] or {}).get("advisory_only", True)),
+        },
+        "copywriting_conversion_posture": {
+            "status": (source_reports["copywriting_conversion_readiness"]["report"] or {}).get("status"),
+            "copy_readiness_state": (source_reports["copywriting_conversion_readiness"]["report"] or {}).get("copy_readiness_state"),
+            "clarity_score": (source_reports["copywriting_conversion_readiness"]["report"] or {}).get("clarity_score"),
+            "conversion_score": (source_reports["copywriting_conversion_readiness"]["report"] or {}).get("conversion_score"),
+            "trust_score": (source_reports["copywriting_conversion_readiness"]["report"] or {}).get("trust_score"),
+            "tone_consistency_score": (source_reports["copywriting_conversion_readiness"]["report"] or {}).get("tone_consistency_score"),
+            "hero_message": (source_reports["copywriting_conversion_readiness"]["report"] or {}).get("hero_message", {}),
+            "warnings": (source_reports["copywriting_conversion_readiness"]["report"] or {}).get("warnings", []),
+            "recommended_changes": (source_reports["copywriting_conversion_readiness"]["report"] or {}).get("recommended_changes", []),
+            "must_not_claim": (source_reports["copywriting_conversion_readiness"]["report"] or {}).get("must_not_claim", []),
+            "why": (source_reports["copywriting_conversion_readiness"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["copywriting_conversion_readiness"]["report"] or {}).get("advisory_only", True)),
         },
         "error_learning_posture": {
             "status": (source_reports["atlas_error_learning_review"]["report"] or {}).get("status"),

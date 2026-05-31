@@ -33,6 +33,7 @@ from tools.atlas_governance_check import (
     _load_business_idea_simulation_rules,
     _load_visual_fidelity_judge_rules,
     _load_chrome_devtools_mcp_rules,
+    _load_copywriting_conversion_rules,
     _validate_external_tool_policy,
     _validate_mcp_profiles,
     _validate_docs_search_catalog,
@@ -59,6 +60,7 @@ from tools.atlas_governance_check import (
     _validate_business_idea_simulation_rules,
     _validate_visual_fidelity_judge_rules,
     _validate_chrome_devtools_mcp_rules,
+    _validate_copywriting_conversion_rules,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
@@ -319,6 +321,25 @@ def test_chrome_devtools_mcp_rules_require_core_fields_and_flag():
         for finding in findings
     )
     assert "chrome_devtools_mcp_rules_missing_no_usage_statistics_flag" in findings
+
+
+def test_copywriting_conversion_rules_require_core_fields_and_thresholds():
+    findings = []
+    invalid_rules = _load_copywriting_conversion_rules(ROOT)
+    invalid_rules["blocked_claim_terms"] = []
+    invalid_rules["ready_thresholds"] = {"clarity_score": 70}
+
+    with patch(
+        "tools.atlas_governance_check._load_copywriting_conversion_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_copywriting_conversion_rules(ROOT, findings)
+
+    assert "copywriting_conversion_rules_invalid_blocked_claim_terms" in findings
+    assert any(
+        finding.startswith("copywriting_conversion_rules_missing_ready_thresholds:")
+        for finding in findings
+    )
 
 
 def test_intent_clarifier_contract_rules_require_core_fields():

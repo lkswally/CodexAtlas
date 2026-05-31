@@ -1,0 +1,18 @@
+{
+  "writes_files": false,
+  "writes_code": false,
+  "uses_output_dir": false,
+  "read_only": true,
+  "execution_helper": "copywriting_conversion_readiness",
+  "side_effects": [
+    "returns a structured copywriting and conversion review without changing Atlas or derived projects",
+    "surfaces clarity, trust, CTA and objection-handling issues while keeping claims conservative"
+  ],
+  "requires_project_path": false,
+  "requires_output_dir": false,
+  "can_run_without_approval": true,
+  "notes": [
+    "This skill is advisory-only.",
+    "It should improve clarity and credibility, not simulate conversion guarantees."
+  ]
+}

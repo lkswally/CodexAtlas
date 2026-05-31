@@ -67,6 +67,7 @@ Capas principales:
 - `anti-generic-ui-audit`
 - `design-system-review`
 - `business-idea-evaluator`
+- `conversion-copywriter`
 
 ## Workflows disponibles
 

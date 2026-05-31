@@ -1,0 +1,59 @@
+{
+  "name": "conversion-copywriter",
+  "intent_keywords": [
+    "landing copy",
+    "hero message",
+    "conversion copy",
+    "cta review",
+    "microcopy",
+    "brand voice",
+    "trust copy",
+    "sales narrative"
+  ],
+  "agent": "planner",
+  "workflow": "atlas_project_pipeline",
+  "model_profile": "deep_reasoning",
+  "risk_level": "medium",
+  "requires_human_approval": false,
+  "supports_execution": true,
+  "required_inputs": [
+    "page_copy_or_hero_text",
+    "target_audience_if_known",
+    "cta_or_next_step_if_known"
+  ],
+  "execution_mode": "read_only",
+  "allowed_paths_policy": "no_filesystem_writes",
+  "expected_outputs": [
+    "copy readiness posture",
+    "clarity and conversion review",
+    "trust and tone warnings",
+    "recommended copy changes"
+  ],
+  "safety_limits": [
+    "do not promise guaranteed sales or profitability",
+    "do not invent proof, metrics or customer evidence",
+    "do not use aggressive hype as a substitute for clarity",
+    "do not change visual design as part of the copy review"
+  ],
+  "forbidden_actions": [
+    "claim guaranteed revenue",
+    "claim diagnosis is instant when no real backend exists",
+    "invent testimonials, benchmarks or research",
+    "modify derived projects while auditing copy"
+  ],
+  "human_approval_triggers": [
+    "the task asks for fabricated proof, exaggerated claims or fake urgency",
+    "the task turns into legal, compliance or privacy advice",
+    "the task requires modifying a derived project instead of reviewing copy"
+  ],
+  "rollback_manual": [
+    "no rollback needed because the skill is advisory-only",
+    "if suggestions are copied into a project later, review them manually before publishing"
+  ],
+  "validations": [
+    "output includes readiness state and scores",
+    "output flags unsupported claims and weak CTAs",
+    "output surfaces missing audience/problem/value inputs",
+    "recommended changes stay concrete and non-hype"
+  ]
+}
