@@ -127,6 +127,10 @@ try:
     from tools.copywriting_conversion_readiness import assess_copywriting_conversion_readiness
 except ModuleNotFoundError:
     from copywriting_conversion_readiness import assess_copywriting_conversion_readiness
+try:
+    from tools.brand_strategy_readiness import assess_brand_strategy_readiness
+except ModuleNotFoundError:
+    from brand_strategy_readiness import assess_brand_strategy_readiness
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -674,6 +678,19 @@ def _run_copywriting_conversion_readiness(
     except Exception as exc:
         return _build_failed_report("copywriting_conversion_readiness", f"copywriting_conversion_readiness_failed:{exc}")
     return _build_ok_report("copywriting_conversion_readiness", report)
+
+
+def _run_brand_strategy_readiness(
+    *,
+    root: Path,
+    project: Path,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    try:
+        report = assess_brand_strategy_readiness(payload, root=root, project=project)
+    except Exception as exc:
+        return _build_failed_report("brand_strategy_readiness", f"brand_strategy_readiness_failed:{exc}")
+    return _build_ok_report("brand_strategy_readiness", report)
 
 
 def _run_change_proposal_readiness(
@@ -1608,6 +1625,39 @@ def _build_copywriting_conversion_warnings(review: Optional[Dict[str, Any]]) -> 
     return items
 
 
+def _build_brand_strategy_warnings(review: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not isinstance(review, dict):
+        return []
+    state = str(review.get("brand_readiness_state", "")).strip()
+    if state in {"", "ready", "not_applicable"}:
+        return []
+
+    items: List[Dict[str, Any]] = []
+    if state == "blocked":
+        items.append(
+            {
+                "source": "brand_strategy_readiness",
+                "check": "brand_strategy_blocked",
+                "severity": "blocker",
+                "message": str(review.get("why") or "Brand strategy contains blocked trust or positioning issues."),
+                "evidence": list(review.get("warnings", []))[:3],
+            }
+        )
+
+    for warning in list(review.get("warnings", []))[:3]:
+        severity = "high" if any(term in str(warning).lower() for term in ("trust", "claim", "audience", "template")) else "medium"
+        items.append(
+            {
+                "source": "brand_strategy_readiness",
+                "check": "brand_strategy_warning",
+                "severity": severity,
+                "message": str(warning),
+                "evidence": list(review.get("recommended_changes", []))[:2],
+            }
+        )
+    return items
+
+
 def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     root = root.resolve()
     project = project.resolve()
@@ -1822,6 +1872,26 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "brand_tone": ((brand_profile_review or {}).get("profile") or {}).get("voice_attributes"),
         },
     )
+    source_reports["brand_strategy_readiness"] = _run_brand_strategy_readiness(
+        root=root,
+        project=project,
+        payload={
+            "project_type": ((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "unknown",
+            "project_name": project.name,
+            "objective": ((source_reports["project_intent_analyzer"]["report"] or {}).get("objective") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "",
+            "target_audience": ((visual_intent_from_design or visual_intent_from_intent or {}).get("contract") or {}).get("audience")
+            or ((brand_profile_review or {}).get("profile") or {}).get("audience"),
+            "category": ((brand_profile_review or {}).get("profile") or {}).get("project_type")
+            or ((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else None),
+            "positioning": ((visual_intent_from_design or visual_intent_from_intent or {}).get("contract") or {}).get("problem_or_promise")
+            or ((source_reports["project_intent_analyzer"]["report"] or {}).get("objective") if source_reports["project_intent_analyzer"]["status"] == "ok" else None),
+            "brand_profile_review": brand_profile_review or {},
+            "visual_intent_contract_review": visual_intent_from_design or visual_intent_from_intent or {},
+            "copywriting_conversion_posture": source_reports["copywriting_conversion_readiness"]["report"] or {},
+            "design_quality_review": design_report,
+            "design_warnings": design_report.get("warnings", []),
+        },
+    )
     inferred_complexity = (
         str((source_reports["project_intent_analyzer"]["report"] or {}).get("complexity", "low")).strip().lower()
         if source_reports["project_intent_analyzer"]["status"] == "ok"
@@ -1909,6 +1979,9 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     for item in _build_copywriting_conversion_warnings(source_reports["copywriting_conversion_readiness"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
+    for item in _build_brand_strategy_warnings(source_reports["brand_strategy_readiness"].get("report")):
+        _unique_priority_append(candidate_priorities, item, candidate_seen)
+        _unique_priority_append(warnings, item, seen)
     for item in _build_file_change_declaration_warnings(source_reports["file_change_declaration_verification"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
@@ -1956,6 +2029,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     evidence_collector_review = source_reports["evidence_collector_readiness"].get("report") or {}
     visual_fidelity_review = source_reports["visual_fidelity_judge"].get("report") or {}
     copywriting_review = source_reports["copywriting_conversion_readiness"].get("report") or {}
+    brand_strategy_review = source_reports["brand_strategy_readiness"].get("report") or {}
     if overall_status == "ready":
         if str(intent_clarifier_review.get("status", "")).strip() not in {"", "ready", "skipped"}:
             overall_status = "needs_improvement"
@@ -1974,6 +2048,10 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         if str(copywriting_review.get("copy_readiness_state", "")).strip() == "blocked":
             overall_status = "not_ready"
         elif str(copywriting_review.get("copy_readiness_state", "")).strip() == "needs_improvement":
+            overall_status = "needs_improvement"
+        if str(brand_strategy_review.get("brand_readiness_state", "")).strip() == "blocked":
+            overall_status = "not_ready"
+        elif str(brand_strategy_review.get("brand_readiness_state", "")).strip() == "needs_improvement":
             overall_status = "needs_improvement"
     confidence_level = _derive_confidence_level(source_reports)
     if confidence_level == "high" and overall_status == "needs_improvement":
@@ -2228,6 +2306,21 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "must_not_claim": (source_reports["copywriting_conversion_readiness"]["report"] or {}).get("must_not_claim", []),
             "why": (source_reports["copywriting_conversion_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["copywriting_conversion_readiness"]["report"] or {}).get("advisory_only", True)),
+        },
+        "brand_strategy_posture": {
+            "status": (source_reports["brand_strategy_readiness"]["report"] or {}).get("status"),
+            "brand_readiness_state": (source_reports["brand_strategy_readiness"]["report"] or {}).get("brand_readiness_state"),
+            "positioning_score": (source_reports["brand_strategy_readiness"]["report"] or {}).get("positioning_score"),
+            "differentiation_score": (source_reports["brand_strategy_readiness"]["report"] or {}).get("differentiation_score"),
+            "trust_score": (source_reports["brand_strategy_readiness"]["report"] or {}).get("trust_score"),
+            "visual_consistency_score": (source_reports["brand_strategy_readiness"]["report"] or {}).get("visual_consistency_score"),
+            "tone_consistency_score": (source_reports["brand_strategy_readiness"]["report"] or {}).get("tone_consistency_score"),
+            "audience_fit_score": (source_reports["brand_strategy_readiness"]["report"] or {}).get("audience_fit_score"),
+            "generic_brand_risk": (source_reports["brand_strategy_readiness"]["report"] or {}).get("generic_brand_risk"),
+            "warnings": (source_reports["brand_strategy_readiness"]["report"] or {}).get("warnings", []),
+            "recommended_changes": (source_reports["brand_strategy_readiness"]["report"] or {}).get("recommended_changes", []),
+            "why": (source_reports["brand_strategy_readiness"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["brand_strategy_readiness"]["report"] or {}).get("advisory_only", True)),
         },
         "error_learning_posture": {
             "status": (source_reports["atlas_error_learning_review"]["report"] or {}).get("status"),

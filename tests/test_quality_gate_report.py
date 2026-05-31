@@ -72,11 +72,13 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["source_reports"]["error_pattern_analyzer"]["status"] == "ok"
     assert result["source_reports"]["chrome_devtools_mcp_readiness"]["status"] == "ok"
     assert result["source_reports"]["copywriting_conversion_readiness"]["status"] == "ok"
+    assert result["source_reports"]["brand_strategy_readiness"]["status"] == "ok"
     assert isinstance(result["intent_analysis"], dict)
     assert isinstance(result["design_quality_posture"], dict)
     assert isinstance(result["model_cost_control_posture"], dict)
     assert isinstance(result["business_idea_simulation_posture"], dict)
     assert isinstance(result["copywriting_conversion_posture"], dict)
+    assert isinstance(result["brand_strategy_posture"], dict)
     assert isinstance(result["visual_intent_posture"], dict)
     assert result["visual_intent_posture"]["advisory_only"] is True
     assert isinstance(result["brand_profile_posture"], dict)
@@ -140,6 +142,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["repo_graph_posture"]["advisory_only"] is True
     assert result["business_idea_simulation_posture"]["advisory_only"] is True
     assert result["copywriting_conversion_posture"]["advisory_only"] is True
+    assert result["brand_strategy_posture"]["advisory_only"] is True
     assert isinstance(result["system_learning"], dict)
     assert isinstance(result["execution_plan"], list)
     assert len(result["execution_plan"]) <= 3
@@ -290,6 +293,27 @@ def test_quality_gate_report_exposes_copywriting_conversion_posture():
     assert isinstance(result["copywriting_conversion_posture"]["recommended_changes"], list)
 
 
+def test_quality_gate_report_exposes_brand_strategy_posture():
+    result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+    assert isinstance(result["brand_strategy_posture"], dict)
+    assert result["brand_strategy_posture"]["advisory_only"] is True
+    assert result["brand_strategy_posture"]["brand_readiness_state"] in {
+        "ready",
+        "needs_improvement",
+        "blocked",
+        "not_applicable",
+    }
+    assert isinstance(result["brand_strategy_posture"]["positioning_score"], int)
+    assert isinstance(result["brand_strategy_posture"]["differentiation_score"], int)
+    assert isinstance(result["brand_strategy_posture"]["trust_score"], int)
+    assert isinstance(result["brand_strategy_posture"]["visual_consistency_score"], int)
+    assert isinstance(result["brand_strategy_posture"]["tone_consistency_score"], int)
+    assert isinstance(result["brand_strategy_posture"]["audience_fit_score"], int)
+    assert result["brand_strategy_posture"]["generic_brand_risk"] in {"low", "medium", "high"}
+    assert isinstance(result["brand_strategy_posture"]["warnings"], list)
+    assert isinstance(result["brand_strategy_posture"]["recommended_changes"], list)
+
+
 def test_quality_gate_report_exposes_error_learning_and_codex_runtime_postures():
     result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
     assert isinstance(result["error_learning_posture"], dict)
@@ -379,7 +403,8 @@ def test_quality_gate_report_uses_existing_outputs_to_mark_not_ready():
                 with patch("tools.quality_gate_report.assess_brand_json_v2_readiness", return_value={"status": "ready", "requires_brand_json_v2": True, "explicit_profile_present": True, "missing_sections": [], "weak_sections": [], "anti_generic_risks": [], "derivative_risks": [], "accessibility_risks": [], "export_candidate": True, "evidence_expectations": ["palette rationale"], "next_action": "Proceed.", "why": "Ready.", "advisory_only": True}):
                     with patch("tools.quality_gate_report.audit_frontend_auto_readiness", return_value={"status": "ready", "can_support_pre_return": True, "blockers": [], "warnings": [], "ready_guardrails": [], "missing_guardrails": [], "evidence_gaps": [], "watchlist_dependencies": [], "recommended_next_action": "Proceed.", "why": "Ready.", "advisory_only": True}):
                         with patch("tools.quality_gate_report.assess_copywriting_conversion_readiness", return_value={"status": "ok", "copy_readiness_state": "ready", "clarity_score": 90, "conversion_score": 90, "trust_score": 90, "tone_consistency_score": 90, "hero_message": {"clear_for_target_audience": True, "problem_visible": True, "value_proposition_visible": True, "cta_clear": True}, "warnings": [], "risks": [], "missing_inputs": [], "recommended_changes": [], "must_not_claim": [], "why": "Ready.", "advisory_only": True}):
-                            result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+                            with patch("tools.quality_gate_report.assess_brand_strategy_readiness", return_value={"status": "ok", "brand_readiness_state": "ready", "positioning_score": 90, "differentiation_score": 90, "trust_score": 90, "visual_consistency_score": 90, "tone_consistency_score": 90, "audience_fit_score": 90, "generic_brand_risk": "low", "warnings": [], "risks": [], "missing_inputs": [], "recommended_changes": [], "why": "Ready.", "advisory_only": True}):
+                                result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
 
     assert result["overall_status"] == "not_ready"
     assert result["confidence_level"] == "high"
@@ -440,7 +465,8 @@ def test_quality_gate_report_priorities_come_from_existing_design_recommendation
                 with patch("tools.quality_gate_report.assess_brand_json_v2_readiness", return_value={"status": "ready", "requires_brand_json_v2": True, "explicit_profile_present": True, "missing_sections": [], "weak_sections": [], "anti_generic_risks": [], "derivative_risks": [], "accessibility_risks": [], "export_candidate": True, "evidence_expectations": ["palette rationale"], "next_action": "Proceed.", "why": "Ready.", "advisory_only": True}):
                     with patch("tools.quality_gate_report.audit_frontend_auto_readiness", return_value={"status": "ready", "can_support_pre_return": True, "blockers": [], "warnings": [], "ready_guardrails": [], "missing_guardrails": [], "evidence_gaps": [], "watchlist_dependencies": [], "recommended_next_action": "Proceed.", "why": "Ready.", "advisory_only": True}):
                         with patch("tools.quality_gate_report.assess_copywriting_conversion_readiness", return_value={"status": "ok", "copy_readiness_state": "ready", "clarity_score": 90, "conversion_score": 90, "trust_score": 90, "tone_consistency_score": 90, "hero_message": {"clear_for_target_audience": True, "problem_visible": True, "value_proposition_visible": True, "cta_clear": True}, "warnings": [], "risks": [], "missing_inputs": [], "recommended_changes": [], "must_not_claim": [], "why": "Ready.", "advisory_only": True}):
-                            result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+                            with patch("tools.quality_gate_report.assess_brand_strategy_readiness", return_value={"status": "ok", "brand_readiness_state": "ready", "positioning_score": 90, "differentiation_score": 90, "trust_score": 90, "visual_consistency_score": 90, "tone_consistency_score": 90, "audience_fit_score": 90, "generic_brand_risk": "low", "warnings": [], "risks": [], "missing_inputs": [], "recommended_changes": [], "why": "Ready.", "advisory_only": True}):
+                                result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
 
     assert result["overall_status"] == "needs_improvement"
     assert result["public_readiness"] == "needs_improvement"

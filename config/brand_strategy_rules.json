@@ -1,0 +1,97 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "applicable_project_types": [
+    "frontend_app",
+    "landing_page",
+    "marketing_site",
+    "dashboard",
+    "ui_surface",
+    "internal_tool"
+  ],
+  "input_aliases": {
+    "target_audience": ["target_audience", "audience", "customer", "user_segment"],
+    "category": ["category", "market_category", "product_category", "brand_category"],
+    "positioning": ["positioning", "brand_positioning", "positioning_statement", "value_proposition"],
+    "differentiation_notes": ["differentiation_notes", "differentiation", "unique_angle", "competitive_edge"],
+    "verbal_tone": ["verbal_tone", "brand_tone", "voice", "copy_tone"],
+    "visual_tone": ["visual_tone", "visual_mood", "mood", "mood_or_vibe"],
+    "cta_intent": ["cta_intent", "cta_rules", "primary_cta_intent", "next_action"],
+    "proof_points": ["proof_points", "evidence", "trust_signals", "confidence_signals"],
+    "page_text": ["page_text", "landing_copy", "body_copy", "copy_text"]
+  },
+  "generic_category_terms": [
+    "frontend_app",
+    "marketing_site",
+    "landing_page",
+    "dashboard",
+    "ui_surface",
+    "internal_tool",
+    "website",
+    "web app",
+    "app"
+  ],
+  "generic_palette_terms": [
+    "teal",
+    "default teal",
+    "blue gradient",
+    "purple gradient",
+    "neon gradient",
+    "generic accent"
+  ],
+  "generic_brand_phrases": [
+    "transform your business with ai",
+    "revolutionize your workflow",
+    "next generation platform",
+    "future-ready solution",
+    "innovative digital experience",
+    "template-ready product"
+  ],
+  "template_risk_signals": [
+    "template",
+    "generic",
+    "safe default",
+    "looks like every saas",
+    "stock saas",
+    "boilerplate"
+  ],
+  "inconsistent_tone_signals": [
+    "aggressive urgency",
+    "mixed premium and playful",
+    "tone mismatch",
+    "generic ai filler"
+  ],
+  "claims_without_evidence_terms": [
+    "guaranteed",
+    "best in class",
+    "world-class",
+    "market leader",
+    "instant results",
+    "number one"
+  ],
+  "audience_mismatch_signals": [
+    "too playful for enterprise",
+    "too formal for creator audience",
+    "does not fit the target buyer"
+  ],
+  "required_color_roles": [
+    "primary",
+    "secondary",
+    "accent",
+    "background",
+    "contrast_notes"
+  ],
+  "required_typography_fields": [
+    "heading_style",
+    "body_style",
+    "contrast_rationale"
+  ],
+  "ready_thresholds": {
+    "positioning_score": 70,
+    "differentiation_score": 70,
+    "trust_score": 75,
+    "visual_consistency_score": 70,
+    "tone_consistency_score": 70,
+    "audience_fit_score": 70
+  }
+}
