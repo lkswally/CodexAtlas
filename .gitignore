@@ -13,6 +13,14 @@ env/
 .env
 .env.*
 *.local
+.env.local
+.env.*.local
+
+# Local n8n workflow review sandbox
+_sandbox/*
+!_sandbox/README.md
+n8n_exports/
+*.n8n.local.json
 
 # Tool caches and reports
 .pytest_cache/
