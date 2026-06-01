@@ -20,53 +20,8 @@
       "status": "bootstrapped"
     },
     {
-      "project_name": "atlas_run_blocked",
-      "project_root": "C:\\Users\\Lucas\\AppData\\Local\\Temp\\codex-atlas-tests\\atlas_run_blocked",
-      "project_profile": "frontend_app",
-      "atlas_root": "C:\\Proyectos\\Codex-Atlas",
-      "derived_from": "Codex-Atlas",
-      "governance_mode": "atlas_governanza_ligera",
-      "status": "registered"
-    },
-    {
-      "project_name": "atlas_run_ready",
-      "project_root": "C:\\Users\\Lucas\\AppData\\Local\\Temp\\codex-atlas-tests\\atlas_run_ready",
-      "project_profile": "frontend_app",
-      "atlas_root": "C:\\Proyectos\\Codex-Atlas",
-      "derived_from": "Codex-Atlas",
-      "governance_mode": "atlas_completo",
-      "status": "registered"
-    },
-    {
-      "project_name": "atlas_bootstrap_governance_files",
-      "project_root": "C:\\Users\\Lucas\\AppData\\Local\\Temp\\codex-atlas-tests\\atlas_bootstrap_governance_files",
-      "project_profile": "frontend_app",
-      "atlas_root": "C:\\Proyectos\\Codex-Atlas",
-      "derived_from": "Codex-Atlas",
-      "governance_mode": "atlas_governanza_ligera",
-      "status": "registered"
-    },
-    {
-      "project_name": "atlas_bootstrap_audit_light",
-      "project_root": "C:\\Users\\Lucas\\AppData\\Local\\Temp\\codex-atlas-tests\\atlas_bootstrap_audit_light",
-      "project_profile": "frontend_app",
-      "atlas_root": "C:\\Proyectos\\Codex-Atlas",
-      "derived_from": "Codex-Atlas",
-      "governance_mode": "atlas_governanza_ligera",
-      "status": "registered"
-    },
-    {
       "project_name": "project-match-os",
       "project_root": "C:\\Proyectos\\project-match-os",
-      "project_profile": "frontend_app",
-      "atlas_root": "C:\\Proyectos\\Codex-Atlas",
-      "derived_from": "Codex-Atlas",
-      "governance_mode": "atlas_completo",
-      "status": "registered"
-    },
-    {
-      "project_name": "atlas_bootstrap_full_mode",
-      "project_root": "C:\\Users\\Lucas\\AppData\\Local\\Temp\\codex-atlas-tests\\atlas_bootstrap_full_mode",
       "project_profile": "frontend_app",
       "atlas_root": "C:\\Proyectos\\Codex-Atlas",
       "derived_from": "Codex-Atlas",

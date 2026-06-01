@@ -5,7 +5,14 @@ from unittest.mock import patch
 
 from tests._support_paths import TEMP_ROOT
 from tools.atlas_context_audit import audit_project_context
-from tools.atlas_project_bootstrap import _read_text, bootstrap_project, infer_project_profile
+from tools.atlas_project_bootstrap import (
+    DERIVED_PROJECTS_REGISTRY,
+    _is_ephemeral_test_project_root,
+    _load_registry,
+    _read_text,
+    bootstrap_project,
+    infer_project_profile,
+)
 
 
 def _fresh_project_dir(name: str) -> Path:
@@ -112,3 +119,21 @@ def test_bootstrap_project_rejects_unknown_global_template_placeholders():
     assert "atlas_project_bootstrap:invalid_template_placeholder:" in message
     assert "template=AGENTS" in message
     assert "placeholder={project_profile}" in message
+
+
+def test_registry_marks_temp_test_projects_as_ephemeral():
+    project = _fresh_project_dir("atlas_bootstrap_ephemeral_registry")
+
+    assert _is_ephemeral_test_project_root(project) is True
+
+
+def test_bootstrap_project_does_not_persist_temp_test_projects_in_registry():
+    project = _fresh_project_dir("atlas_bootstrap_registry_skip")
+    (project / "README.md").write_text("# Demo\n\nBootstrap target.\n", encoding="utf-8")
+
+    before = _load_registry(DERIVED_PROJECTS_REGISTRY)
+    bootstrap_project(project, overwrite=True)
+    after = _load_registry(DERIVED_PROJECTS_REGISTRY)
+
+    assert before == after
+    assert all(str(item.get("project_root", "")).strip() != str(project.resolve()) for item in after["projects"])

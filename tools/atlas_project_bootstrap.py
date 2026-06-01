@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
+import tempfile
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -11,6 +13,9 @@ ATLAS_ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE_ROOT = ATLAS_ROOT / "templates" / "project"
 DEFAULT_OPERATING_MODE = "ATLAS gobernanza ligera"
 DERIVED_PROJECTS_REGISTRY = ATLAS_ROOT / "memory" / "derived_projects.json"
+TEST_TEMP_ROOT = Path(
+    os.environ.get("ATLAS_TEST_TEMP_ROOT", Path(tempfile.gettempdir()) / "codex-atlas-tests")
+).resolve()
 ALLOWED_TEMPLATE_PLACEHOLDERS = {
     "project_name",
     "project_type",
@@ -116,10 +121,28 @@ def _load_registry(path: Path) -> Dict[str, Any]:
     projects = data.get("projects")
     if not isinstance(projects, list):
         data["projects"] = []
+    else:
+        data["projects"] = [
+            item
+            for item in projects
+            if isinstance(item, dict) and not _is_ephemeral_test_project_root(item.get("project_root"))
+        ]
     return data
 
 
+def _is_ephemeral_test_project_root(project_root: Any) -> bool:
+    if not project_root:
+        return False
+    try:
+        resolved = Path(str(project_root)).resolve()
+    except (OSError, RuntimeError, ValueError):
+        return False
+    return resolved == TEST_TEMP_ROOT or TEST_TEMP_ROOT in resolved.parents
+
+
 def register_project_in_registry(project_root: Path, project_profile: str, governance_mode: str) -> None:
+    if _is_ephemeral_test_project_root(project_root):
+        return
     registry = _load_registry(DERIVED_PROJECTS_REGISTRY)
     project_root_s = str(project_root.resolve())
     projects = list(registry.get("projects", []))
