@@ -79,6 +79,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert isinstance(result["business_idea_simulation_posture"], dict)
     assert isinstance(result["copywriting_conversion_posture"], dict)
     assert isinstance(result["brand_strategy_posture"], dict)
+    assert isinstance(result["n8n_automation_posture"], dict)
     assert isinstance(result["visual_intent_posture"], dict)
     assert result["visual_intent_posture"]["advisory_only"] is True
     assert isinstance(result["brand_profile_posture"], dict)
@@ -143,6 +144,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["business_idea_simulation_posture"]["advisory_only"] is True
     assert result["copywriting_conversion_posture"]["advisory_only"] is True
     assert result["brand_strategy_posture"]["advisory_only"] is True
+    assert result["n8n_automation_posture"]["advisory_only"] is True
     assert isinstance(result["system_learning"], dict)
     assert isinstance(result["execution_plan"], list)
     assert len(result["execution_plan"]) <= 3
@@ -314,6 +316,20 @@ def test_quality_gate_report_exposes_brand_strategy_posture():
     assert result["brand_strategy_posture"]["generic_brand_risk"] in {"low", "medium", "high"}
     assert isinstance(result["brand_strategy_posture"]["warnings"], list)
     assert isinstance(result["brand_strategy_posture"]["recommended_changes"], list)
+
+
+def test_quality_gate_report_exposes_n8n_automation_posture():
+    result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+    assert isinstance(result["n8n_automation_posture"], dict)
+    assert result["n8n_automation_posture"]["advisory_only"] is True
+    assert result["n8n_automation_posture"]["risk_level"] in {"low", "medium", "high"}
+    assert isinstance(result["n8n_automation_posture"]["side_effects"], list)
+    assert isinstance(result["n8n_automation_posture"]["credentials_required"], list)
+    assert isinstance(result["n8n_automation_posture"]["recommended_next_steps"], list)
+    assert result["n8n_automation_posture"]["risk_level"] in {"low", "medium", "high"}
+    assert isinstance(result["n8n_automation_posture"]["side_effects"], list)
+    assert isinstance(result["n8n_automation_posture"]["credentials_required"], list)
+    assert isinstance(result["n8n_automation_posture"]["recommended_next_steps"], list)
 
 
 def test_quality_gate_report_exposes_error_learning_and_codex_runtime_postures():

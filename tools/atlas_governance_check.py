@@ -58,6 +58,7 @@ REQUIRED_ROOT_FILES = (
     "config/business_idea_simulation_rules.json",
     "config/copywriting_conversion_rules.json",
     "config/brand_strategy_rules.json",
+    "config/n8n_automation_readiness_rules.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -121,6 +122,7 @@ REQUIRED_ROOT_FILES = (
     "policies/business_idea_simulation_policy.md",
     "policies/copywriting_conversion_policy.md",
     "policies/brand_strategy_policy.md",
+    "policies/n8n_automation_readiness_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
     "memory/session_summaries.md",
@@ -212,6 +214,7 @@ REQUIRED_ROOT_FILES = (
     "tools/business_idea_simulation_readiness.py",
     "tools/copywriting_conversion_readiness.py",
     "tools/brand_strategy_readiness.py",
+    "tools/n8n_automation_readiness.py",
     "tests/test_atlas_orchestrator.py",
     "tests/test_certify_project.py",
     "tests/test_docs_catalog_report.py",
@@ -256,6 +259,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_business_idea_simulation_readiness.py",
     "tests/test_copywriting_conversion_readiness.py",
     "tests/test_brand_strategy_readiness.py",
+    "tests/test_n8n_automation_readiness.py",
     "tests/test_surface_audit.py",
     "templates/project_bootstrap_profiles.md",
 )
@@ -1418,6 +1422,10 @@ def _load_copywriting_conversion_rules(root: Path) -> Dict[str, Any]:
 
 def _load_brand_strategy_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "brand_strategy_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_n8n_automation_readiness_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "n8n_automation_readiness_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -3372,6 +3380,61 @@ def _validate_brand_strategy_rules(root: Path, findings: List[str]) -> None:
                 findings.append(f"brand_strategy_rules_invalid_threshold:{field_name}")
 
 
+def _validate_n8n_automation_readiness_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_n8n_automation_readiness_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_n8n_automation_readiness_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("n8n_automation_readiness_rules_not_object")
+        return
+
+    required_fields = {
+        "version",
+        "advisory_only",
+        "applicable_project_types",
+        "input_aliases",
+        "node_type_signals",
+        "sensitive_data_signals",
+        "risk_triggers",
+        "required_safety_fields",
+        "allow_advisory_without_side_effects",
+    }
+    missing_fields = required_fields - set(rules.keys())
+    if missing_fields:
+        findings.append(f"n8n_automation_readiness_rules_missing_fields:{','.join(sorted(missing_fields))}")
+
+    if not isinstance(rules.get("input_aliases"), dict):
+        findings.append("n8n_automation_readiness_rules_invalid_input_aliases")
+
+    node_type_signals = rules.get("node_type_signals")
+    if not isinstance(node_type_signals, dict):
+        findings.append("n8n_automation_readiness_rules_invalid_node_type_signals")
+    else:
+        required_node_types = {"send_email", "sheets_write", "db_write", "webhook", "scraping", "llm"}
+        missing_node_types = required_node_types - set(node_type_signals.keys())
+        if missing_node_types:
+            findings.append(
+                f"n8n_automation_readiness_rules_missing_node_type_signals:{','.join(sorted(missing_node_types))}"
+            )
+
+    for field_name in ("applicable_project_types", "sensitive_data_signals", "required_safety_fields"):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not all(str(item).strip() for item in value):
+            findings.append(f"n8n_automation_readiness_rules_invalid_{field_name}")
+
+    risk_triggers = rules.get("risk_triggers")
+    if not isinstance(risk_triggers, dict):
+        findings.append("n8n_automation_readiness_rules_invalid_risk_triggers")
+    else:
+        for bucket in ("high", "medium"):
+            value = risk_triggers.get(bucket)
+            if not isinstance(value, list) or not all(str(item).strip() for item in value):
+                findings.append(f"n8n_automation_readiness_rules_invalid_risk_triggers_{bucket}")
+
+
 def _validate_visual_fidelity_judge_rules(root: Path, findings: List[str]) -> None:
     try:
         rules = _load_visual_fidelity_judge_rules(root)
@@ -4359,6 +4422,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_chrome_devtools_mcp_rules(root, findings)
         _validate_copywriting_conversion_rules(root, findings)
         _validate_brand_strategy_rules(root, findings)
+        _validate_n8n_automation_readiness_rules(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)

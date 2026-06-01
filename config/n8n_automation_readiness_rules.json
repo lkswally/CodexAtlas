@@ -1,0 +1,84 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "applicable_project_types": [
+    "workflow_automation",
+    "automation_blueprint"
+  ],
+  "project_scan_files": [
+    "workflow.json",
+    "workflow-export.json",
+    "n8n-workflow.json",
+    "docs/workflow.json",
+    "docs/n8n-workflow.json"
+  ],
+  "input_aliases": {
+    "workflow_json": ["workflow_json", "workflow_export", "workflow", "export_json"],
+    "trigger": ["trigger", "trigger_type", "entry_trigger"],
+    "input_payload": ["input_payload", "payload", "sample_payload", "test_payload"],
+    "expected_output": ["expected_output", "output", "expected_result"],
+    "nodes": ["nodes", "workflow_nodes"],
+    "credentials_required": ["credentials_required", "credentials", "secrets_required"],
+    "side_effects": ["side_effects", "effects", "writes"],
+    "dry_run_available": ["dry_run_available", "supports_dry_run"],
+    "human_approval_required": ["human_approval_required", "approval_required"],
+    "test_payload_available": ["test_payload_available", "has_test_payload"],
+    "rollback_documented": ["rollback_documented", "has_rollback"],
+    "logging_documented": ["logging_documented", "has_logging"],
+    "error_handling_documented": ["error_handling_documented", "has_error_handling"],
+    "retry_strategy_documented": ["retry_strategy_documented", "has_retries"],
+    "idempotency_documented": ["idempotency_documented", "is_idempotent"],
+    "contains_sensitive_data": ["contains_sensitive_data", "sensitive_data"],
+    "production_active": ["production_active", "is_production"],
+    "public_webhook": ["public_webhook", "webhook_public"]
+  },
+  "node_type_signals": {
+    "send_email": ["send email", "gmail", "email send", "smtp", "mailgun", "sendgrid"],
+    "sheets_write": ["google sheets", "append row", "update row", "insert row", "sheet write"],
+    "db_write": ["postgres", "mysql", "mongodb", "notion", "airtable", "upsert", "insert", "update", "delete"],
+    "webhook": ["webhook", "webhook trigger"],
+    "scraping": ["apify", "scrape", "crawler", "browserless", "firecrawl"],
+    "llm": ["openai", "groq", "anthropic", "gemini", "llm", "chat model"]
+  },
+  "sensitive_data_signals": [
+    "pii",
+    "personal data",
+    "customer data",
+    "private",
+    "confidential",
+    "credential",
+    "token",
+    "email address",
+    "phone",
+    "invoice"
+  ],
+  "risk_triggers": {
+    "high": [
+      "send_email_real",
+      "sheets_or_db_write",
+      "public_webhook_without_auth",
+      "scraping_without_limits",
+      "llm_with_sensitive_data",
+      "production_active",
+      "credentials_missing_review",
+      "no_rollback_for_side_effects"
+    ],
+    "medium": [
+      "missing_test_payload",
+      "missing_dry_run",
+      "missing_error_handling",
+      "missing_logging",
+      "missing_retries",
+      "missing_idempotency"
+    ]
+  },
+  "required_safety_fields": [
+    "human_approval_required",
+    "test_payload_required",
+    "dry_run_available",
+    "rollback_documented",
+    "logging_documented",
+    "error_handling_documented"
+  ],
+  "allow_advisory_without_side_effects": true
+}

@@ -131,6 +131,10 @@ try:
     from tools.brand_strategy_readiness import assess_brand_strategy_readiness
 except ModuleNotFoundError:
     from brand_strategy_readiness import assess_brand_strategy_readiness
+try:
+    from tools.n8n_automation_readiness import assess_n8n_automation_readiness
+except ModuleNotFoundError:
+    from n8n_automation_readiness import assess_n8n_automation_readiness
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -691,6 +695,19 @@ def _run_brand_strategy_readiness(
     except Exception as exc:
         return _build_failed_report("brand_strategy_readiness", f"brand_strategy_readiness_failed:{exc}")
     return _build_ok_report("brand_strategy_readiness", report)
+
+
+def _run_n8n_automation_readiness(
+    *,
+    root: Path,
+    project: Path,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    try:
+        report = assess_n8n_automation_readiness(payload, root=root, project=project)
+    except Exception as exc:
+        return _build_failed_report("n8n_automation_readiness", f"n8n_automation_readiness_failed:{exc}")
+    return _build_ok_report("n8n_automation_readiness", report)
 
 
 def _run_change_proposal_readiness(
@@ -1658,6 +1675,44 @@ def _build_brand_strategy_warnings(review: Optional[Dict[str, Any]]) -> List[Dic
     return items
 
 
+def _build_n8n_automation_warnings(review: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    if not isinstance(review, dict):
+        return []
+
+    items: List[Dict[str, Any]] = []
+    if str(review.get("risk_level", "")).strip() == "high":
+        items.append(
+            {
+                "source": "n8n_automation_readiness",
+                "check": "n8n_automation_high_risk",
+                "severity": "high",
+                "message": "The current workflow shape still has high-risk automation side effects and must stay human-approved.",
+                "evidence": list(review.get("side_effects", []))[:4] or list(review.get("blocked_reasons", []))[:4],
+            }
+        )
+    if bool(review.get("test_payload_required")):
+        items.append(
+            {
+                "source": "n8n_automation_readiness",
+                "check": "n8n_automation_missing_test_payload",
+                "severity": "medium",
+                "message": "The workflow still needs a safe test payload before Atlas should treat it as automation-ready.",
+                "evidence": ["test_payload_required=true"],
+            }
+        )
+    if list(review.get("credentials_required", [])):
+        items.append(
+            {
+                "source": "n8n_automation_readiness",
+                "check": "n8n_automation_credentials_watchlist",
+                "severity": "medium",
+                "message": "The workflow references credentials, so it should remain advisory-only until a human approves a live path.",
+                "evidence": list(review.get("credentials_required", []))[:4],
+            }
+        )
+    return items
+
+
 def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     root = root.resolve()
     project = project.resolve()
@@ -1892,6 +1947,13 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "design_warnings": design_report.get("warnings", []),
         },
     )
+    source_reports["n8n_automation_readiness"] = _run_n8n_automation_readiness(
+        root=root,
+        project=project,
+        payload={
+            "project_type": ((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "unknown",
+        },
+    )
     inferred_complexity = (
         str((source_reports["project_intent_analyzer"]["report"] or {}).get("complexity", "low")).strip().lower()
         if source_reports["project_intent_analyzer"]["status"] == "ok"
@@ -1982,6 +2044,9 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     for item in _build_brand_strategy_warnings(source_reports["brand_strategy_readiness"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
+    for item in _build_n8n_automation_warnings(source_reports["n8n_automation_readiness"].get("report")):
+        _unique_priority_append(candidate_priorities, item, candidate_seen)
+        _unique_priority_append(warnings, item, seen)
     for item in _build_file_change_declaration_warnings(source_reports["file_change_declaration_verification"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
@@ -2030,6 +2095,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     visual_fidelity_review = source_reports["visual_fidelity_judge"].get("report") or {}
     copywriting_review = source_reports["copywriting_conversion_readiness"].get("report") or {}
     brand_strategy_review = source_reports["brand_strategy_readiness"].get("report") or {}
+    n8n_automation_review = source_reports["n8n_automation_readiness"].get("report") or {}
     if overall_status == "ready":
         if str(intent_clarifier_review.get("status", "")).strip() not in {"", "ready", "skipped"}:
             overall_status = "needs_improvement"
@@ -2052,6 +2118,8 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         if str(brand_strategy_review.get("brand_readiness_state", "")).strip() == "blocked":
             overall_status = "not_ready"
         elif str(brand_strategy_review.get("brand_readiness_state", "")).strip() == "needs_improvement":
+            overall_status = "needs_improvement"
+        if str(n8n_automation_review.get("risk_level", "")).strip() == "high":
             overall_status = "needs_improvement"
     confidence_level = _derive_confidence_level(source_reports)
     if confidence_level == "high" and overall_status == "needs_improvement":
@@ -2321,6 +2389,21 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "recommended_changes": (source_reports["brand_strategy_readiness"]["report"] or {}).get("recommended_changes", []),
             "why": (source_reports["brand_strategy_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["brand_strategy_readiness"]["report"] or {}).get("advisory_only", True)),
+        },
+        "n8n_automation_posture": {
+            "status": (source_reports["n8n_automation_readiness"]["report"] or {}).get("status"),
+            "automation_ready": bool((source_reports["n8n_automation_readiness"]["report"] or {}).get("automation_ready")),
+            "risk_level": (source_reports["n8n_automation_readiness"]["report"] or {}).get("risk_level"),
+            "side_effects": (source_reports["n8n_automation_readiness"]["report"] or {}).get("side_effects", []),
+            "credentials_required": (source_reports["n8n_automation_readiness"]["report"] or {}).get("credentials_required", []),
+            "human_approval_required": bool((source_reports["n8n_automation_readiness"]["report"] or {}).get("human_approval_required", True)),
+            "dry_run_available": bool((source_reports["n8n_automation_readiness"]["report"] or {}).get("dry_run_available")),
+            "test_payload_required": bool((source_reports["n8n_automation_readiness"]["report"] or {}).get("test_payload_required")),
+            "blocked_reasons": (source_reports["n8n_automation_readiness"]["report"] or {}).get("blocked_reasons", []),
+            "warnings": (source_reports["n8n_automation_readiness"]["report"] or {}).get("warnings", []),
+            "recommended_next_steps": (source_reports["n8n_automation_readiness"]["report"] or {}).get("recommended_next_steps", []),
+            "why": (source_reports["n8n_automation_readiness"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["n8n_automation_readiness"]["report"] or {}).get("advisory_only", True)),
         },
         "error_learning_posture": {
             "status": (source_reports["atlas_error_learning_review"]["report"] or {}).get("status"),
