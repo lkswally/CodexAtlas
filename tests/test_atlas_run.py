@@ -36,7 +36,7 @@ def test_atlas_run_blocks_when_git_root_is_missing():
     assert result["envelope"]["bloqueadores"][0]["code"] == "missing_git_root"
 
 
-def test_atlas_run_reaches_full_mode_when_git_and_governance_are_present():
+def test_atlas_run_reaches_full_mode_when_git_and_governance_are_present(monkeypatch):
     project = _fresh_project_dir("atlas_run_ready")
     (project / "README.md").write_text("# Demo\n\nTest project.\n", encoding="utf-8")
     (project / "package.json").write_text(json.dumps({"dependencies": {"next": "^14.0.0"}}), encoding="utf-8")
@@ -47,6 +47,27 @@ def test_atlas_run_reaches_full_mode_when_git_and_governance_are_present():
         "# SPRINT_STATUS - Demo\n\n## Governance\n- Atlas root: `C:\\Proyectos\\Codex-Atlas`\n\n## Current Sprint\n- Status: `product-qa-demo-readiness`\n\n## In Scope Now\n- Product QA\n- Demo Readiness\n",
         encoding="utf-8",
     )
+
+    def _fake_executor(**_: object) -> dict[str, object]:
+        return {
+            "status": "ready",
+            "codex_executor_ready": True,
+            "invoked": False,
+            "mode": "plan",
+            "dry_run": True,
+            "capabilities": {
+                "detected": True,
+                "supports_cd": True,
+                "supports_sandbox": True,
+                "supports_output_last_message": True,
+                "supports_ask_for_approval": False,
+            },
+            "compatibility_warnings": ["missing_exec_flag:ask_for_approval"],
+            "command_preview": ["codex", "exec", "--cd", str(project), "--sandbox", "workspace-write", "prompt"],
+            "reason": "executor_ready_but_not_invoked",
+        }
+
+    monkeypatch.setattr("tools.atlas_run.execute_via_atlas_codex", _fake_executor)
 
     result = run_atlas(
         project_path=project,
