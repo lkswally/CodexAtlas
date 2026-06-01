@@ -91,7 +91,7 @@ Atlas should block fallback guidance for:
 
 Atlas should move to `watchlist` instead of `recommended` when:
 
-- the task explicitly depends on an external provider/runtime such as NVIDIA, LiteLLM, Ollama or a proxy
+- the task explicitly depends on an external provider/runtime such as NVIDIA, Groq, LiteLLM, Ollama or a proxy
 - privacy is not low
 - the task shape suggests a local-model or external-provider discussion that still needs separate approval
 

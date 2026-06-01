@@ -99,10 +99,24 @@ def test_model_cost_control_blocks_fallback_for_high_privacy_or_security_work():
     assert fallback["privacy_risk"] == "high"
 
 
+def test_model_cost_control_blocks_fallback_for_bounded_code_execution():
+    result = assess_model_cost_control(
+        root=ATLAS_ROOT,
+        task="Implement a focused Python command and update the related tests.",
+        task_type="code_execution",
+        risk_level="medium",
+        complexity="medium",
+    )
+    fallback = result["fallback_posture"]
+    assert fallback["status"] == "blocked"
+    assert fallback["fallback_allowed"] is False
+    assert "blocked_task_type=code_execution" in fallback["why"]
+
+
 def test_model_cost_control_moves_provider_runtime_requests_to_watchlist():
     result = assess_model_cost_control(
         root=ATLAS_ROOT,
-        task="Evaluate whether a local model or NVIDIA proxy fallback would help for simple summaries.",
+        task="Evaluate whether a local model, Groq or NVIDIA proxy fallback would help for simple summaries.",
         task_type="triage",
         risk_level="low",
         complexity="low",
@@ -110,3 +124,4 @@ def test_model_cost_control_moves_provider_runtime_requests_to_watchlist():
     fallback = result["fallback_posture"]
     assert fallback["status"] == "watchlist"
     assert fallback["fallback_tier"] == "local_watchlist"
+    assert "provider_runtime_terms" in fallback["why"]

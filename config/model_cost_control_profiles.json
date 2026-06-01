@@ -90,6 +90,7 @@
     ],
     "watchlist_provider_terms": [
       "nvidia",
+      "groq",
       "litellm",
       "ollama",
       "local model",

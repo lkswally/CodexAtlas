@@ -193,6 +193,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert "triggered_signals" in result["error_learning_posture"]
     assert "recommended_model_tier" in result["model_cost_control_posture"]
     assert "fallback_posture" in result["model_cost_control_posture"]
+    assert result["model_cost_control_posture"]["fallback_posture"]["fallback_mode"] == "manual_only"
+    assert result["model_cost_control_posture"]["fallback_posture"]["auto_switch_enabled"] is False
     assert "must_not_claim_prediction" in result["business_idea_simulation_posture"]
     assert "recommended_next_step" in result["business_idea_simulation_posture"]
     assert result["copywriting_conversion_posture"]["copy_readiness_state"] in {
