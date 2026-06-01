@@ -1,0 +1,7 @@
+{
+  "name": "codexatlas-web-stub",
+  "private": true,
+  "dependencies": {
+    "next": "^16.0.0"
+  }
+}

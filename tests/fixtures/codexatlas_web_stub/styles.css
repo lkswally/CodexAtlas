@@ -1,0 +1,72 @@
+:root {
+  --bg: #09111f;
+  --ink: #edf3ff;
+  --muted: #a7b6d4;
+  --accent: #69e2ff;
+  --accent-strong: #ff8a5b;
+  --surface: #111c31;
+  --line: #23324d;
+  --max: 1120px;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: "Plus Jakarta Sans", sans-serif;
+  color: var(--ink);
+  background: radial-gradient(circle at top, #13233d 0%, var(--bg) 58%);
+}
+
+.hero,
+section {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 4rem 1.5rem;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+}
+
+h1,
+h2 {
+  font-family: "Space Grotesk", sans-serif;
+  line-height: 1.05;
+  margin: 0 0 1rem;
+}
+
+h1 {
+  font-size: clamp(2.8rem, 6vw, 5rem);
+  max-width: 12ch;
+}
+
+p,
+li,
+a {
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.cta-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 2rem;
+}
+
+a {
+  color: var(--ink);
+}
+
+section {
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 760px) {
+  .hero,
+  section {
+    padding: 2.5rem 1rem;
+  }
+}
