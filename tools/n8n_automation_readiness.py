@@ -161,6 +161,7 @@ def _workflow_surface(
     node_bits = []
     for node in nodes:
         node_bits.append(_node_type(node))
+        node_bits.append(_stringify(node.get("name")))
         if isinstance(node.get("credentials"), dict):
             node_bits.extend(str(key) for key in node.get("credentials", {}).keys())
         parameters = node.get("parameters")

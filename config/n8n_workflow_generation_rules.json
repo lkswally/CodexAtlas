@@ -1,0 +1,150 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "workflow_active_by_default": false,
+  "require_readiness_review": true,
+  "safe_placeholder_markers": [
+    "PLACEHOLDER",
+    "MANUAL_BIND_REQUIRED",
+    "FAKE",
+    "EXAMPLE",
+    "REDACTED",
+    "TEST"
+  ],
+  "disallowed_credential_key_signals": [
+    "api_key",
+    "apikey",
+    "token",
+    "secret",
+    "password",
+    "bearer",
+    "oauth",
+    "credential"
+  ],
+  "trigger_templates": {
+    "manual": {
+      "label": "Manual Trigger",
+      "n8n_type": "n8n-nodes-base.manualTrigger"
+    },
+    "webhook": {
+      "label": "Webhook Intake",
+      "n8n_type": "n8n-nodes-base.webhook"
+    },
+    "schedule": {
+      "label": "Schedule Trigger",
+      "n8n_type": "n8n-nodes-base.scheduleTrigger"
+    }
+  },
+  "node_templates": {
+    "normalize_input": {
+      "label": "Normalize Input",
+      "n8n_type": "n8n-nodes-base.set"
+    },
+    "llm_analysis": {
+      "label": "LLM Analysis Placeholder",
+      "n8n_type": "n8n-nodes-base.code"
+    },
+    "format_report": {
+      "label": "Format Report",
+      "n8n_type": "n8n-nodes-base.set"
+    },
+    "approval_gate": {
+      "label": "Human Approval Required",
+      "n8n_type": "n8n-nodes-base.set"
+    },
+    "email_delivery": {
+      "label": "Send Email Placeholder",
+      "n8n_type": "n8n-nodes-base.set"
+    },
+    "sheets_write": {
+      "label": "Google Sheets Write Placeholder",
+      "n8n_type": "n8n-nodes-base.set"
+    },
+    "db_write": {
+      "label": "Database Write Placeholder",
+      "n8n_type": "n8n-nodes-base.set"
+    }
+  },
+  "safe_placeholder_values": {
+    "webhook_path": "atlas-review-webhook",
+    "email_recipient": "review@example.com",
+    "email_sender": "no-reply@example.com",
+    "credential_binding": "MANUAL_BIND_REQUIRED",
+    "llm_model": "MODEL_BIND_MANUALLY",
+    "sheet_identifier": "SHEET_ID_PLACEHOLDER",
+    "database_target": "DB_TARGET_PLACEHOLDER"
+  },
+  "task_signals": {
+    "webhook": [
+      "webhook",
+      "formulario",
+      "form",
+      "submit",
+      "api",
+      "recibir",
+      "receive"
+    ],
+    "schedule": [
+      "cada",
+      "daily",
+      "hourly",
+      "cron",
+      "schedule"
+    ],
+    "llm": [
+      "ia",
+      "ai",
+      "analizar",
+      "analysis",
+      "clasificar",
+      "evaluate",
+      "llm",
+      "openai",
+      "groq"
+    ],
+    "email": [
+      "email",
+      "correo",
+      "gmail",
+      "mail"
+    ],
+    "sheets": [
+      "google sheets",
+      "sheet",
+      "spreadsheet"
+    ],
+    "database": [
+      "database",
+      "db",
+      "postgres",
+      "mysql",
+      "mongodb",
+      "airtable",
+      "notion"
+    ],
+    "scraping": [
+      "scraping",
+      "scrape",
+      "crawler",
+      "apify"
+    ],
+    "business_idea": [
+      "idea de negocio",
+      "business idea",
+      "startup idea"
+    ]
+  },
+  "side_effect_channels": [
+    "email",
+    "sheets",
+    "database",
+    "webhook"
+  ],
+  "default_checklist": [
+    "Keep the workflow inactive after import.",
+    "Bind credentials manually inside n8n.",
+    "Use fake or redacted test payloads first.",
+    "Review public webhook exposure before activation.",
+    "Confirm rollback and logging before any live side effects."
+  ]
+}

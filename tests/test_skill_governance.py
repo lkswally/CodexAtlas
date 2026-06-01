@@ -36,6 +36,7 @@ from tools.atlas_governance_check import (
     _load_copywriting_conversion_rules,
     _load_brand_strategy_rules,
     _load_n8n_automation_readiness_rules,
+    _load_n8n_workflow_generation_rules,
     _validate_external_tool_policy,
     _validate_mcp_profiles,
     _validate_docs_search_catalog,
@@ -65,6 +66,7 @@ from tools.atlas_governance_check import (
     _validate_copywriting_conversion_rules,
     _validate_brand_strategy_rules,
     _validate_n8n_automation_readiness_rules,
+    _validate_n8n_workflow_generation_rules,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
     _validate_bootstrap_templates,
@@ -384,6 +386,32 @@ def test_n8n_automation_readiness_rules_require_core_fields_and_node_signals():
         for finding in findings
     )
     assert "n8n_automation_readiness_rules_invalid_risk_triggers_medium" in findings
+
+
+def test_n8n_workflow_generation_rules_require_core_templates_and_placeholders():
+    findings = []
+    invalid_rules = _load_n8n_workflow_generation_rules(ROOT)
+    invalid_rules["trigger_templates"] = {
+        "manual": invalid_rules["trigger_templates"]["manual"]
+    }
+    invalid_rules["safe_placeholder_values"] = {
+        "credential_binding": "MANUAL_BIND_REQUIRED"
+    }
+
+    with patch(
+        "tools.atlas_governance_check._load_n8n_workflow_generation_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_n8n_workflow_generation_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("n8n_workflow_generation_rules_missing_trigger_templates:")
+        for finding in findings
+    )
+    assert any(
+        finding.startswith("n8n_workflow_generation_rules_missing_safe_placeholder_values:")
+        for finding in findings
+    )
 
 
 def test_intent_clarifier_contract_rules_require_core_fields():

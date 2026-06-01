@@ -59,6 +59,7 @@ REQUIRED_ROOT_FILES = (
     "config/copywriting_conversion_rules.json",
     "config/brand_strategy_rules.json",
     "config/n8n_automation_readiness_rules.json",
+    "config/n8n_workflow_generation_rules.json",
     "agents/orchestrator.md",
     "agents/planner.md",
     "agents/architect.md",
@@ -123,6 +124,7 @@ REQUIRED_ROOT_FILES = (
     "policies/copywriting_conversion_policy.md",
     "policies/brand_strategy_policy.md",
     "policies/n8n_automation_readiness_policy.md",
+    "policies/n8n_workflow_generation_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
     "memory/session_summaries.md",
@@ -215,6 +217,8 @@ REQUIRED_ROOT_FILES = (
     "tools/copywriting_conversion_readiness.py",
     "tools/brand_strategy_readiness.py",
     "tools/n8n_automation_readiness.py",
+    "tools/n8n_workflow_blueprint_generator.py",
+    "tools/n8n_workflow_json_generator.py",
     "tests/test_atlas_orchestrator.py",
     "tests/test_certify_project.py",
     "tests/test_docs_catalog_report.py",
@@ -260,6 +264,8 @@ REQUIRED_ROOT_FILES = (
     "tests/test_copywriting_conversion_readiness.py",
     "tests/test_brand_strategy_readiness.py",
     "tests/test_n8n_automation_readiness.py",
+    "tests/test_n8n_workflow_blueprint_generator.py",
+    "tests/test_n8n_workflow_json_generator.py",
     "tests/test_surface_audit.py",
     "templates/project_bootstrap_profiles.md",
 )
@@ -1426,6 +1432,10 @@ def _load_brand_strategy_rules(root: Path) -> Dict[str, Any]:
 
 def _load_n8n_automation_readiness_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "n8n_automation_readiness_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_n8n_workflow_generation_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "n8n_workflow_generation_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_docs_search_catalog(root: Path) -> Dict[str, Any]:
@@ -3435,6 +3445,102 @@ def _validate_n8n_automation_readiness_rules(root: Path, findings: List[str]) ->
                 findings.append(f"n8n_automation_readiness_rules_invalid_risk_triggers_{bucket}")
 
 
+def _validate_n8n_workflow_generation_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_n8n_workflow_generation_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_n8n_workflow_generation_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("n8n_workflow_generation_rules_not_object")
+        return
+
+    required_fields = {
+        "advisory_only",
+        "workflow_active_by_default",
+        "require_readiness_review",
+        "safe_placeholder_markers",
+        "disallowed_credential_key_signals",
+        "trigger_templates",
+        "node_templates",
+        "safe_placeholder_values",
+        "task_signals",
+        "side_effect_channels",
+        "default_checklist",
+    }
+    missing_fields = required_fields - set(rules.keys())
+    if missing_fields:
+        findings.append(
+            f"n8n_workflow_generation_rules_missing_fields:{','.join(sorted(missing_fields))}"
+        )
+
+    if not isinstance(rules.get("safe_placeholder_markers"), list) or not rules.get("safe_placeholder_markers"):
+        findings.append("n8n_workflow_generation_rules_invalid_safe_placeholder_markers")
+
+    if not isinstance(rules.get("disallowed_credential_key_signals"), list) or not rules.get("disallowed_credential_key_signals"):
+        findings.append("n8n_workflow_generation_rules_invalid_disallowed_credential_key_signals")
+
+    trigger_templates = rules.get("trigger_templates")
+    if not isinstance(trigger_templates, dict):
+        findings.append("n8n_workflow_generation_rules_invalid_trigger_templates")
+    else:
+        missing_triggers = {"manual", "webhook", "schedule"} - set(trigger_templates.keys())
+        if missing_triggers:
+            findings.append(
+                f"n8n_workflow_generation_rules_missing_trigger_templates:{','.join(sorted(missing_triggers))}"
+            )
+
+    node_templates = rules.get("node_templates")
+    if not isinstance(node_templates, dict):
+        findings.append("n8n_workflow_generation_rules_invalid_node_templates")
+    else:
+        missing_node_templates = {
+            "normalize_input",
+            "llm_analysis",
+            "format_report",
+            "approval_gate",
+            "email_delivery",
+            "sheets_write",
+            "db_write",
+        } - set(node_templates.keys())
+        if missing_node_templates:
+            findings.append(
+                "n8n_workflow_generation_rules_missing_node_templates:"
+                + ",".join(sorted(missing_node_templates))
+            )
+
+    safe_placeholder_values = rules.get("safe_placeholder_values")
+    if not isinstance(safe_placeholder_values, dict):
+        findings.append("n8n_workflow_generation_rules_invalid_safe_placeholder_values")
+    else:
+        missing_placeholder_values = {
+            "webhook_path",
+            "email_recipient",
+            "credential_binding",
+            "llm_model",
+        } - set(safe_placeholder_values.keys())
+        if missing_placeholder_values:
+            findings.append(
+                "n8n_workflow_generation_rules_missing_safe_placeholder_values:"
+                + ",".join(sorted(missing_placeholder_values))
+            )
+
+    task_signals = rules.get("task_signals")
+    if not isinstance(task_signals, dict):
+        findings.append("n8n_workflow_generation_rules_invalid_task_signals")
+    else:
+        missing_task_signals = {"webhook", "schedule", "llm", "email", "sheets", "database"} - set(task_signals.keys())
+        if missing_task_signals:
+            findings.append(
+                "n8n_workflow_generation_rules_missing_task_signals:"
+                + ",".join(sorted(missing_task_signals))
+            )
+
+    if not isinstance(rules.get("default_checklist"), list) or not rules.get("default_checklist"):
+        findings.append("n8n_workflow_generation_rules_invalid_default_checklist")
+
+
 def _validate_visual_fidelity_judge_rules(root: Path, findings: List[str]) -> None:
     try:
         rules = _load_visual_fidelity_judge_rules(root)
@@ -4423,6 +4529,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_copywriting_conversion_rules(root, findings)
         _validate_brand_strategy_rules(root, findings)
         _validate_n8n_automation_readiness_rules(root, findings)
+        _validate_n8n_workflow_generation_rules(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)
         _validate_skill_catalog(root, findings)
