@@ -58,6 +58,7 @@ REQUIRED_ROOT_FILES = (
     "config/business_idea_simulation_rules.json",
     "config/copywriting_conversion_rules.json",
     "config/brand_strategy_rules.json",
+    "config/department_registry_rules.json",
     "config/n8n_automation_readiness_rules.json",
     "config/n8n_workflow_generation_rules.json",
     "agents/orchestrator.md",
@@ -123,6 +124,7 @@ REQUIRED_ROOT_FILES = (
     "policies/business_idea_simulation_policy.md",
     "policies/copywriting_conversion_policy.md",
     "policies/brand_strategy_policy.md",
+    "policies/department_registry_policy.md",
     "policies/n8n_automation_readiness_policy.md",
     "policies/n8n_workflow_generation_policy.md",
     "memory/decision_log.md",
@@ -216,6 +218,7 @@ REQUIRED_ROOT_FILES = (
     "tools/business_idea_simulation_readiness.py",
     "tools/copywriting_conversion_readiness.py",
     "tools/brand_strategy_readiness.py",
+    "tools/department_registry_readiness.py",
     "tools/n8n_automation_readiness.py",
     "tools/n8n_workflow_blueprint_generator.py",
     "tools/n8n_workflow_json_generator.py",
@@ -263,6 +266,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_business_idea_simulation_readiness.py",
     "tests/test_copywriting_conversion_readiness.py",
     "tests/test_brand_strategy_readiness.py",
+    "tests/test_department_registry_readiness.py",
     "tests/test_n8n_automation_readiness.py",
     "tests/test_n8n_workflow_blueprint_generator.py",
     "tests/test_n8n_workflow_json_generator.py",
@@ -726,6 +730,44 @@ BRAND_STRATEGY_REQUIRED_THRESHOLDS = {
     "visual_consistency_score",
     "tone_consistency_score",
     "audience_fit_score",
+}
+DEPARTMENT_REGISTRY_REQUIRED_FIELDS = {
+    "version",
+    "advisory_only",
+    "activation_mode",
+    "department_activation_order",
+    "frontend_project_types",
+    "research_signal_terms",
+    "growth_signal_terms",
+    "product_signal_terms",
+    "n8n_signal_terms",
+    "engineering_signal_terms",
+    "cost_signal_terms",
+    "departments",
+}
+DEPARTMENT_REGISTRY_REQUIRED_DEPARTMENTS = {
+    "product",
+    "web_ux",
+    "automation_n8n",
+    "engineering",
+    "growth_marketing",
+    "research",
+    "qa_governance",
+    "operations_finance",
+}
+DEPARTMENT_REGISTRY_ALLOWED_STATUSES = {"active", "watchlist"}
+DEPARTMENT_REGISTRY_REQUIRED_DEPARTMENT_FIELDS = {
+    "status",
+    "purpose",
+    "activate_when",
+    "required_inputs",
+    "expected_outputs",
+    "capabilities",
+    "must_not_do",
+    "required_checks",
+    "handoff_to",
+    "project_type_fit",
+    "signal_triggers",
 }
 REQUIRED_BRAND_JSON_V2_SECTIONS = {
     "brand_name",
@@ -1428,6 +1470,10 @@ def _load_copywriting_conversion_rules(root: Path) -> Dict[str, Any]:
 
 def _load_brand_strategy_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "brand_strategy_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_department_registry(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "department_registry_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_n8n_automation_readiness_rules(root: Path) -> Dict[str, Any]:
@@ -3390,6 +3436,100 @@ def _validate_brand_strategy_rules(root: Path, findings: List[str]) -> None:
                 findings.append(f"brand_strategy_rules_invalid_threshold:{field_name}")
 
 
+def _validate_department_registry(root: Path, findings: List[str]) -> None:
+    try:
+        registry = _load_department_registry(root)
+    except Exception as exc:
+        findings.append(f"invalid_department_registry_json:{exc}")
+        return
+
+    if not isinstance(registry, dict):
+        findings.append("department_registry_not_object")
+        return
+
+    missing_fields = DEPARTMENT_REGISTRY_REQUIRED_FIELDS - set(registry.keys())
+    if missing_fields:
+        findings.append(f"department_registry_missing_fields:{','.join(sorted(missing_fields))}")
+
+    if not isinstance(registry.get("advisory_only"), bool):
+        findings.append("department_registry_invalid_advisory_only")
+
+    if str(registry.get("activation_mode", "")).strip() != "manual_governed":
+        findings.append("department_registry_invalid_activation_mode")
+
+    for field_name in (
+        "department_activation_order",
+        "frontend_project_types",
+        "research_signal_terms",
+        "growth_signal_terms",
+        "product_signal_terms",
+        "n8n_signal_terms",
+        "engineering_signal_terms",
+        "cost_signal_terms",
+    ):
+        value = registry.get(field_name)
+        if not isinstance(value, list) or not all(str(item).strip() for item in value):
+            findings.append(f"department_registry_invalid_{field_name}")
+
+    departments = registry.get("departments")
+    if not isinstance(departments, dict) or not departments:
+        findings.append("department_registry_invalid_departments")
+        return
+
+    missing_departments = DEPARTMENT_REGISTRY_REQUIRED_DEPARTMENTS - set(departments.keys())
+    if missing_departments:
+        findings.append(
+            f"department_registry_missing_departments:{','.join(sorted(missing_departments))}"
+        )
+
+    activation_order = registry.get("department_activation_order")
+    if isinstance(activation_order, list):
+        order_set = {str(item).strip() for item in activation_order if str(item).strip()}
+        if DEPARTMENT_REGISTRY_REQUIRED_DEPARTMENTS - order_set:
+            findings.append("department_registry_activation_order_incomplete")
+
+    for department_id, definition in sorted(departments.items()):
+        if not isinstance(definition, dict):
+            findings.append(f"department_registry_department_not_object:{department_id}")
+            continue
+        missing_definition_fields = (
+            DEPARTMENT_REGISTRY_REQUIRED_DEPARTMENT_FIELDS - set(definition.keys())
+        )
+        if missing_definition_fields:
+            findings.append(
+                "department_registry_department_missing_fields:"
+                f"{department_id}:{','.join(sorted(missing_definition_fields))}"
+            )
+        status = str(definition.get("status", "")).strip()
+        if status not in DEPARTMENT_REGISTRY_ALLOWED_STATUSES:
+            findings.append(f"department_registry_invalid_status:{department_id}:{status}")
+        if department_id == "operations_finance" and status != "watchlist":
+            findings.append("department_registry_operations_finance_must_be_watchlist")
+        if department_id == "qa_governance" and status != "active":
+            findings.append("department_registry_qa_governance_must_be_active")
+
+        for list_field in (
+            "activate_when",
+            "required_inputs",
+            "expected_outputs",
+            "capabilities",
+            "must_not_do",
+            "required_checks",
+            "handoff_to",
+            "project_type_fit",
+            "signal_triggers",
+        ):
+            value = definition.get(list_field)
+            if not isinstance(value, list) or not all(str(item).strip() for item in value):
+                findings.append(
+                    f"department_registry_invalid_department_list:{department_id}:{list_field}"
+                )
+
+        purpose = str(definition.get("purpose", "")).strip()
+        if not purpose:
+            findings.append(f"department_registry_invalid_purpose:{department_id}")
+
+
 def _validate_n8n_automation_readiness_rules(root: Path, findings: List[str]) -> None:
     try:
         rules = _load_n8n_automation_readiness_rules(root)
@@ -4528,6 +4668,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_chrome_devtools_mcp_rules(root, findings)
         _validate_copywriting_conversion_rules(root, findings)
         _validate_brand_strategy_rules(root, findings)
+        _validate_department_registry(root, findings)
         _validate_n8n_automation_readiness_rules(root, findings)
         _validate_n8n_workflow_generation_rules(root, findings)
         _validate_docs_search_catalog(root, findings)

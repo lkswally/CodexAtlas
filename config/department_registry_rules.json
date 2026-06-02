@@ -1,0 +1,480 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "activation_mode": "manual_governed",
+  "department_activation_order": [
+    "product",
+    "research",
+    "web_ux",
+    "growth_marketing",
+    "automation_n8n",
+    "engineering",
+    "qa_governance",
+    "operations_finance"
+  ],
+  "frontend_project_types": [
+    "frontend_app",
+    "landing_page",
+    "marketing_site",
+    "dashboard",
+    "ui_surface",
+    "internal_tool"
+  ],
+  "research_signal_terms": [
+    "research",
+    "benchmark",
+    "compare",
+    "reference",
+    "radar",
+    "trend",
+    "trending",
+    "watchlist"
+  ],
+  "growth_signal_terms": [
+    "landing",
+    "marketing",
+    "conversion",
+    "cta",
+    "copy",
+    "brand",
+    "positioning"
+  ],
+  "product_signal_terms": [
+    "idea",
+    "validate",
+    "scope",
+    "brief",
+    "proposal",
+    "roadmap",
+    "product"
+  ],
+  "n8n_signal_terms": [
+    "n8n",
+    "workflow",
+    "webhook",
+    "sheet",
+    "sheets",
+    "automation",
+    "email"
+  ],
+  "engineering_signal_terms": [
+    "architecture",
+    "refactor",
+    "implementation",
+    "runtime",
+    "executor",
+    "code",
+    "bug",
+    "build"
+  ],
+  "cost_signal_terms": [
+    "cost",
+    "token",
+    "fallback",
+    "provider",
+    "groq",
+    "nvidia",
+    "litellm",
+    "ollama"
+  ],
+  "departments": {
+    "product": {
+      "status": "active",
+      "purpose": "Clarify problem, audience, scope, product promise and decision framing before implementation expands.",
+      "activate_when": [
+        "A project or request still needs scope, problem or value validation.",
+        "Atlas has to rank what should happen first across product, UX and engineering work."
+      ],
+      "required_inputs": [
+        "project_type",
+        "objective",
+        "problem_statement",
+        "target_audience"
+      ],
+      "expected_outputs": [
+        "priority framing",
+        "decision notes",
+        "business idea or scope posture",
+        "change proposal posture when scope is medium or large"
+      ],
+      "capabilities": [
+        "business_idea_simulation_readiness",
+        "priority_engine",
+        "decision_feedback",
+        "change_proposal_readiness"
+      ],
+      "must_not_do": [
+        "Do not invent business evidence or market traction.",
+        "Do not approve large scope changes without explicit proposal discipline."
+      ],
+      "required_checks": [
+        "python tools/atlas_verify.py",
+        "python tools/atlas_governance_check.py"
+      ],
+      "handoff_to": [
+        "research",
+        "web_ux",
+        "engineering",
+        "qa_governance"
+      ],
+      "project_type_fit": [
+        "frontend_app",
+        "internal_tool",
+        "ai_agent_system",
+        "atlas-factory-core"
+      ],
+      "signal_triggers": [
+        "idea",
+        "validate",
+        "scope",
+        "proposal"
+      ]
+    },
+    "web_ux": {
+      "status": "active",
+      "purpose": "Govern visual direction, usability, structure, copy fit and browser-truth readiness for user-facing surfaces.",
+      "activate_when": [
+        "The project is frontend or public-facing.",
+        "There are layout, visual drift, hierarchy, CTA or responsive concerns."
+      ],
+      "required_inputs": [
+        "project_type",
+        "target_audience",
+        "visual_direction",
+        "primary_cta"
+      ],
+      "expected_outputs": [
+        "visual direction posture",
+        "design-system recommendation",
+        "copy and brand readiness",
+        "visual fidelity or browser-truth guidance"
+      ],
+      "capabilities": [
+        "ui_ux_design_system_readiness",
+        "visual_fidelity_judge",
+        "copywriting_conversion_readiness",
+        "brand_strategy_readiness",
+        "chrome_devtools_mcp_readiness"
+      ],
+      "must_not_do": [
+        "Do not claim public-ready UI without evidence.",
+        "Do not activate browser automation or MCPs automatically."
+      ],
+      "required_checks": [
+        "python tools/atlas_verify.py",
+        "python tools/atlas_governance_check.py",
+        "python tools/mcp_readiness_check.py"
+      ],
+      "handoff_to": [
+        "growth_marketing",
+        "engineering",
+        "qa_governance"
+      ],
+      "project_type_fit": [
+        "frontend_app",
+        "landing_page",
+        "marketing_site",
+        "dashboard",
+        "ui_surface",
+        "internal_tool"
+      ],
+      "signal_triggers": [
+        "layout",
+        "visual",
+        "responsive",
+        "cta"
+      ]
+    },
+    "automation_n8n": {
+      "status": "active",
+      "purpose": "Design, audit and stage n8n workflows safely before any real connection, execution or production write.",
+      "activate_when": [
+        "A request involves workflow design, webhook intake, email automation or Sheets-style persistence.",
+        "Atlas is reviewing n8n exports, blueprints or offline JSON."
+      ],
+      "required_inputs": [
+        "workflow_blueprint",
+        "test_payload",
+        "side_effect_boundaries"
+      ],
+      "expected_outputs": [
+        "n8n automation readiness posture",
+        "workflow blueprint",
+        "importable inactive JSON",
+        "manual import checklist"
+      ],
+      "capabilities": [
+        "n8n_automation_readiness",
+        "n8n_workflow_blueprint_generator",
+        "n8n_workflow_json_generator"
+      ],
+      "must_not_do": [
+        "Do not execute workflows or call live webhooks.",
+        "Do not bind real credentials or activate workflows automatically."
+      ],
+      "required_checks": [
+        "python tools/atlas_verify.py",
+        "python tools/atlas_governance_check.py"
+      ],
+      "handoff_to": [
+        "engineering",
+        "qa_governance"
+      ],
+      "project_type_fit": [
+        "internal_tool",
+        "ai_agent_system",
+        "backend_service"
+      ],
+      "signal_triggers": [
+        "n8n",
+        "workflow",
+        "webhook",
+        "automation"
+      ]
+    },
+    "engineering": {
+      "status": "active",
+      "purpose": "Hold implementation, architecture, runtime compatibility and repository-shape decisions inside governed engineering boundaries.",
+      "activate_when": [
+        "A task touches code, architecture, executor/runtime compatibility or deep repo navigation.",
+        "Atlas needs to decide whether implementation is safe to proceed."
+      ],
+      "required_inputs": [
+        "project_type",
+        "objective",
+        "code_or_structure_context"
+      ],
+      "expected_outputs": [
+        "implementation posture",
+        "repo graph recommendation",
+        "runtime compatibility posture",
+        "change proposal or execution guidance"
+      ],
+      "capabilities": [
+        "repo_graph_readiness",
+        "codex_runtime_compatibility_check",
+        "change_proposal_readiness",
+        "atlas_codex_executor"
+      ],
+      "must_not_do": [
+        "Do not widen runtime or dependency surface without explicit approval.",
+        "Do not bypass governance for architecture, security or execution-risk work."
+      ],
+      "required_checks": [
+        "python tools/atlas_verify.py",
+        "python tools/atlas_governance_check.py"
+      ],
+      "handoff_to": [
+        "qa_governance"
+      ],
+      "project_type_fit": [
+        "backend_service",
+        "internal_tool",
+        "ai_agent_system",
+        "atlas-factory-core"
+      ],
+      "signal_triggers": [
+        "architecture",
+        "code",
+        "runtime",
+        "build"
+      ]
+    },
+    "growth_marketing": {
+      "status": "active",
+      "purpose": "Tighten positioning, trust, CTA integrity and anti-generic public messaging without inventing growth claims.",
+      "activate_when": [
+        "The surface is landing-like, public-facing or conversion-sensitive.",
+        "Atlas needs to review positioning, copy, CTAs or branded messaging."
+      ],
+      "required_inputs": [
+        "target_audience",
+        "problem_statement",
+        "value_proposition",
+        "primary_cta"
+      ],
+      "expected_outputs": [
+        "copywriting conversion posture",
+        "brand strategy posture",
+        "market framing or benchmark notes"
+      ],
+      "capabilities": [
+        "copywriting_conversion_readiness",
+        "brand_strategy_readiness",
+        "market_research_benchmark"
+      ],
+      "must_not_do": [
+        "Do not promise conversion, revenue or growth guarantees.",
+        "Do not use hype or generic AI copy as evidence."
+      ],
+      "required_checks": [
+        "python tools/atlas_verify.py",
+        "python tools/atlas_governance_check.py"
+      ],
+      "handoff_to": [
+        "web_ux",
+        "qa_governance"
+      ],
+      "project_type_fit": [
+        "frontend_app",
+        "landing_page",
+        "marketing_site",
+        "ui_surface"
+      ],
+      "signal_triggers": [
+        "landing",
+        "marketing",
+        "conversion",
+        "copy"
+      ]
+    },
+    "research": {
+      "status": "active",
+      "purpose": "Benchmark references, external skills and capability radar without turning Atlas into trend-following automation.",
+      "activate_when": [
+        "A request needs comparative research, reference evaluation or curated external-radar scoring.",
+        "Atlas has to decide whether an external pattern is already covered, useful later or unsafe."
+      ],
+      "required_inputs": [
+        "research_goal",
+        "comparison_scope"
+      ],
+      "expected_outputs": [
+        "benchmark report",
+        "external skill fit decision",
+        "watchlist or adoption recommendation"
+      ],
+      "capabilities": [
+        "market_research_benchmark",
+        "skill_improvement_review",
+        "repo_improvement_scout"
+      ],
+      "must_not_do": [
+        "Do not adopt external repos by popularity alone.",
+        "Do not scrape, install or activate external runtimes automatically."
+      ],
+      "required_checks": [
+        "python tools/atlas_verify.py",
+        "python tools/atlas_governance_check.py"
+      ],
+      "handoff_to": [
+        "product",
+        "qa_governance"
+      ],
+      "project_type_fit": [
+        "atlas-factory-core",
+        "ai_agent_system",
+        "frontend_app",
+        "internal_tool"
+      ],
+      "signal_triggers": [
+        "benchmark",
+        "reference",
+        "compare",
+        "watchlist"
+      ]
+    },
+    "qa_governance": {
+      "status": "active",
+      "purpose": "Enforce evidence, readiness, policy boundaries, build checks and safe handoff discipline across all Atlas work.",
+      "activate_when": [
+        "Always for Atlas-governed work before stronger ready or done claims.",
+        "Whenever a change needs validation, evidence or governance review."
+      ],
+      "required_inputs": [
+        "project_path",
+        "scope_declaration"
+      ],
+      "expected_outputs": [
+        "quality gate report",
+        "governance result",
+        "evidence posture",
+        "recommended next action"
+      ],
+      "capabilities": [
+        "quality_gate_report",
+        "atlas_governance_check",
+        "atlas_verify",
+        "evidence_collector_readiness",
+        "mcp_readiness_check",
+        "skill_registry_index_first_readiness"
+      ],
+      "must_not_do": [
+        "Do not hide failing evidence behind optimistic summaries.",
+        "Do not treat advisory posture as permission to execute risky integrations."
+      ],
+      "required_checks": [
+        "python tools/atlas_verify.py",
+        "python tools/atlas_governance_check.py",
+        "python tools/mcp_readiness_check.py"
+      ],
+      "handoff_to": [
+        "product",
+        "engineering",
+        "web_ux"
+      ],
+      "project_type_fit": [
+        "atlas-factory-core",
+        "backend_service",
+        "frontend_app",
+        "internal_tool",
+        "ai_agent_system",
+        "landing_page",
+        "marketing_site",
+        "dashboard",
+        "ui_surface"
+      ],
+      "signal_triggers": [
+        "validate",
+        "audit",
+        "quality",
+        "governance"
+      ]
+    },
+    "operations_finance": {
+      "status": "watchlist",
+      "purpose": "Keep cost, provider and operational guardrails visible without pretending Atlas already owns finance or runtime operations.",
+      "activate_when": [
+        "A request explicitly discusses cost, provider routing, fallback posture or operational constraints.",
+        "Atlas must warn about runtime/provider expansion rather than implement it."
+      ],
+      "required_inputs": [
+        "cost_or_provider_context"
+      ],
+      "expected_outputs": [
+        "watchlist posture",
+        "manual fallback guidance",
+        "provider risk notes"
+      ],
+      "capabilities": [
+        "model_cost_control_readiness",
+        "mcp_readiness_check"
+      ],
+      "must_not_do": [
+        "Do not connect providers, local runtimes or proxies automatically.",
+        "Do not auto-switch models or approve production spending."
+      ],
+      "required_checks": [
+        "python tools/atlas_verify.py",
+        "python tools/atlas_governance_check.py",
+        "python tools/mcp_readiness_check.py"
+      ],
+      "handoff_to": [
+        "product",
+        "engineering",
+        "qa_governance"
+      ],
+      "project_type_fit": [
+        "atlas-factory-core",
+        "ai_agent_system",
+        "internal_tool"
+      ],
+      "signal_triggers": [
+        "cost",
+        "fallback",
+        "provider",
+        "token"
+      ]
+    }
+  }
+}

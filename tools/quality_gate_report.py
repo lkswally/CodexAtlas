@@ -132,6 +132,10 @@ try:
 except ModuleNotFoundError:
     from brand_strategy_readiness import assess_brand_strategy_readiness
 try:
+    from tools.department_registry_readiness import assess_department_registry_readiness
+except ModuleNotFoundError:
+    from department_registry_readiness import assess_department_registry_readiness
+try:
     from tools.n8n_automation_readiness import assess_n8n_automation_readiness
 except ModuleNotFoundError:
     from n8n_automation_readiness import assess_n8n_automation_readiness
@@ -708,6 +712,19 @@ def _run_n8n_automation_readiness(
     except Exception as exc:
         return _build_failed_report("n8n_automation_readiness", f"n8n_automation_readiness_failed:{exc}")
     return _build_ok_report("n8n_automation_readiness", report)
+
+
+def _run_department_registry_readiness(
+    *,
+    root: Path,
+    project: Path,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    try:
+        report = assess_department_registry_readiness(payload, root=root, project=project)
+    except Exception as exc:
+        return _build_failed_report("department_registry_readiness", f"department_registry_readiness_failed:{exc}")
+    return _build_ok_report("department_registry_readiness", report)
 
 
 def _run_change_proposal_readiness(
@@ -2180,6 +2197,28 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         current_phase=current_phase,
         top_priorities=top_priorities,
     )
+    source_reports["department_registry_readiness"] = _run_department_registry_readiness(
+        root=root,
+        project=project,
+        payload={
+            "project_type": ((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "unknown",
+            "project_name": project.name,
+            "objective": ((source_reports["project_intent_analyzer"]["report"] or {}).get("objective") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "",
+            "domain_context": ((source_reports["project_intent_analyzer"]["report"] or {}).get("domain_context") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "",
+            "target_audience": ((visual_intent_from_design or visual_intent_from_intent or {}).get("contract") or {}).get("audience")
+            or ((brand_profile_review or {}).get("profile") or {}).get("audience"),
+            "problem_statement": ((visual_intent_from_design or visual_intent_from_intent or {}).get("contract") or {}).get("problem_or_promise")
+            or ((source_reports["project_intent_analyzer"]["report"] or {}).get("objective") if source_reports["project_intent_analyzer"]["status"] == "ok" else None),
+            "business_idea_simulation_posture": source_reports["business_idea_simulation_readiness"]["report"] or {},
+            "visual_fidelity_posture": source_reports["visual_fidelity_judge"]["report"] or {},
+            "copywriting_conversion_posture": source_reports["copywriting_conversion_readiness"]["report"] or {},
+            "brand_strategy_posture": source_reports["brand_strategy_readiness"]["report"] or {},
+            "n8n_automation_posture": source_reports["n8n_automation_readiness"]["report"] or {},
+            "repo_graph_posture": source_reports["repo_graph_readiness"]["report"] or {},
+            "model_cost_control_posture": source_reports["model_cost_control_readiness"]["report"] or {},
+            "skill_improvement_posture": source_reports["skill_improvement_review"]["report"] or {},
+        },
+    )
     priority_bundle = build_execution_plan(
         phase_guidance=phase_guidance,
         phase_validity=phase_validity,
@@ -2405,6 +2444,10 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "why": (source_reports["n8n_automation_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["n8n_automation_readiness"]["report"] or {}).get("advisory_only", True)),
         },
+        "department_registry_posture": (source_reports["department_registry_readiness"]["report"] or {}).get(
+            "department_registry_posture",
+            {},
+        ),
         "error_learning_posture": {
             "status": (source_reports["atlas_error_learning_review"]["report"] or {}).get("status"),
             "blockers": (source_reports["atlas_error_learning_review"]["report"] or {}).get("blockers", []),

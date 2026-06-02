@@ -35,6 +35,7 @@ from tools.atlas_governance_check import (
     _load_chrome_devtools_mcp_rules,
     _load_copywriting_conversion_rules,
     _load_brand_strategy_rules,
+    _load_department_registry,
     _load_n8n_automation_readiness_rules,
     _load_n8n_workflow_generation_rules,
     _validate_external_tool_policy,
@@ -65,6 +66,7 @@ from tools.atlas_governance_check import (
     _validate_chrome_devtools_mcp_rules,
     _validate_copywriting_conversion_rules,
     _validate_brand_strategy_rules,
+    _validate_department_registry,
     _validate_n8n_automation_readiness_rules,
     _validate_n8n_workflow_generation_rules,
     _validate_bootstrap_contract,
@@ -365,6 +367,31 @@ def test_brand_strategy_rules_require_core_fields_and_thresholds():
         finding.startswith("brand_strategy_rules_missing_ready_thresholds:")
         for finding in findings
     )
+
+
+def test_department_registry_requires_expected_departments_and_watchlist_boundary():
+    findings = []
+    invalid_registry = _load_department_registry(ROOT)
+    invalid_registry["department_activation_order"] = ["product", "qa_governance"]
+    invalid_registry["departments"] = dict(invalid_registry["departments"])
+    invalid_registry["departments"].pop("research", None)
+    invalid_registry["departments"]["operations_finance"] = dict(
+        invalid_registry["departments"]["operations_finance"]
+    )
+    invalid_registry["departments"]["operations_finance"]["status"] = "active"
+
+    with patch(
+        "tools.atlas_governance_check._load_department_registry",
+        return_value=invalid_registry,
+    ):
+        _validate_department_registry(ROOT, findings)
+
+    assert any(
+        finding.startswith("department_registry_missing_departments:")
+        for finding in findings
+    )
+    assert "department_registry_activation_order_incomplete" in findings
+    assert "department_registry_operations_finance_must_be_watchlist" in findings
 
 
 def test_n8n_automation_readiness_rules_require_core_fields_and_node_signals():
