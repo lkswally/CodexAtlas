@@ -38,6 +38,7 @@ This layer exists to answer:
 - `repo_status`, `commits`, `pull_requests`, `actions_read`, `issues_read`: allowed in `read_only`
 - `pr_draft`: allowed as `draft_only` with human review
 - `pr_draft_plan`: advisory artifact only, with `allowed_to_create: false` by default
+- `github_pr_draft_create_guard`: only evaluates whether a future draft PR creation would be allowed under explicit approval; it never creates anything in this layer
 - `branch_write`: sandbox-only conceptually, but keep blocked until explicit approval and rollback planning exist
 - `merge`: blocked
 - `workflow_dispatch`: blocked
@@ -50,6 +51,7 @@ This layer exists to answer:
 - Start in `read_only` by default.
 - Treat draft PR creation as a review-gated step, not an autonomous write.
 - Treat PR draft planning as offline preparation only until a human explicitly decides to create it.
+- Treat future draft PR creation as blocked unless explicit human approval, `draft: true`, repository approval, base/head/title/body, and `draft_only` permission all exist together.
 - Block merges, workflow dispatch, secrets access, deletes and force-pushes by default.
 - If rollback or dry-run evidence is missing, keep any write-like capability blocked.
 - If a request implies tokens, secrets or sensitive repository data, raise risk and keep Atlas advisory-only.
@@ -70,3 +72,4 @@ This layer exists to answer:
 - recommend `read_only`
 - human approval required for draft or branch-like actions
 - merge, workflow execution, secrets and destructive actions blocked by default
+- any future draft PR creation must pass `github_pr_draft_create_guard` first and still remain a human-approved manual step

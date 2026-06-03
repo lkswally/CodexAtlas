@@ -140,6 +140,77 @@ def _build_pr_draft_plan(
     }
 
 
+def _build_pr_draft_create_guard(
+    payload: Dict[str, Any],
+    *,
+    rules: Dict[str, Any],
+    capability: str,
+    requested_level: str,
+    matrix_posture: Dict[str, Any],
+) -> Dict[str, Any]:
+    defaults = rules.get("pr_draft_create_guard_defaults") or {}
+    expected_action = _normalize(defaults.get("requested_action") or "create_draft_pr")
+    required_fields = [str(item).strip() for item in (defaults.get("required_fields") or []) if str(item).strip()]
+    blocked_capabilities = {
+        str(item).strip() for item in (defaults.get("blocked_capabilities") or []) if str(item).strip()
+    }
+
+    missing_requirements: List[str] = []
+    blocked_reasons: List[str] = []
+
+    if bool(defaults.get("require_explicit_human_approval", True)) and not bool(payload.get("explicit_human_approval")):
+        missing_requirements.append("explicit_human_approval")
+
+    if _normalize(payload.get("requested_action")) != expected_action:
+        missing_requirements.append(f"requested_action:{expected_action}")
+
+    if bool(defaults.get("require_draft_true", True)) and not bool(payload.get("draft")):
+        missing_requirements.append("draft:true")
+
+    if bool(defaults.get("require_repository_allowed_flag", True)) and not bool(payload.get("repository_allowed")):
+        missing_requirements.append("repository_allowed")
+
+    explicit_field_values = {
+        "repository": str(payload.get("repository") or payload.get("repo") or "").strip(),
+        "base_branch": str(payload.get("base_branch") or "").strip(),
+        "head_branch": str(payload.get("head_branch") or payload.get("branch") or payload.get("source_branch") or "").strip(),
+        "title": str(payload.get("title") or payload.get("suggested_title") or "").strip(),
+        "body": str(payload.get("body") or payload.get("pr_body") or "").strip(),
+    }
+    for field_name in required_fields:
+        if not explicit_field_values.get(field_name):
+            missing_requirements.append(field_name)
+
+    if capability != "pr_draft":
+        blocked_reasons.append("requested_capability_must_be_pr_draft")
+    if requested_level != "draft_only":
+        blocked_reasons.append("requested_level_must_be_draft_only")
+    if not bool(matrix_posture.get("allowed")):
+        blocked_reasons.append("mcp_permission_matrix_denied_draft_only")
+    if str(matrix_posture.get("requested_capability") or "").strip() != "draft_only":
+        blocked_reasons.append("mcp_permission_matrix_not_draft_only")
+
+    if capability in blocked_capabilities:
+        blocked_reasons.append(f"{capability}_blocked_by_github_policy")
+    for blocked_name in blocked_capabilities:
+        if bool(payload.get(blocked_name)):
+            blocked_reasons.append(f"{blocked_name}_must_remain_false")
+
+    if bool(payload.get("production_write")):
+        blocked_reasons.append("production_write_must_remain_false")
+    if bool(payload.get("execute")):
+        blocked_reasons.append("execute_must_remain_false")
+
+    allowed_to_create = not missing_requirements and not blocked_reasons
+    return {
+        "allowed_to_create": allowed_to_create,
+        "requires_human_approval": True,
+        "missing_requirements": list(dict.fromkeys(missing_requirements)),
+        "blocked_reasons": list(dict.fromkeys(blocked_reasons)),
+        "safe_to_call_create_pull_request": allowed_to_create,
+    }
+
+
 def _build_runtime_probe(
     payload: Dict[str, Any],
     *,
@@ -269,6 +340,14 @@ def assess_github_connector_readiness(
         capability=capability,
         requested_level=requested_level,
     )
+    pr_draft_create_guard = _build_pr_draft_create_guard(
+        payload,
+        rules=rules,
+        capability=capability,
+        requested_level=requested_level,
+        matrix_posture=matrix_posture,
+    )
+    pr_draft_plan["allowed_to_create"] = pr_draft_create_guard["allowed_to_create"]
 
     requested_allowed = bool(matrix_posture.get("allowed"))
     blocked_reasons = list(matrix_posture.get("blocked_reasons", []))
@@ -301,7 +380,8 @@ def assess_github_connector_readiness(
         "risk_notes": pr_draft_plan["risk_notes"],
         "base_branch": pr_draft_plan["base_branch"],
         "head_branch": pr_draft_plan["head_branch"],
-        "allowed_to_create": False,
+        "allowed_to_create": pr_draft_create_guard["allowed_to_create"],
+        "github_pr_draft_create_guard": pr_draft_create_guard,
         "runtime_probe_state": "read_only_available" if runtime_probe["runtime_read_only_available"] else runtime_probe["probe_mode"],
         "runtime_probe": runtime_probe,
         "mcp_permission_posture": matrix_posture,

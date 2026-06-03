@@ -432,6 +432,7 @@ def test_github_connector_rules_require_capabilities_and_blocked_actions():
     }
     invalid_rules["runtime_read_checks"] = ["repo_accessible"]
     invalid_rules["pr_draft_plan_defaults"] = {"base_branch": "main"}
+    invalid_rules["pr_draft_create_guard_defaults"] = {"requested_action": "create_draft_pr"}
 
     with patch(
         "tools.atlas_governance_check._load_github_connector_rules",
@@ -449,6 +450,10 @@ def test_github_connector_rules_require_capabilities_and_blocked_actions():
     )
     assert any(
         finding.startswith("github_connector_rules_missing_pr_draft_plan_field:")
+        for finding in findings
+    )
+    assert any(
+        finding.startswith("github_connector_rules_missing_pr_draft_create_guard_field:")
         for finding in findings
     )
     assert "github_connector_rules_workflow_dispatch_must_be_blocked" in findings

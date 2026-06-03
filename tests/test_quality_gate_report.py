@@ -133,6 +133,9 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["github_connector_posture"]["runtime_probe"]["write_attempted"] is False
     assert "merge" in result["github_connector_posture"]["runtime_probe"]["blocked_write_capabilities"]
     assert result["github_connector_posture"]["allowed_to_create"] is False
+    assert isinstance(result["github_connector_posture"]["github_pr_draft_create_guard"], dict)
+    assert result["github_connector_posture"]["github_pr_draft_create_guard"]["allowed_to_create"] is False
+    assert result["github_connector_posture"]["github_pr_draft_create_guard"]["safe_to_call_create_pull_request"] is False
     assert isinstance(result["error_learning_posture"], dict)
     assert result["error_learning_posture"]["advisory_only"] is True
     assert isinstance(result["codex_runtime_posture"], dict)

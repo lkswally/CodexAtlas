@@ -265,3 +265,149 @@ def test_github_connector_pr_draft_plan_stays_advisory_by_default():
     assert posture["pr_draft_plan"]["allowed_to_create"] is False
     assert posture["pr_draft_plan"]["requires_human_approval"] is True
     assert posture["suggested_title"]
+
+
+def test_github_connector_pr_draft_create_guard_blocks_without_explicit_approval():
+    matrix_response = _matrix_stub(allowed=True, requested_capability="draft_only", risk_level="medium")
+    with patch(
+        "tools.github_connector_readiness.assess_mcp_permission_matrix_readiness",
+        return_value=matrix_response,
+    ):
+        result = assess_github_connector_readiness(
+            {
+                "requested_capability": "pr_draft",
+                "requested_action": "create_draft_pr",
+                "draft": True,
+                "repository": "lkswally/CodexAtlas",
+                "repository_allowed": True,
+                "base_branch": "main",
+                "head_branch": "codex/github-draft-guard",
+                "title": "Guardrail test",
+                "body": "Testing draft creation guard",
+            },
+            root=ATLAS_ROOT,
+        )
+
+    guard = result["github_connector_posture"]["github_pr_draft_create_guard"]
+    assert guard["allowed_to_create"] is False
+    assert guard["safe_to_call_create_pull_request"] is False
+    assert "explicit_human_approval" in guard["missing_requirements"]
+
+
+def test_github_connector_pr_draft_create_guard_blocks_when_draft_false():
+    matrix_response = _matrix_stub(allowed=True, requested_capability="draft_only", risk_level="medium")
+    with patch(
+        "tools.github_connector_readiness.assess_mcp_permission_matrix_readiness",
+        return_value=matrix_response,
+    ):
+        result = assess_github_connector_readiness(
+            {
+                "requested_capability": "pr_draft",
+                "requested_action": "create_draft_pr",
+                "explicit_human_approval": True,
+                "draft": False,
+                "repository": "lkswally/CodexAtlas",
+                "repository_allowed": True,
+                "base_branch": "main",
+                "head_branch": "codex/github-draft-guard",
+                "title": "Guardrail test",
+                "body": "Testing draft creation guard",
+            },
+            root=ATLAS_ROOT,
+        )
+
+    guard = result["github_connector_posture"]["github_pr_draft_create_guard"]
+    assert guard["allowed_to_create"] is False
+    assert "draft:true" in guard["missing_requirements"]
+
+
+def test_github_connector_pr_draft_create_guard_blocks_when_required_fields_are_missing():
+    matrix_response = _matrix_stub(allowed=True, requested_capability="draft_only", risk_level="medium")
+    with patch(
+        "tools.github_connector_readiness.assess_mcp_permission_matrix_readiness",
+        return_value=matrix_response,
+    ):
+        result = assess_github_connector_readiness(
+            {
+                "requested_capability": "pr_draft",
+                "requested_action": "create_draft_pr",
+                "explicit_human_approval": True,
+                "draft": True,
+                "repository": "lkswally/CodexAtlas",
+                "repository_allowed": True,
+            },
+            root=ATLAS_ROOT,
+        )
+
+    guard = result["github_connector_posture"]["github_pr_draft_create_guard"]
+    assert guard["allowed_to_create"] is False
+    assert {"base_branch", "head_branch", "title", "body"}.issubset(set(guard["missing_requirements"]))
+
+
+def test_github_connector_pr_draft_create_guard_blocks_merge_workflow_and_secrets_requests():
+    blocked_cases = [
+        ("merge", "merge_blocked_by_github_policy"),
+        ("workflow_dispatch", "workflow_dispatch_blocked_by_github_policy"),
+        ("secrets_access", "secrets_access_blocked_by_github_policy"),
+    ]
+    for capability, expected_reason in blocked_cases:
+        matrix_response = _matrix_stub(
+            allowed=False,
+            requested_capability="execute" if capability != "merge" else "production_write",
+            risk_level="high",
+            blocked_reasons=["blocked_by_matrix"],
+        )
+        with patch(
+            "tools.github_connector_readiness.assess_mcp_permission_matrix_readiness",
+            return_value=matrix_response,
+        ):
+            result = assess_github_connector_readiness(
+                {
+                    "requested_capability": capability,
+                    "requested_action": "create_draft_pr",
+                    "explicit_human_approval": True,
+                    "draft": True,
+                    "repository": "lkswally/CodexAtlas",
+                    "repository_allowed": True,
+                    "base_branch": "main",
+                    "head_branch": "codex/github-draft-guard",
+                    "title": "Guardrail test",
+                    "body": "Testing draft creation guard",
+                },
+                root=ATLAS_ROOT,
+            )
+
+        guard = result["github_connector_posture"]["github_pr_draft_create_guard"]
+        assert guard["allowed_to_create"] is False
+        assert expected_reason in guard["blocked_reasons"]
+
+
+def test_github_connector_pr_draft_create_guard_allows_future_manual_creation_only_when_fully_approved():
+    matrix_response = _matrix_stub(allowed=True, requested_capability="draft_only", risk_level="medium")
+    with patch(
+        "tools.github_connector_readiness.assess_mcp_permission_matrix_readiness",
+        return_value=matrix_response,
+    ):
+        result = assess_github_connector_readiness(
+            {
+                "requested_capability": "pr_draft",
+                "requested_action": "create_draft_pr",
+                "explicit_human_approval": True,
+                "draft": True,
+                "repository": "lkswally/CodexAtlas",
+                "repository_allowed": True,
+                "base_branch": "main",
+                "head_branch": "codex/github-draft-guard",
+                "title": "Guardrail test",
+                "body": "Testing draft creation guard",
+            },
+            root=ATLAS_ROOT,
+        )
+
+    posture = result["github_connector_posture"]
+    guard = posture["github_pr_draft_create_guard"]
+    assert guard["allowed_to_create"] is True
+    assert guard["safe_to_call_create_pull_request"] is True
+    assert guard["requires_human_approval"] is True
+    assert posture["allowed_to_create"] is True
+    assert posture["pr_draft_plan"]["allowed_to_create"] is True

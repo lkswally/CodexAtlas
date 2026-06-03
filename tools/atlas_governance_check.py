@@ -3600,6 +3600,7 @@ def _validate_github_connector_rules(root: Path, findings: List[str]) -> None:
         "runtime_read_checks",
         "runtime_blocked_write_capabilities",
         "pr_draft_plan_defaults",
+        "pr_draft_create_guard_defaults",
         "blocked_capabilities",
         "hard_blocked_capabilities",
         "capability_next_safe_steps",
@@ -3702,6 +3703,36 @@ def _validate_github_connector_rules(root: Path, findings: List[str]) -> None:
                 findings.append(f"github_connector_rules_invalid_pr_draft_plan_field:{list_field}")
         if not str(pr_draft_plan_defaults.get("base_branch", "")).strip():
             findings.append("github_connector_rules_invalid_pr_draft_plan_field:base_branch")
+
+    pr_draft_create_guard_defaults = rules.get("pr_draft_create_guard_defaults")
+    if not isinstance(pr_draft_create_guard_defaults, dict):
+        findings.append("github_connector_rules_invalid_pr_draft_create_guard_defaults")
+    else:
+        for field_name in (
+            "requested_action",
+            "require_explicit_human_approval",
+            "require_draft_true",
+            "require_repository_allowed_flag",
+            "required_fields",
+            "blocked_capabilities",
+        ):
+            if field_name not in pr_draft_create_guard_defaults:
+                findings.append(f"github_connector_rules_missing_pr_draft_create_guard_field:{field_name}")
+        for bool_field in (
+            "require_explicit_human_approval",
+            "require_draft_true",
+            "require_repository_allowed_flag",
+        ):
+            if bool_field in pr_draft_create_guard_defaults and not isinstance(
+                pr_draft_create_guard_defaults.get(bool_field), bool
+            ):
+                findings.append(f"github_connector_rules_invalid_pr_draft_create_guard_field:{bool_field}")
+        if not str(pr_draft_create_guard_defaults.get("requested_action", "")).strip():
+            findings.append("github_connector_rules_invalid_pr_draft_create_guard_field:requested_action")
+        for list_field in ("required_fields", "blocked_capabilities"):
+            value = pr_draft_create_guard_defaults.get(list_field)
+            if not isinstance(value, list) or not all(str(item).strip() for item in value):
+                findings.append(f"github_connector_rules_invalid_pr_draft_create_guard_field:{list_field}")
 
     blocked_capabilities = set(rules.get("blocked_capabilities", []))
     if "merge" not in blocked_capabilities:

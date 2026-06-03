@@ -77,6 +77,26 @@
       "Do not include secrets or sensitive operational data in the PR body."
     ]
   },
+  "pr_draft_create_guard_defaults": {
+    "requested_action": "create_draft_pr",
+    "require_explicit_human_approval": true,
+    "require_draft_true": true,
+    "require_repository_allowed_flag": true,
+    "required_fields": [
+      "repository",
+      "base_branch",
+      "head_branch",
+      "title",
+      "body"
+    ],
+    "blocked_capabilities": [
+      "merge",
+      "workflow_dispatch",
+      "secrets_access",
+      "delete",
+      "force_push"
+    ]
+  },
   "blocked_capabilities": [
     "merge",
     "workflow_dispatch",
