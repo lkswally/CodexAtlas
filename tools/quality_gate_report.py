@@ -139,17 +139,13 @@ try:
     from tools.n8n_automation_readiness import assess_n8n_automation_readiness
 except ModuleNotFoundError:
     from n8n_automation_readiness import assess_n8n_automation_readiness
+try:
+    from tools.quality_gate_schema import CORE_REPORTS, SEVERITY_RANK
+except ModuleNotFoundError:
+    from quality_gate_schema import CORE_REPORTS, SEVERITY_RANK
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
-SEVERITY_RANK = {"blocker": 4, "high": 3, "medium": 2, "low": 1}
-CORE_REPORTS = {
-    "project-phase-report",
-    "audit-repo",
-    "certify-project",
-    "design_intelligence_audit",
-    "surface-audit",
-}
 
 
 def _collect_feedback_candidates(
