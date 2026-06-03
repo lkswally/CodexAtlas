@@ -144,6 +144,10 @@ try:
 except ModuleNotFoundError:
     from mcp_permission_matrix_readiness import assess_mcp_permission_matrix_readiness
 try:
+    from tools.github_connector_readiness import assess_github_connector_readiness
+except ModuleNotFoundError:
+    from github_connector_readiness import assess_github_connector_readiness
+try:
     from tools.quality_gate_schema import CORE_REPORTS, SEVERITY_RANK
 except ModuleNotFoundError:
     from quality_gate_schema import CORE_REPORTS, SEVERITY_RANK
@@ -725,6 +729,19 @@ def _run_mcp_permission_matrix_readiness(
     except Exception as exc:
         return _build_failed_report("mcp_permission_matrix_readiness", f"mcp_permission_matrix_readiness_failed:{exc}")
     return _build_ok_report("mcp_permission_matrix_readiness", report)
+
+
+def _run_github_connector_readiness(
+    *,
+    root: Path,
+    project: Path,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    try:
+        report = assess_github_connector_readiness(payload, root=root, project=project)
+    except Exception as exc:
+        return _build_failed_report("github_connector_readiness", f"github_connector_readiness_failed:{exc}")
+    return _build_ok_report("github_connector_readiness", report)
 
 
 def _run_department_registry_readiness(
@@ -1994,6 +2011,15 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "notes": "Quality gate posture only; no external actions requested.",
         },
     )
+    source_reports["github_connector_readiness"] = _run_github_connector_readiness(
+        root=root,
+        project=project,
+        payload={
+            "requested_capability": "repo_status",
+            "project_type": ((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "unknown",
+            "notes": "GitHub connector posture only; no token, draft, merge or workflow execution requested.",
+        },
+    )
     inferred_complexity = (
         str((source_reports["project_intent_analyzer"]["report"] or {}).get("complexity", "low")).strip().lower()
         if source_reports["project_intent_analyzer"]["status"] == "ok"
@@ -2469,6 +2495,10 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         },
         "mcp_permission_posture": (source_reports["mcp_permission_matrix_readiness"]["report"] or {}).get(
             "mcp_permission_posture",
+            {},
+        ),
+        "github_connector_posture": (source_reports["github_connector_readiness"]["report"] or {}).get(
+            "github_connector_posture",
             {},
         ),
         "department_registry_posture": (source_reports["department_registry_readiness"]["report"] or {}).get(

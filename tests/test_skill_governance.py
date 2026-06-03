@@ -36,6 +36,7 @@ from tools.atlas_governance_check import (
     _load_copywriting_conversion_rules,
     _load_brand_strategy_rules,
     _load_mcp_permission_matrix_rules,
+    _load_github_connector_rules,
     _load_department_registry,
     _load_n8n_automation_readiness_rules,
     _load_n8n_workflow_generation_rules,
@@ -68,6 +69,7 @@ from tools.atlas_governance_check import (
     _validate_copywriting_conversion_rules,
     _validate_brand_strategy_rules,
     _validate_mcp_permission_matrix_rules,
+    _validate_github_connector_rules,
     _validate_department_registry,
     _validate_n8n_automation_readiness_rules,
     _validate_n8n_workflow_generation_rules,
@@ -418,6 +420,29 @@ def test_mcp_permission_matrix_rules_require_platforms_capabilities_and_defaults
         finding.startswith("mcp_permission_matrix_rules_missing_platform_defaults:")
         for finding in findings
     )
+
+
+def test_github_connector_rules_require_capabilities_and_blocked_actions():
+    findings = []
+    invalid_rules = _load_github_connector_rules(ROOT)
+    invalid_rules["blocked_capabilities"] = ["merge"]
+    invalid_rules["capability_levels"] = {
+        "repo_status": "read_only",
+        "pr_draft": "draft_only",
+    }
+
+    with patch(
+        "tools.atlas_governance_check._load_github_connector_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_github_connector_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("github_connector_rules_missing_capabilities:")
+        for finding in findings
+    )
+    assert "github_connector_rules_workflow_dispatch_must_be_blocked" in findings
+    assert "github_connector_rules_secrets_access_must_be_blocked" in findings
 
 
 def test_n8n_automation_readiness_rules_require_core_fields_and_node_signals():

@@ -72,6 +72,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["source_reports"]["error_pattern_analyzer"]["status"] == "ok"
     assert result["source_reports"]["chrome_devtools_mcp_readiness"]["status"] == "ok"
     assert result["source_reports"]["mcp_permission_matrix_readiness"]["status"] == "ok"
+    assert result["source_reports"]["github_connector_readiness"]["status"] == "ok"
     assert result["source_reports"]["copywriting_conversion_readiness"]["status"] == "ok"
     assert result["source_reports"]["brand_strategy_readiness"]["status"] == "ok"
     assert isinstance(result["intent_analysis"], dict)
@@ -126,6 +127,9 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert isinstance(result["mcp_permission_posture"], dict)
     assert result["mcp_permission_posture"]["recommended_mode"] == "read_only"
     assert result["mcp_permission_posture"]["requested_capability"] == "read_only"
+    assert isinstance(result["github_connector_posture"], dict)
+    assert result["github_connector_posture"]["recommended_mode"] == "read_only"
+    assert "repo_status" in result["github_connector_posture"]["allowed_capabilities"]
     assert isinstance(result["error_learning_posture"], dict)
     assert result["error_learning_posture"]["advisory_only"] is True
     assert isinstance(result["codex_runtime_posture"], dict)
@@ -293,6 +297,15 @@ def test_quality_gate_report_exposes_mcp_permission_posture():
     assert result["mcp_permission_posture"]["requested_capability"] == "read_only"
     assert result["mcp_permission_posture"]["recommended_mode"] == "read_only"
     assert "next_safe_step" in result["mcp_permission_posture"]
+
+
+def test_quality_gate_report_exposes_github_connector_posture():
+    result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+    assert isinstance(result["github_connector_posture"], dict)
+    assert result["github_connector_posture"]["recommended_mode"] == "read_only"
+    assert "repo_status" in result["github_connector_posture"]["allowed_capabilities"]
+    assert "merge" in result["github_connector_posture"]["blocked_capabilities"]
+    assert result["github_connector_posture"]["mcp_permission_posture"]["platform"] == "github"
 
 
 def test_quality_gate_report_exposes_copywriting_conversion_posture():

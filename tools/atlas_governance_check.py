@@ -59,6 +59,7 @@ REQUIRED_ROOT_FILES = (
     "config/copywriting_conversion_rules.json",
     "config/brand_strategy_rules.json",
     "config/mcp_permission_matrix_rules.json",
+    "config/github_connector_rules.json",
     "config/department_registry_rules.json",
     "config/n8n_automation_readiness_rules.json",
     "config/n8n_workflow_generation_rules.json",
@@ -126,6 +127,7 @@ REQUIRED_ROOT_FILES = (
     "policies/copywriting_conversion_policy.md",
     "policies/brand_strategy_policy.md",
     "policies/mcp_permission_matrix_policy.md",
+    "policies/github_connector_policy.md",
     "policies/department_registry_policy.md",
     "policies/n8n_automation_readiness_policy.md",
     "policies/n8n_workflow_generation_policy.md",
@@ -221,6 +223,7 @@ REQUIRED_ROOT_FILES = (
     "tools/copywriting_conversion_readiness.py",
     "tools/brand_strategy_readiness.py",
     "tools/mcp_permission_matrix_readiness.py",
+    "tools/github_connector_readiness.py",
     "tools/department_registry_readiness.py",
     "tools/n8n_automation_readiness.py",
     "tools/n8n_workflow_blueprint_generator.py",
@@ -270,6 +273,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_copywriting_conversion_readiness.py",
     "tests/test_brand_strategy_readiness.py",
     "tests/test_mcp_permission_matrix_readiness.py",
+    "tests/test_github_connector_readiness.py",
     "tests/test_department_registry_readiness.py",
     "tests/test_n8n_automation_readiness.py",
     "tests/test_n8n_workflow_blueprint_generator.py",
@@ -1478,6 +1482,10 @@ def _load_brand_strategy_rules(root: Path) -> Dict[str, Any]:
 
 def _load_mcp_permission_matrix_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "mcp_permission_matrix_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_github_connector_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "github_connector_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_department_registry(root: Path) -> Dict[str, Any]:
@@ -3569,6 +3577,93 @@ def _validate_mcp_permission_matrix_rules(root: Path, findings: List[str]) -> No
             findings.append(f"mcp_permission_matrix_rules_invalid_next_safe_steps:{platform_id}")
 
 
+def _validate_github_connector_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_github_connector_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_github_connector_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("github_connector_rules_not_object")
+        return
+
+    required_fields = {
+        "version",
+        "advisory_only",
+        "platform",
+        "recommended_mode",
+        "capability_aliases",
+        "capability_levels",
+        "allowed_capabilities",
+        "approval_gated_capabilities",
+        "blocked_capabilities",
+        "hard_blocked_capabilities",
+        "capability_next_safe_steps",
+    }
+    missing_fields = required_fields - set(rules.keys())
+    if missing_fields:
+        findings.append(f"github_connector_rules_missing_fields:{','.join(sorted(missing_fields))}")
+
+    if str(rules.get("platform", "")).strip() != "github":
+        findings.append("github_connector_rules_invalid_platform")
+
+    if str(rules.get("recommended_mode", "")).strip() != "read_only":
+        findings.append("github_connector_rules_invalid_recommended_mode")
+
+    if not isinstance(rules.get("capability_aliases"), dict):
+        findings.append("github_connector_rules_invalid_capability_aliases")
+
+    capability_levels = rules.get("capability_levels")
+    if not isinstance(capability_levels, dict):
+        findings.append("github_connector_rules_invalid_capability_levels")
+        capability_levels = {}
+
+    expected_capabilities = {
+        "repo_status",
+        "commits",
+        "pull_requests",
+        "actions_read",
+        "issues_read",
+        "pr_draft",
+        "branch_write",
+        "merge",
+        "workflow_dispatch",
+        "secrets_access",
+        "delete",
+        "force_push",
+    }
+    missing_capabilities = expected_capabilities - set(capability_levels.keys())
+    if missing_capabilities:
+        findings.append("github_connector_rules_missing_capabilities:" + ",".join(sorted(missing_capabilities)))
+
+    for field_name in (
+        "allowed_capabilities",
+        "approval_gated_capabilities",
+        "blocked_capabilities",
+        "hard_blocked_capabilities",
+    ):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not all(str(item).strip() for item in value):
+            findings.append(f"github_connector_rules_invalid_{field_name}")
+
+    next_safe_steps = rules.get("capability_next_safe_steps")
+    if not isinstance(next_safe_steps, dict) or not next_safe_steps:
+        findings.append("github_connector_rules_invalid_capability_next_safe_steps")
+    else:
+        missing_steps = expected_capabilities - set(next_safe_steps.keys())
+        if missing_steps:
+            findings.append("github_connector_rules_missing_next_safe_steps:" + ",".join(sorted(missing_steps)))
+
+    blocked_capabilities = set(rules.get("blocked_capabilities", []))
+    if "merge" not in blocked_capabilities:
+        findings.append("github_connector_rules_merge_must_be_blocked")
+    if "workflow_dispatch" not in blocked_capabilities:
+        findings.append("github_connector_rules_workflow_dispatch_must_be_blocked")
+    if "secrets_access" not in blocked_capabilities:
+        findings.append("github_connector_rules_secrets_access_must_be_blocked")
+
+
 def _validate_department_registry(root: Path, findings: List[str]) -> None:
     try:
         registry = _load_department_registry(root)
@@ -4802,6 +4897,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_copywriting_conversion_rules(root, findings)
         _validate_brand_strategy_rules(root, findings)
         _validate_mcp_permission_matrix_rules(root, findings)
+        _validate_github_connector_rules(root, findings)
         _validate_department_registry(root, findings)
         _validate_n8n_automation_readiness_rules(root, findings)
         _validate_n8n_workflow_generation_rules(root, findings)

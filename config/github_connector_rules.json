@@ -1,0 +1,75 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "platform": "github",
+  "recommended_mode": "read_only",
+  "capability_aliases": {
+    "repo_status/read": "repo_status",
+    "repo/read": "repo_status",
+    "commits/read": "commits",
+    "pull_requests/read": "pull_requests",
+    "actions/read": "actions_read",
+    "issues/read": "issues_read",
+    "pr/read": "pull_requests",
+    "pr_draft/create": "pr_draft",
+    "draft_pr": "pr_draft",
+    "workflow/run": "workflow_dispatch",
+    "workflow_dispatch/run": "workflow_dispatch"
+  },
+  "capability_levels": {
+    "repo_status": "read_only",
+    "commits": "read_only",
+    "pull_requests": "read_only",
+    "actions_read": "read_only",
+    "issues_read": "read_only",
+    "pr_draft": "draft_only",
+    "branch_write": "sandbox_write",
+    "merge": "production_write",
+    "workflow_dispatch": "execute",
+    "secrets_access": "execute",
+    "delete": "production_write",
+    "force_push": "production_write"
+  },
+  "allowed_capabilities": [
+    "repo_status",
+    "commits",
+    "pull_requests",
+    "actions_read",
+    "issues_read"
+  ],
+  "approval_gated_capabilities": [
+    "pr_draft",
+    "branch_write"
+  ],
+  "blocked_capabilities": [
+    "merge",
+    "workflow_dispatch",
+    "secrets_access",
+    "delete",
+    "force_push"
+  ],
+  "hard_blocked_capabilities": [
+    "merge",
+    "workflow_dispatch",
+    "secrets_access",
+    "delete",
+    "force_push"
+  ],
+  "sensitive_capabilities": [
+    "secrets_access"
+  ],
+  "capability_next_safe_steps": {
+    "repo_status": "Inspect repository status, branches and default settings in read-only mode first.",
+    "commits": "Review commit history and diff metadata before any draft or branch proposal.",
+    "pull_requests": "Inspect pull request metadata and review state before drafting changes.",
+    "actions_read": "Review workflow and run metadata without dispatching anything.",
+    "issues_read": "Review issues and labels without writing or triaging changes automatically.",
+    "pr_draft": "Prepare a draft PR plan or body for human review before any branch mutation.",
+    "branch_write": "Use a sandbox branch or fork only after explicit approval, rollback planning and human review.",
+    "merge": "Keep merges blocked; use read-only inspection or draft PR review first.",
+    "workflow_dispatch": "Keep workflow execution blocked; inspect workflow files and run history first.",
+    "secrets_access": "Secrets access stays blocked; do not request or inspect credentials through Atlas.",
+    "delete": "Deletion stays blocked; review repository state and propose a manual cleanup plan instead.",
+    "force_push": "Force push stays blocked; review branch strategy and prepare a manual remediation plan instead."
+  }
+}
