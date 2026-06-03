@@ -1,12 +1,9 @@
 import os
-from pathlib import Path
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import WEB_ROOT
 from tools.project_intent_analyzer import analyze_project_intent
-
-
-WEB_ROOT = Path(r"C:\Proyectos\CodexAtlas-Web")
 
 
 def test_project_intent_analyzer_flags_missing_definition_for_vague_brief():

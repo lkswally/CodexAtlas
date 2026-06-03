@@ -4,15 +4,13 @@ from unittest.mock import patch
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
+from tests._support_paths import WEB_ROOT
 from tools.design_intelligence_audit import (
     _run_project_visual_analysis,
     anti_generic_ui_audit,
     design_system_review,
     visual_direction_checkpoint,
 )
-
-
-WEB_ROOT = Path(r"C:\Proyectos\CodexAtlas-Web")
 
 
 def test_visual_direction_checkpoint_requires_missing_inputs_when_brief_is_vague():

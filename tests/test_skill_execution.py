@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
-from tests._support_paths import ATLAS_ROOT, TEMP_ROOT
+from tests._support_paths import ATLAS_ROOT, TEMP_ROOT, WEB_ROOT
 from tools.atlas_orchestrator import execute_skill, get_project_bootstrap_contract
 
 
@@ -240,7 +240,7 @@ def test_anti_generic_ui_audit_execution_reads_project_surface():
     execution = execute_skill(
         "anti-generic-ui-audit",
         "Run a visual audit for the project surface.",
-        project=Path(r"C:\Proyectos\CodexAtlas-Web"),
+        project=WEB_ROOT,
     )
     assert execution["skill"] == "anti-generic-ui-audit"
     assert execution["ok"] is True
@@ -256,7 +256,7 @@ def test_design_system_review_execution_reads_project_surface():
     execution = execute_skill(
         "design-system-review",
         "Review typography, spacing and layout consistency.",
-        project=Path(r"C:\Proyectos\CodexAtlas-Web"),
+        project=WEB_ROOT,
     )
     assert execution["skill"] == "design-system-review"
     assert execution["ok"] is True

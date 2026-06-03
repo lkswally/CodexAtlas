@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from unittest.mock import patch
 
-from tests._support_paths import ATLAS_ROOT
+from tests._support_paths import ATLAS_ROOT, WEB_ROOT
 from tools.repo_graph_readiness import assess_repo_graph_readiness
 
 
@@ -84,7 +84,7 @@ def test_repo_graph_readiness_detects_local_codegraph_binary_without_running_it(
 def test_quality_gate_report_exposes_repo_graph_posture():
     from tools.quality_gate_report import build_quality_gate_report
 
-    result = build_quality_gate_report(ROOT, ROOT.parent / "CodexAtlas-Web")
+    result = build_quality_gate_report(ROOT, WEB_ROOT)
     assert isinstance(result["repo_graph_posture"], dict)
     assert result["repo_graph_posture"]["advisory_only"] is True
     assert "repo_graph_recommended" in result["repo_graph_posture"]
