@@ -13,7 +13,7 @@ from tools.quality_gate_report import build_quality_gate_report
 
 
 ROOT = ATLAS_ROOT
-TMP_ROOT = ROOT / "tests" / "_tmp_phase_guidance"
+TMP_ROOT = TEMP_ROOT / "_tmp_phase_guidance"
 
 
 def _write(path: Path, content: str) -> None:
