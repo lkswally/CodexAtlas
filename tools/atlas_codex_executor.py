@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import subprocess
 import tempfile
 from pathlib import Path
@@ -172,14 +173,22 @@ def execute_via_atlas_codex(
         output_file=output_file,
         capabilities=capabilities,
     )
-    process = subprocess.run(
-        command,
-        check=False,
-        capture_output=True,
-        text=True,
-        timeout=1800,
-    )
-    last_message = output_file.read_text(encoding="utf-8") if output_file.exists() else ""
+    try:
+        process = subprocess.run(
+            command,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=1800,
+        )
+        last_message = output_file.read_text(encoding="utf-8") if output_file.exists() else ""
+    finally:
+        try:
+            if output_file.exists():
+                os.unlink(output_file)
+        except OSError:
+            # Best effort cleanup only; executor output should still be returned.
+            pass
     return {
         "status": "ok" if process.returncode == 0 else "failed",
         "codex_executor_ready": True,
