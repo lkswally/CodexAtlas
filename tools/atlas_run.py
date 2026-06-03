@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -58,7 +59,12 @@ def _functional_work_allowed(audit: Dict[str, Any], task: str, sprint_status_tex
     normalized_task = task.lower()
     normalized_status = sprint_status_text.lower()
     if "product qa" in normalized_status or "demo readiness" in normalized_status:
-        if any(term in normalized_task for term in ("empty state", "empty states", "qa", "demo", "copy", "state")):
+        task_tokens = set(re.findall(r"[a-z0-9]+", normalized_task))
+        if "empty state" in normalized_task or "empty states" in normalized_task:
+            return {"allowed": True, "reason": "Task fits the current Product QA / Demo Readiness sprint guardrail."}
+        if {"qa", "demo"} & task_tokens:
+            return {"allowed": True, "reason": "Task fits the current Product QA / Demo Readiness sprint guardrail."}
+        if "copy" in task_tokens and {"cta", "hero", "button", "microcopy", "landing"} & task_tokens:
             return {"allowed": True, "reason": "Task fits the current Product QA / Demo Readiness sprint guardrail."}
         return {
             "allowed": False,
