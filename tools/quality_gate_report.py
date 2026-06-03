@@ -140,6 +140,10 @@ try:
 except ModuleNotFoundError:
     from n8n_automation_readiness import assess_n8n_automation_readiness
 try:
+    from tools.mcp_permission_matrix_readiness import assess_mcp_permission_matrix_readiness
+except ModuleNotFoundError:
+    from mcp_permission_matrix_readiness import assess_mcp_permission_matrix_readiness
+try:
     from tools.quality_gate_schema import CORE_REPORTS, SEVERITY_RANK
 except ModuleNotFoundError:
     from quality_gate_schema import CORE_REPORTS, SEVERITY_RANK
@@ -708,6 +712,19 @@ def _run_n8n_automation_readiness(
     except Exception as exc:
         return _build_failed_report("n8n_automation_readiness", f"n8n_automation_readiness_failed:{exc}")
     return _build_ok_report("n8n_automation_readiness", report)
+
+
+def _run_mcp_permission_matrix_readiness(
+    *,
+    root: Path,
+    project: Path,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    try:
+        report = assess_mcp_permission_matrix_readiness(payload, root=root, project=project)
+    except Exception as exc:
+        return _build_failed_report("mcp_permission_matrix_readiness", f"mcp_permission_matrix_readiness_failed:{exc}")
+    return _build_ok_report("mcp_permission_matrix_readiness", report)
 
 
 def _run_department_registry_readiness(
@@ -1967,6 +1984,16 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "project_type": ((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "unknown",
         },
     )
+    source_reports["mcp_permission_matrix_readiness"] = _run_mcp_permission_matrix_readiness(
+        root=root,
+        project=project,
+        payload={
+            "platform": "generic_mcp",
+            "requested_capability": "read_only",
+            "project_type": ((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "unknown",
+            "notes": "Quality gate posture only; no external actions requested.",
+        },
+    )
     inferred_complexity = (
         str((source_reports["project_intent_analyzer"]["report"] or {}).get("complexity", "low")).strip().lower()
         if source_reports["project_intent_analyzer"]["status"] == "ok"
@@ -2440,6 +2467,10 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "why": (source_reports["n8n_automation_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["n8n_automation_readiness"]["report"] or {}).get("advisory_only", True)),
         },
+        "mcp_permission_posture": (source_reports["mcp_permission_matrix_readiness"]["report"] or {}).get(
+            "mcp_permission_posture",
+            {},
+        ),
         "department_registry_posture": (source_reports["department_registry_readiness"]["report"] or {}).get(
             "department_registry_posture",
             {},

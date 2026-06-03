@@ -71,6 +71,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["source_reports"]["model_router"]["status"] == "ok"
     assert result["source_reports"]["error_pattern_analyzer"]["status"] == "ok"
     assert result["source_reports"]["chrome_devtools_mcp_readiness"]["status"] == "ok"
+    assert result["source_reports"]["mcp_permission_matrix_readiness"]["status"] == "ok"
     assert result["source_reports"]["copywriting_conversion_readiness"]["status"] == "ok"
     assert result["source_reports"]["brand_strategy_readiness"]["status"] == "ok"
     assert isinstance(result["intent_analysis"], dict)
@@ -122,6 +123,9 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert isinstance(result["chrome_devtools_mcp_posture"], dict)
     assert result["chrome_devtools_mcp_posture"]["auto_activate"] is False
     assert result["chrome_devtools_mcp_posture"]["telemetry_risk"] in {"low", "medium", "high"}
+    assert isinstance(result["mcp_permission_posture"], dict)
+    assert result["mcp_permission_posture"]["recommended_mode"] == "read_only"
+    assert result["mcp_permission_posture"]["requested_capability"] == "read_only"
     assert isinstance(result["error_learning_posture"], dict)
     assert result["error_learning_posture"]["advisory_only"] is True
     assert isinstance(result["codex_runtime_posture"], dict)
@@ -280,6 +284,15 @@ def test_quality_gate_report_exposes_chrome_devtools_mcp_posture():
     assert result["chrome_devtools_mcp_posture"]["telemetry_risk"] in {"low", "medium", "high"}
     assert result["chrome_devtools_mcp_posture"]["browser_profile_risk"] in {"low", "medium", "high"}
     assert "--no-usage-statistics" in result["chrome_devtools_mcp_posture"]["recommended_flags"]
+
+
+def test_quality_gate_report_exposes_mcp_permission_posture():
+    result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+    assert isinstance(result["mcp_permission_posture"], dict)
+    assert result["mcp_permission_posture"]["platform"] == "generic_mcp"
+    assert result["mcp_permission_posture"]["requested_capability"] == "read_only"
+    assert result["mcp_permission_posture"]["recommended_mode"] == "read_only"
+    assert "next_safe_step" in result["mcp_permission_posture"]
 
 
 def test_quality_gate_report_exposes_copywriting_conversion_posture():

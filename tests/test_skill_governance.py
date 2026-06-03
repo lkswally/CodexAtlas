@@ -35,6 +35,7 @@ from tools.atlas_governance_check import (
     _load_chrome_devtools_mcp_rules,
     _load_copywriting_conversion_rules,
     _load_brand_strategy_rules,
+    _load_mcp_permission_matrix_rules,
     _load_department_registry,
     _load_n8n_automation_readiness_rules,
     _load_n8n_workflow_generation_rules,
@@ -66,6 +67,7 @@ from tools.atlas_governance_check import (
     _validate_chrome_devtools_mcp_rules,
     _validate_copywriting_conversion_rules,
     _validate_brand_strategy_rules,
+    _validate_mcp_permission_matrix_rules,
     _validate_department_registry,
     _validate_n8n_automation_readiness_rules,
     _validate_n8n_workflow_generation_rules,
@@ -392,6 +394,30 @@ def test_department_registry_requires_expected_departments_and_watchlist_boundar
     )
     assert "department_registry_activation_order_incomplete" in findings
     assert "department_registry_operations_finance_must_be_watchlist" in findings
+
+
+def test_mcp_permission_matrix_rules_require_platforms_capabilities_and_defaults():
+    findings = []
+    invalid_rules = _load_mcp_permission_matrix_rules(ROOT)
+    invalid_rules["supported_platforms"] = ["github", "gmail"]
+    invalid_rules["platform_defaults"] = {
+        "github": invalid_rules["platform_defaults"]["github"]
+    }
+
+    with patch(
+        "tools.atlas_governance_check._load_mcp_permission_matrix_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_mcp_permission_matrix_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("mcp_permission_matrix_rules_missing_supported_platforms:")
+        for finding in findings
+    )
+    assert any(
+        finding.startswith("mcp_permission_matrix_rules_missing_platform_defaults:")
+        for finding in findings
+    )
 
 
 def test_n8n_automation_readiness_rules_require_core_fields_and_node_signals():

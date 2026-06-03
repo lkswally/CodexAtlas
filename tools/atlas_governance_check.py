@@ -58,6 +58,7 @@ REQUIRED_ROOT_FILES = (
     "config/business_idea_simulation_rules.json",
     "config/copywriting_conversion_rules.json",
     "config/brand_strategy_rules.json",
+    "config/mcp_permission_matrix_rules.json",
     "config/department_registry_rules.json",
     "config/n8n_automation_readiness_rules.json",
     "config/n8n_workflow_generation_rules.json",
@@ -124,6 +125,7 @@ REQUIRED_ROOT_FILES = (
     "policies/business_idea_simulation_policy.md",
     "policies/copywriting_conversion_policy.md",
     "policies/brand_strategy_policy.md",
+    "policies/mcp_permission_matrix_policy.md",
     "policies/department_registry_policy.md",
     "policies/n8n_automation_readiness_policy.md",
     "policies/n8n_workflow_generation_policy.md",
@@ -218,6 +220,7 @@ REQUIRED_ROOT_FILES = (
     "tools/business_idea_simulation_readiness.py",
     "tools/copywriting_conversion_readiness.py",
     "tools/brand_strategy_readiness.py",
+    "tools/mcp_permission_matrix_readiness.py",
     "tools/department_registry_readiness.py",
     "tools/n8n_automation_readiness.py",
     "tools/n8n_workflow_blueprint_generator.py",
@@ -266,6 +269,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_business_idea_simulation_readiness.py",
     "tests/test_copywriting_conversion_readiness.py",
     "tests/test_brand_strategy_readiness.py",
+    "tests/test_mcp_permission_matrix_readiness.py",
     "tests/test_department_registry_readiness.py",
     "tests/test_n8n_automation_readiness.py",
     "tests/test_n8n_workflow_blueprint_generator.py",
@@ -1470,6 +1474,10 @@ def _load_copywriting_conversion_rules(root: Path) -> Dict[str, Any]:
 
 def _load_brand_strategy_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "brand_strategy_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_mcp_permission_matrix_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "mcp_permission_matrix_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_department_registry(root: Path) -> Dict[str, Any]:
@@ -3436,6 +3444,131 @@ def _validate_brand_strategy_rules(root: Path, findings: List[str]) -> None:
                 findings.append(f"brand_strategy_rules_invalid_threshold:{field_name}")
 
 
+def _validate_mcp_permission_matrix_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_mcp_permission_matrix_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_mcp_permission_matrix_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("mcp_permission_matrix_rules_not_object")
+        return
+
+    required_fields = {
+        "version",
+        "advisory_only",
+        "supported_platforms",
+        "capability_levels",
+        "platform_aliases",
+        "capability_aliases",
+        "blocked_by_default",
+        "human_approval_required_for",
+        "dry_run_required_for",
+        "rollback_required_for",
+        "sensitive_data_signals",
+        "credential_signals",
+        "platform_defaults",
+    }
+    missing_fields = required_fields - set(rules.keys())
+    if missing_fields:
+        findings.append(f"mcp_permission_matrix_rules_missing_fields:{','.join(sorted(missing_fields))}")
+
+    supported_platforms = rules.get("supported_platforms")
+    if not isinstance(supported_platforms, list) or not all(str(item).strip() for item in supported_platforms):
+        findings.append("mcp_permission_matrix_rules_invalid_supported_platforms")
+        supported_platforms = []
+
+    capability_levels = rules.get("capability_levels")
+    if not isinstance(capability_levels, list) or not all(str(item).strip() for item in capability_levels):
+        findings.append("mcp_permission_matrix_rules_invalid_capability_levels")
+        capability_levels = []
+
+    expected_platforms = {
+        "github",
+        "n8n",
+        "gmail",
+        "google_drive",
+        "google_sheets",
+        "google_calendar",
+        "chrome_devtools",
+        "vercel",
+        "filesystem",
+        "database",
+        "generic_mcp",
+    }
+    missing_platforms = expected_platforms - {str(item).strip() for item in supported_platforms}
+    if missing_platforms:
+        findings.append(
+            "mcp_permission_matrix_rules_missing_supported_platforms:" + ",".join(sorted(missing_platforms))
+        )
+
+    expected_capabilities = {
+        "read_only",
+        "draft_only",
+        "sandbox_write",
+        "production_write",
+        "execute",
+    }
+    missing_capabilities = expected_capabilities - {str(item).strip() for item in capability_levels}
+    if missing_capabilities:
+        findings.append(
+            "mcp_permission_matrix_rules_missing_capability_levels:" + ",".join(sorted(missing_capabilities))
+        )
+
+    for field_name in (
+        "blocked_by_default",
+        "human_approval_required_for",
+        "dry_run_required_for",
+        "rollback_required_for",
+        "sensitive_data_signals",
+        "credential_signals",
+    ):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not all(str(item).strip() for item in value):
+            findings.append(f"mcp_permission_matrix_rules_invalid_{field_name}")
+
+    for field_name in ("platform_aliases", "capability_aliases"):
+        value = rules.get(field_name)
+        if not isinstance(value, dict):
+            findings.append(f"mcp_permission_matrix_rules_invalid_{field_name}")
+
+    platform_defaults = rules.get("platform_defaults")
+    if not isinstance(platform_defaults, dict):
+        findings.append("mcp_permission_matrix_rules_invalid_platform_defaults")
+        return
+
+    missing_platform_defaults = expected_platforms - set(platform_defaults.keys())
+    if missing_platform_defaults:
+        findings.append(
+            "mcp_permission_matrix_rules_missing_platform_defaults:" + ",".join(sorted(missing_platform_defaults))
+        )
+
+    for platform_id, definition in platform_defaults.items():
+        if not isinstance(definition, dict):
+            findings.append(f"mcp_permission_matrix_rules_invalid_platform_default:{platform_id}")
+            continue
+        for required_field in (
+            "recommended_mode",
+            "default_risk",
+            "allow_read_only",
+            "allow_draft_only",
+            "allow_sandbox_write",
+            "next_safe_steps",
+        ):
+            if required_field not in definition:
+                findings.append(
+                    f"mcp_permission_matrix_rules_missing_platform_default_field:{platform_id}:{required_field}"
+                )
+        if str(definition.get("default_risk", "")).strip() not in {"low", "medium", "high"}:
+            findings.append(f"mcp_permission_matrix_rules_invalid_default_risk:{platform_id}")
+        if str(definition.get("recommended_mode", "")).strip() not in expected_capabilities:
+            findings.append(f"mcp_permission_matrix_rules_invalid_recommended_mode:{platform_id}")
+        next_safe_steps = definition.get("next_safe_steps")
+        if not isinstance(next_safe_steps, dict) or not next_safe_steps:
+            findings.append(f"mcp_permission_matrix_rules_invalid_next_safe_steps:{platform_id}")
+
+
 def _validate_department_registry(root: Path, findings: List[str]) -> None:
     try:
         registry = _load_department_registry(root)
@@ -4668,6 +4801,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_chrome_devtools_mcp_rules(root, findings)
         _validate_copywriting_conversion_rules(root, findings)
         _validate_brand_strategy_rules(root, findings)
+        _validate_mcp_permission_matrix_rules(root, findings)
         _validate_department_registry(root, findings)
         _validate_n8n_automation_readiness_rules(root, findings)
         _validate_n8n_workflow_generation_rules(root, findings)

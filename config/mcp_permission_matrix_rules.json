@@ -1,0 +1,219 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "supported_platforms": [
+    "github",
+    "n8n",
+    "gmail",
+    "google_drive",
+    "google_sheets",
+    "google_calendar",
+    "chrome_devtools",
+    "vercel",
+    "filesystem",
+    "database",
+    "generic_mcp"
+  ],
+  "capability_levels": [
+    "read_only",
+    "draft_only",
+    "sandbox_write",
+    "production_write",
+    "execute"
+  ],
+  "platform_aliases": {
+    "chrome": "chrome_devtools",
+    "chrome-devtools": "chrome_devtools",
+    "chrome_devtools_mcp": "chrome_devtools",
+    "google drive": "google_drive",
+    "google sheets": "google_sheets",
+    "google calendar": "google_calendar",
+    "github.com": "github"
+  },
+  "capability_aliases": {
+    "read": "read_only",
+    "readonly": "read_only",
+    "draft": "draft_only",
+    "sandbox": "sandbox_write",
+    "write": "production_write",
+    "prod_write": "production_write",
+    "run": "execute",
+    "send": "execute",
+    "activate": "execute",
+    "deploy": "execute"
+  },
+  "blocked_by_default": [
+    "production_write",
+    "execute"
+  ],
+  "human_approval_required_for": [
+    "draft_only",
+    "sandbox_write",
+    "production_write",
+    "execute"
+  ],
+  "dry_run_required_for": [
+    "production_write",
+    "execute"
+  ],
+  "rollback_required_for": [
+    "sandbox_write",
+    "production_write",
+    "execute"
+  ],
+  "sensitive_data_signals": [
+    "personal data",
+    "customer data",
+    "email",
+    "phone",
+    "whatsapp",
+    "token",
+    "secret",
+    "credential",
+    "database",
+    "oauth"
+  ],
+  "credential_signals": [
+    "api key",
+    "token",
+    "secret",
+    "credential",
+    "oauth",
+    "service account",
+    "password"
+  ],
+  "side_effect_action_signals": [
+    "send email",
+    "activate workflow",
+    "deploy",
+    "write row",
+    "update database",
+    "delete",
+    "execute"
+  ],
+  "platform_defaults": {
+    "github": {
+      "recommended_mode": "read_only",
+      "default_risk": "low",
+      "allow_read_only": true,
+      "allow_draft_only": true,
+      "allow_sandbox_write": false,
+      "next_safe_steps": {
+        "read_only": "Use repository inspection, issues or PR metadata before any mutation.",
+        "draft_only": "Prepare a draft PR or draft issue proposal for human review.",
+        "sandbox_write": "Use a non-production branch or fork only after explicit approval."
+      }
+    },
+    "n8n": {
+      "recommended_mode": "read_only",
+      "default_risk": "high",
+      "allow_read_only": true,
+      "allow_draft_only": true,
+      "allow_sandbox_write": false,
+      "next_safe_steps": {
+        "read_only": "Use exported workflow JSON or read-only API first.",
+        "draft_only": "Generate or review workflow JSON offline before any live binding.",
+        "sandbox_write": "Keep workflow creation blocked until a sandbox workspace and explicit approval exist."
+      }
+    },
+    "gmail": {
+      "recommended_mode": "read_only",
+      "default_risk": "high",
+      "allow_read_only": true,
+      "allow_draft_only": true,
+      "allow_sandbox_write": false,
+      "next_safe_steps": {
+        "read_only": "Review inbox or draft content without sending anything.",
+        "draft_only": "Prepare a draft reply for human review; do not send from Atlas."
+      }
+    },
+    "google_drive": {
+      "recommended_mode": "read_only",
+      "default_risk": "medium",
+      "allow_read_only": true,
+      "allow_draft_only": true,
+      "allow_sandbox_write": false,
+      "next_safe_steps": {
+        "read_only": "Inspect files and metadata before any write path.",
+        "draft_only": "Prepare document changes or folder plans for human review."
+      }
+    },
+    "google_sheets": {
+      "recommended_mode": "read_only",
+      "default_risk": "high",
+      "allow_read_only": true,
+      "allow_draft_only": true,
+      "allow_sandbox_write": false,
+      "next_safe_steps": {
+        "read_only": "Inspect sheet structure or exported data first.",
+        "draft_only": "Prepare row mappings or formulas offline before any write path."
+      }
+    },
+    "google_calendar": {
+      "recommended_mode": "read_only",
+      "default_risk": "medium",
+      "allow_read_only": true,
+      "allow_draft_only": true,
+      "allow_sandbox_write": false,
+      "next_safe_steps": {
+        "read_only": "Review availability and event metadata first.",
+        "draft_only": "Draft event changes for human confirmation before any calendar mutation."
+      }
+    },
+    "chrome_devtools": {
+      "recommended_mode": "read_only",
+      "default_risk": "medium",
+      "allow_read_only": true,
+      "allow_draft_only": false,
+      "allow_sandbox_write": false,
+      "next_safe_steps": {
+        "read_only": "Keep Chrome DevTools MCP as manual opt-in and prefer --no-usage-statistics if configured later."
+      }
+    },
+    "vercel": {
+      "recommended_mode": "read_only",
+      "default_risk": "high",
+      "allow_read_only": true,
+      "allow_draft_only": true,
+      "allow_sandbox_write": false,
+      "next_safe_steps": {
+        "read_only": "Inspect deployment metadata first.",
+        "draft_only": "Prepare deployment notes or a release checklist before any live deploy."
+      }
+    },
+    "filesystem": {
+      "recommended_mode": "read_only",
+      "default_risk": "medium",
+      "allow_read_only": true,
+      "allow_draft_only": true,
+      "allow_sandbox_write": true,
+      "next_safe_steps": {
+        "read_only": "Inspect the workspace surface before any write path.",
+        "draft_only": "Prepare file change plans or diffs for review.",
+        "sandbox_write": "Restrict writes to the governed workspace or a sandbox directory only."
+      }
+    },
+    "database": {
+      "recommended_mode": "read_only",
+      "default_risk": "high",
+      "allow_read_only": true,
+      "allow_draft_only": true,
+      "allow_sandbox_write": false,
+      "next_safe_steps": {
+        "read_only": "Inspect schema or sample records first.",
+        "draft_only": "Prepare SQL or migration drafts for human review without execution."
+      }
+    },
+    "generic_mcp": {
+      "recommended_mode": "read_only",
+      "default_risk": "medium",
+      "allow_read_only": true,
+      "allow_draft_only": true,
+      "allow_sandbox_write": false,
+      "next_safe_steps": {
+        "read_only": "Start with read-only inspection until platform-specific safety posture is defined.",
+        "draft_only": "Prepare a draft plan or payload before considering any mutation."
+      }
+    }
+  }
+}
