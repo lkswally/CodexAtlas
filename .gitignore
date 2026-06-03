@@ -24,6 +24,8 @@ n8n_exports/
 
 # Tool caches and reports
 .pytest_cache/
+.atlas_test_tmp/
+pytest-cache-files-*/
 .mypy_cache/
 .ruff_cache/
 .coverage
@@ -49,6 +51,8 @@ tools/__pycache__/
 tests/_tmp*/
 tests/tmp*/
 tests/_preflight_*/
+tests/repo_graph_*/
+tests/atlas_error_patterns_*/
 
 # Deprecated local compatibility pointers and migration residue
 skills/project-bootstrap.md
