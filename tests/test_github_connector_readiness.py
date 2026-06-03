@@ -51,13 +51,29 @@ def test_github_connector_allows_pr_draft_as_draft_only():
         "tools.github_connector_readiness.assess_mcp_permission_matrix_readiness",
         return_value=_matrix_stub(allowed=True, requested_capability="draft_only", risk_level="medium"),
     ):
-        result = assess_github_connector_readiness({"requested_capability": "pr_draft"}, root=ATLAS_ROOT)
+        result = assess_github_connector_readiness(
+            {
+                "requested_capability": "pr_draft",
+                "base_branch": "main",
+                "head_branch": "codex/github-pr-plan",
+                "change_summary": "prepare governed GitHub PR draft planning",
+                "affected_files": ["tools/github_connector_readiness.py", "tests/test_github_connector_readiness.py"],
+            },
+            root=ATLAS_ROOT,
+        )
 
     posture = result["github_connector_posture"]
     assert posture["requested_capability"] == "pr_draft"
     assert posture["requested_level"] == "draft_only"
     assert posture["requested_allowed"] is True
     assert "pr_draft" in posture["approval_gated_capabilities"]
+    assert posture["pr_draft_plan"]["plan_requested"] is True
+    assert posture["allowed_to_create"] is False
+    assert posture["base_branch"] == "main"
+    assert posture["head_branch"] == "codex/github-pr-plan"
+    assert posture["requires_human_approval"] is True
+    assert posture["validation_checklist"]
+    assert posture["suggested_body_sections"]
 
 
 def test_github_connector_blocks_merge():
@@ -226,3 +242,26 @@ def test_github_connector_runtime_probe_uses_gh_read_only_when_requested():
     assert runtime_probe["actions_readable"] is True
     assert runtime_probe["issues_readable"] is True
     assert runtime_probe["write_attempted"] is False
+
+
+def test_github_connector_pr_draft_plan_stays_advisory_by_default():
+    matrix_response = _matrix_stub(allowed=True, requested_capability="draft_only", risk_level="medium")
+    with patch(
+        "tools.github_connector_readiness.assess_mcp_permission_matrix_readiness",
+        return_value=matrix_response,
+    ):
+        result = assess_github_connector_readiness(
+            {
+                "requested_capability": "pr_draft",
+                "head_branch": "feature/github-readiness",
+                "change_summary": "add GitHub draft planning posture",
+            },
+            root=ATLAS_ROOT,
+        )
+
+    posture = result["github_connector_posture"]
+    assert posture["requested_level"] == "draft_only"
+    assert posture["allowed_to_create"] is False
+    assert posture["pr_draft_plan"]["allowed_to_create"] is False
+    assert posture["pr_draft_plan"]["requires_human_approval"] is True
+    assert posture["suggested_title"]

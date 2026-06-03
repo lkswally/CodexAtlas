@@ -132,6 +132,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert "repo_status" in result["github_connector_posture"]["allowed_capabilities"]
     assert result["github_connector_posture"]["runtime_probe"]["write_attempted"] is False
     assert "merge" in result["github_connector_posture"]["runtime_probe"]["blocked_write_capabilities"]
+    assert result["github_connector_posture"]["allowed_to_create"] is False
     assert isinstance(result["error_learning_posture"], dict)
     assert result["error_learning_posture"]["advisory_only"] is True
     assert isinstance(result["codex_runtime_posture"], dict)
@@ -310,6 +311,7 @@ def test_quality_gate_report_exposes_github_connector_posture():
     assert result["github_connector_posture"]["mcp_permission_posture"]["platform"] == "github"
     assert result["github_connector_posture"]["runtime_probe"]["write_attempted"] is False
     assert result["github_connector_posture"]["runtime_probe_state"] in {"not_requested", "read_only_available"}
+    assert result["github_connector_posture"]["allowed_to_create"] is False
 
 
 def test_quality_gate_report_exposes_copywriting_conversion_posture():

@@ -55,6 +55,28 @@
     "delete",
     "force_push"
   ],
+  "pr_draft_plan_defaults": {
+    "base_branch": "main",
+    "suggested_body_sections": [
+      "Summary",
+      "Scope",
+      "Validation",
+      "Risk Notes",
+      "Manual Approval"
+    ],
+    "validation_checklist": [
+      "Confirm base and head branch are correct.",
+      "Verify local tests or checks already completed.",
+      "Review affected files and scope boundaries.",
+      "Confirm no secrets, tokens or write actions are included.",
+      "Require human approval before creating the real draft PR."
+    ],
+    "risk_notes": [
+      "Draft creation remains manual.",
+      "Merge, workflow dispatch and force-push stay blocked.",
+      "Do not include secrets or sensitive operational data in the PR body."
+    ]
+  },
   "blocked_capabilities": [
     "merge",
     "workflow_dispatch",

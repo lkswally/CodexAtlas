@@ -69,6 +69,77 @@ def _gh_json(args: List[str]) -> Dict[str, Any]:
     return json.loads(stdout) if stdout else {}
 
 
+def _normalize_branch(value: Any) -> Optional[str]:
+    text = str(value or "").strip()
+    return text or None
+
+
+def _title_from_branch(branch: Optional[str]) -> Optional[str]:
+    if not branch:
+        return None
+    candidate = branch.split("/")[-1].replace("-", " ").replace("_", " ").strip()
+    if not candidate:
+        return None
+    return candidate[:1].upper() + candidate[1:]
+
+
+def _build_pr_draft_plan(
+    payload: Dict[str, Any],
+    *,
+    rules: Dict[str, Any],
+    capability: str,
+    requested_level: str,
+) -> Dict[str, Any]:
+    defaults = rules.get("pr_draft_plan_defaults") or {}
+    base_branch = _normalize_branch(payload.get("base_branch")) or str(defaults.get("base_branch", "main")).strip() or "main"
+    head_branch = (
+        _normalize_branch(payload.get("head_branch"))
+        or _normalize_branch(payload.get("branch"))
+        or _normalize_branch(payload.get("source_branch"))
+        or None
+    )
+    requested_title = str(payload.get("suggested_title") or payload.get("title") or "").strip() or None
+    branch_title = _title_from_branch(head_branch)
+    change_summary = str(payload.get("change_summary") or payload.get("summary") or "").strip()
+    if requested_title:
+        suggested_title = requested_title
+    elif branch_title and change_summary:
+        suggested_title = f"{branch_title}: {change_summary}"
+    elif branch_title:
+        suggested_title = branch_title
+    elif change_summary:
+        suggested_title = change_summary[:1].upper() + change_summary[1:]
+    else:
+        suggested_title = "Draft PR plan pending human summary"
+
+    affected_files = payload.get("affected_files")
+    if not isinstance(affected_files, list):
+        affected_files = []
+
+    suggested_body_sections = list(defaults.get("suggested_body_sections") or [])
+    validation_checklist = list(defaults.get("validation_checklist") or [])
+    risk_notes = list(defaults.get("risk_notes") or [])
+    if head_branch is None:
+        risk_notes = [*risk_notes, "Head branch is still missing and must be confirmed manually."]
+    if not affected_files:
+        risk_notes = [*risk_notes, "Affected files are not declared yet; review scope manually before opening a PR."]
+
+    plan_requested = capability == "pr_draft" or bool(payload.get("prepare_pr_draft_plan"))
+    return {
+        "plan_requested": plan_requested,
+        "requested_level": requested_level,
+        "base_branch": base_branch,
+        "head_branch": head_branch,
+        "suggested_title": suggested_title,
+        "suggested_body_sections": suggested_body_sections,
+        "validation_checklist": validation_checklist,
+        "risk_notes": risk_notes,
+        "affected_files": affected_files,
+        "requires_human_approval": True,
+        "allowed_to_create": False,
+    }
+
+
 def _build_runtime_probe(
     payload: Dict[str, Any],
     *,
@@ -192,6 +263,12 @@ def assess_github_connector_readiness(
     allowed_capabilities = list(rules.get("allowed_capabilities", []))
     next_safe_steps = rules.get("capability_next_safe_steps") or {}
     runtime_probe = _build_runtime_probe(payload, rules=rules)
+    pr_draft_plan = _build_pr_draft_plan(
+        payload,
+        rules=rules,
+        capability=capability,
+        requested_level=requested_level,
+    )
 
     requested_allowed = bool(matrix_posture.get("allowed"))
     blocked_reasons = list(matrix_posture.get("blocked_reasons", []))
@@ -217,6 +294,14 @@ def assess_github_connector_readiness(
         "risk_level": risk_level,
         "blocked_reasons": list(dict.fromkeys(reason for reason in blocked_reasons if reason)),
         "next_safe_step": next_safe_step,
+        "pr_draft_plan": pr_draft_plan,
+        "suggested_title": pr_draft_plan["suggested_title"],
+        "suggested_body_sections": pr_draft_plan["suggested_body_sections"],
+        "validation_checklist": pr_draft_plan["validation_checklist"],
+        "risk_notes": pr_draft_plan["risk_notes"],
+        "base_branch": pr_draft_plan["base_branch"],
+        "head_branch": pr_draft_plan["head_branch"],
+        "allowed_to_create": False,
         "runtime_probe_state": "read_only_available" if runtime_probe["runtime_read_only_available"] else runtime_probe["probe_mode"],
         "runtime_probe": runtime_probe,
         "mcp_permission_posture": matrix_posture,

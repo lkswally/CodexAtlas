@@ -3599,6 +3599,7 @@ def _validate_github_connector_rules(root: Path, findings: List[str]) -> None:
         "approval_gated_capabilities",
         "runtime_read_checks",
         "runtime_blocked_write_capabilities",
+        "pr_draft_plan_defaults",
         "blocked_capabilities",
         "hard_blocked_capabilities",
         "capability_next_safe_steps",
@@ -3687,6 +3688,20 @@ def _validate_github_connector_rules(root: Path, findings: List[str]) -> None:
         missing_steps = expected_capabilities - set(next_safe_steps.keys())
         if missing_steps:
             findings.append("github_connector_rules_missing_next_safe_steps:" + ",".join(sorted(missing_steps)))
+
+    pr_draft_plan_defaults = rules.get("pr_draft_plan_defaults")
+    if not isinstance(pr_draft_plan_defaults, dict):
+        findings.append("github_connector_rules_invalid_pr_draft_plan_defaults")
+    else:
+        for field_name in ("base_branch", "suggested_body_sections", "validation_checklist", "risk_notes"):
+            if field_name not in pr_draft_plan_defaults:
+                findings.append(f"github_connector_rules_missing_pr_draft_plan_field:{field_name}")
+        for list_field in ("suggested_body_sections", "validation_checklist", "risk_notes"):
+            value = pr_draft_plan_defaults.get(list_field)
+            if not isinstance(value, list) or not all(str(item).strip() for item in value):
+                findings.append(f"github_connector_rules_invalid_pr_draft_plan_field:{list_field}")
+        if not str(pr_draft_plan_defaults.get("base_branch", "")).strip():
+            findings.append("github_connector_rules_invalid_pr_draft_plan_field:base_branch")
 
     blocked_capabilities = set(rules.get("blocked_capabilities", []))
     if "merge" not in blocked_capabilities:

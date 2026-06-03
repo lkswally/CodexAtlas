@@ -16,6 +16,7 @@ This layer exists to answer:
 - classify GitHub connector requests into safe capability levels
 - keep repository inspection and metadata reads in `read_only`
 - allow draft PR preparation only as governed `draft_only`
+- generate a draft PR planning artifact without creating a real PR
 - route the permission decision through the generic MCP permission matrix
 - surface blocked capabilities before any token, connector or write path exists
 - distinguish theoretical readiness from a real read-only runtime probe
@@ -27,6 +28,7 @@ This layer exists to answer:
 - do not modify global Codex config
 - do not use tokens or read secrets
 - do not create PRs, issues or comments for real
+- do not auto-open a PR from a draft plan
 - do not merge, dispatch workflows, delete refs or force-push
 - do not modify repositories from this readiness layer
 - do not attempt any write probe to "test" permissions
@@ -35,6 +37,7 @@ This layer exists to answer:
 
 - `repo_status`, `commits`, `pull_requests`, `actions_read`, `issues_read`: allowed in `read_only`
 - `pr_draft`: allowed as `draft_only` with human review
+- `pr_draft_plan`: advisory artifact only, with `allowed_to_create: false` by default
 - `branch_write`: sandbox-only conceptually, but keep blocked until explicit approval and rollback planning exist
 - `merge`: blocked
 - `workflow_dispatch`: blocked
@@ -46,6 +49,7 @@ This layer exists to answer:
 
 - Start in `read_only` by default.
 - Treat draft PR creation as a review-gated step, not an autonomous write.
+- Treat PR draft planning as offline preparation only until a human explicitly decides to create it.
 - Block merges, workflow dispatch, secrets access, deletes and force-pushes by default.
 - If rollback or dry-run evidence is missing, keep any write-like capability blocked.
 - If a request implies tokens, secrets or sensitive repository data, raise risk and keep Atlas advisory-only.
