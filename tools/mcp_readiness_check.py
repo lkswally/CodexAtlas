@@ -182,8 +182,9 @@ def check_mcp_readiness(*, root: Optional[Path] = None) -> Dict[str, object]:
 def main(argv: Optional[list[str]] = None) -> int:
     parser = argparse.ArgumentParser(add_help=True)
     parser.add_argument("--root", default=None, help="Atlas root to use.")
-    parser.parse_args(argv)
-    result = check_mcp_readiness(root=DEFAULT_ROOT)
+    args = parser.parse_args(argv)
+    root = Path(args.root).resolve() if args.root else DEFAULT_ROOT
+    result = check_mcp_readiness(root=root)
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 

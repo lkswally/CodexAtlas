@@ -1,9 +1,10 @@
 import os
+from pathlib import Path
 from unittest.mock import patch
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
-from tools.mcp_readiness_check import check_mcp_readiness
+from tools.mcp_readiness_check import check_mcp_readiness, main
 
 
 def test_mcp_readiness_check_keeps_adapter_when_cli_is_blocked():
@@ -88,3 +89,17 @@ command = "npx"
     assert result["openai_docs_mcp_configured"] is True
     assert result["openai_docs_mcp_functional"] is False
     assert result["readiness_state"] == "configured_but_not_functionally_verified"
+
+
+def test_mcp_readiness_main_forwards_root_argument_to_checker():
+    captured: dict[str, object] = {}
+
+    def fake_check_mcp_readiness(*, root=None):
+        captured["root"] = root
+        return {"status": "ok"}
+
+    with patch("tools.mcp_readiness_check.check_mcp_readiness", side_effect=fake_check_mcp_readiness):
+        exit_code = main(["--root", "C:/portable/atlas-root"])
+
+    assert exit_code == 0
+    assert captured["root"] == Path("C:/portable/atlas-root")
