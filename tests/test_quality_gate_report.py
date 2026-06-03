@@ -73,6 +73,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["source_reports"]["chrome_devtools_mcp_readiness"]["status"] == "ok"
     assert result["source_reports"]["mcp_permission_matrix_readiness"]["status"] == "ok"
     assert result["source_reports"]["github_connector_readiness"]["status"] == "ok"
+    assert result["source_reports"]["n8n_api_connector_readiness"]["status"] == "ok"
     assert result["source_reports"]["copywriting_conversion_readiness"]["status"] == "ok"
     assert result["source_reports"]["brand_strategy_readiness"]["status"] == "ok"
     assert isinstance(result["intent_analysis"], dict)
@@ -82,6 +83,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert isinstance(result["copywriting_conversion_posture"], dict)
     assert isinstance(result["brand_strategy_posture"], dict)
     assert isinstance(result["n8n_automation_posture"], dict)
+    assert isinstance(result["n8n_api_connector_posture"], dict)
     assert isinstance(result["department_registry_posture"], dict)
     assert isinstance(result["visual_intent_posture"], dict)
     assert result["visual_intent_posture"]["advisory_only"] is True
@@ -160,6 +162,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["copywriting_conversion_posture"]["advisory_only"] is True
     assert result["brand_strategy_posture"]["advisory_only"] is True
     assert result["n8n_automation_posture"]["advisory_only"] is True
+    assert result["n8n_api_connector_posture"]["advisory_only"] is True
     assert result["department_registry_posture"]["advisory_only"] is True
     assert result["department_registry_posture"]["auto_activate"] is False
     assert isinstance(result["system_learning"], dict)
@@ -368,6 +371,22 @@ def test_quality_gate_report_exposes_n8n_automation_posture():
     assert isinstance(result["n8n_automation_posture"]["side_effects"], list)
     assert isinstance(result["n8n_automation_posture"]["credentials_required"], list)
     assert isinstance(result["n8n_automation_posture"]["recommended_next_steps"], list)
+
+
+def test_quality_gate_report_exposes_n8n_api_connector_posture():
+    result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+    assert isinstance(result["n8n_api_connector_posture"], dict)
+    assert result["n8n_api_connector_posture"]["advisory_only"] is True
+    assert result["n8n_api_connector_posture"]["connection_mode"] in {
+        "not_configured",
+        "read_only_ready",
+        "sandbox_write_ready",
+        "blocked",
+    }
+    assert result["n8n_api_connector_posture"]["api_key_required"] is True
+    assert result["n8n_api_connector_posture"]["api_key_read"] is False
+    assert result["n8n_api_connector_posture"]["allow_execute"] is False
+    assert isinstance(result["n8n_api_connector_posture"]["blocked_operations"], list)
 
 
 def test_quality_gate_report_exposes_department_registry_posture():

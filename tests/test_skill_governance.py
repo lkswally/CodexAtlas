@@ -39,6 +39,7 @@ from tools.atlas_governance_check import (
     _load_github_connector_rules,
     _load_department_registry,
     _load_n8n_automation_readiness_rules,
+    _load_n8n_api_connector_rules,
     _load_n8n_workflow_generation_rules,
     _validate_external_tool_policy,
     _validate_mcp_profiles,
@@ -72,6 +73,7 @@ from tools.atlas_governance_check import (
     _validate_github_connector_rules,
     _validate_department_registry,
     _validate_n8n_automation_readiness_rules,
+    _validate_n8n_api_connector_rules,
     _validate_n8n_workflow_generation_rules,
     _validate_bootstrap_contract,
     _validate_bootstrap_contract_consistency,
@@ -479,6 +481,32 @@ def test_n8n_automation_readiness_rules_require_core_fields_and_node_signals():
         for finding in findings
     )
     assert "n8n_automation_readiness_rules_invalid_risk_triggers_medium" in findings
+
+
+def test_n8n_api_connector_rules_require_core_operations_and_blocked_actions():
+    findings = []
+    invalid_rules = _load_n8n_api_connector_rules(ROOT)
+    invalid_rules["supported_operations"] = ["list_workflows", "get_workflow"]
+    invalid_rules["read_only_operations"] = ["list_workflows"]
+    invalid_rules["blocked_operations"] = []
+    invalid_rules["next_safe_steps"] = {"not_configured": "set base url"}
+
+    with patch(
+        "tools.atlas_governance_check._load_n8n_api_connector_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_n8n_api_connector_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("n8n_api_connector_rules_missing_supported_operations:")
+        for finding in findings
+    )
+    assert "n8n_api_connector_rules_missing_read_only_operations:list_workflows,get_workflow" in findings
+    assert "n8n_api_connector_rules_activate_workflow_must_be_blocked" in findings
+    assert any(
+        finding.startswith("n8n_api_connector_rules_missing_next_safe_step:")
+        for finding in findings
+    )
 
 
 def test_n8n_workflow_generation_rules_require_core_templates_and_placeholders():

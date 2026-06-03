@@ -62,6 +62,7 @@ REQUIRED_ROOT_FILES = (
     "config/github_connector_rules.json",
     "config/department_registry_rules.json",
     "config/n8n_automation_readiness_rules.json",
+    "config/n8n_api_connector_rules.json",
     "config/n8n_workflow_generation_rules.json",
     "agents/orchestrator.md",
     "agents/planner.md",
@@ -130,6 +131,7 @@ REQUIRED_ROOT_FILES = (
     "policies/github_connector_policy.md",
     "policies/department_registry_policy.md",
     "policies/n8n_automation_readiness_policy.md",
+    "policies/n8n_api_connector_policy.md",
     "policies/n8n_workflow_generation_policy.md",
     "memory/decision_log.md",
     "memory/breadcrumbs.md",
@@ -226,6 +228,7 @@ REQUIRED_ROOT_FILES = (
     "tools/github_connector_readiness.py",
     "tools/department_registry_readiness.py",
     "tools/n8n_automation_readiness.py",
+    "tools/n8n_api_connector_readiness.py",
     "tools/n8n_workflow_blueprint_generator.py",
     "tools/n8n_workflow_json_generator.py",
     "tests/test_atlas_orchestrator.py",
@@ -276,6 +279,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_github_connector_readiness.py",
     "tests/test_department_registry_readiness.py",
     "tests/test_n8n_automation_readiness.py",
+    "tests/test_n8n_api_connector_readiness.py",
     "tests/test_n8n_workflow_blueprint_generator.py",
     "tests/test_n8n_workflow_json_generator.py",
     "tests/test_surface_audit.py",
@@ -1494,6 +1498,10 @@ def _load_department_registry(root: Path) -> Dict[str, Any]:
 
 def _load_n8n_automation_readiness_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "n8n_automation_readiness_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_n8n_api_connector_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "n8n_api_connector_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_n8n_workflow_generation_rules(root: Path) -> Dict[str, Any]:
@@ -3892,6 +3900,96 @@ def _validate_n8n_automation_readiness_rules(root: Path, findings: List[str]) ->
                 findings.append(f"n8n_automation_readiness_rules_invalid_risk_triggers_{bucket}")
 
 
+def _validate_n8n_api_connector_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_n8n_api_connector_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_n8n_api_connector_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("n8n_api_connector_rules_not_object")
+        return
+
+    required_fields = {
+        "version",
+        "advisory_only",
+        "platform",
+        "recommended_mode",
+        "api_key_required",
+        "supported_operations",
+        "read_only_operations",
+        "write_operations",
+        "blocked_operations",
+        "production_blocked_operations",
+        "sandbox_tag_signals",
+        "operation_aliases",
+        "input_aliases",
+        "next_safe_steps",
+    }
+    missing_fields = required_fields - set(rules.keys())
+    if missing_fields:
+        findings.append(f"n8n_api_connector_rules_missing_fields:{','.join(sorted(missing_fields))}")
+
+    if str(rules.get("platform", "")).strip() != "n8n_api":
+        findings.append("n8n_api_connector_rules_invalid_platform")
+    if str(rules.get("recommended_mode", "")).strip() != "read_only":
+        findings.append("n8n_api_connector_rules_invalid_recommended_mode")
+    if not isinstance(rules.get("api_key_required"), bool):
+        findings.append("n8n_api_connector_rules_invalid_api_key_required")
+    if not isinstance(rules.get("operation_aliases"), dict):
+        findings.append("n8n_api_connector_rules_invalid_operation_aliases")
+    if not isinstance(rules.get("input_aliases"), dict):
+        findings.append("n8n_api_connector_rules_invalid_input_aliases")
+    if not isinstance(rules.get("next_safe_steps"), dict) or not rules.get("next_safe_steps"):
+        findings.append("n8n_api_connector_rules_invalid_next_safe_steps")
+
+    expected_operations = {
+        "list_workflows",
+        "get_workflow",
+        "create_workflow",
+        "update_workflow",
+        "activate_workflow",
+        "execute_workflow",
+        "delete_workflow",
+        "read_credentials",
+    }
+    for field_name in (
+        "supported_operations",
+        "read_only_operations",
+        "write_operations",
+        "blocked_operations",
+        "production_blocked_operations",
+        "sandbox_tag_signals",
+    ):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not all(str(item).strip() for item in value):
+            findings.append(f"n8n_api_connector_rules_invalid_{field_name}")
+
+    supported_operations = set(rules.get("supported_operations", []))
+    missing_operations = expected_operations - supported_operations
+    if missing_operations:
+        findings.append("n8n_api_connector_rules_missing_supported_operations:" + ",".join(sorted(missing_operations)))
+
+    read_only_operations = set(rules.get("read_only_operations", []))
+    if {"list_workflows", "get_workflow"} - read_only_operations:
+        findings.append("n8n_api_connector_rules_missing_read_only_operations:list_workflows,get_workflow")
+
+    write_operations = set(rules.get("write_operations", []))
+    if {"create_workflow", "update_workflow"} - write_operations:
+        findings.append("n8n_api_connector_rules_missing_write_operations:create_workflow,update_workflow")
+
+    blocked_operations = set(rules.get("blocked_operations", []))
+    for operation in ("activate_workflow", "execute_workflow", "delete_workflow", "read_credentials"):
+        if operation not in blocked_operations:
+            findings.append(f"n8n_api_connector_rules_{operation}_must_be_blocked")
+
+    next_safe_steps = rules.get("next_safe_steps", {})
+    for mode in ("not_configured", "read_only_ready", "sandbox_write_ready", "blocked"):
+        if not str(next_safe_steps.get(mode, "")).strip():
+            findings.append(f"n8n_api_connector_rules_missing_next_safe_step:{mode}")
+
+
 def _validate_n8n_workflow_generation_rules(root: Path, findings: List[str]) -> None:
     try:
         rules = _load_n8n_workflow_generation_rules(root)
@@ -4979,6 +5077,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_github_connector_rules(root, findings)
         _validate_department_registry(root, findings)
         _validate_n8n_automation_readiness_rules(root, findings)
+        _validate_n8n_api_connector_rules(root, findings)
         _validate_n8n_workflow_generation_rules(root, findings)
         _validate_docs_search_catalog(root, findings)
         _validate_phase_playbook(root, findings)

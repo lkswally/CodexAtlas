@@ -140,6 +140,10 @@ try:
 except ModuleNotFoundError:
     from n8n_automation_readiness import assess_n8n_automation_readiness
 try:
+    from tools.n8n_api_connector_readiness import assess_n8n_api_connector_readiness
+except ModuleNotFoundError:
+    from n8n_api_connector_readiness import assess_n8n_api_connector_readiness
+try:
     from tools.mcp_permission_matrix_readiness import assess_mcp_permission_matrix_readiness
 except ModuleNotFoundError:
     from mcp_permission_matrix_readiness import assess_mcp_permission_matrix_readiness
@@ -716,6 +720,19 @@ def _run_n8n_automation_readiness(
     except Exception as exc:
         return _build_failed_report("n8n_automation_readiness", f"n8n_automation_readiness_failed:{exc}")
     return _build_ok_report("n8n_automation_readiness", report)
+
+
+def _run_n8n_api_connector_readiness(
+    *,
+    root: Path,
+    project: Path,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    try:
+        report = assess_n8n_api_connector_readiness(payload, root=root, project=project)
+    except Exception as exc:
+        return _build_failed_report("n8n_api_connector_readiness", f"n8n_api_connector_readiness_failed:{exc}")
+    return _build_ok_report("n8n_api_connector_readiness", report)
 
 
 def _run_mcp_permission_matrix_readiness(
@@ -2001,6 +2018,15 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "project_type": ((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "unknown",
         },
     )
+    source_reports["n8n_api_connector_readiness"] = _run_n8n_api_connector_readiness(
+        root=root,
+        project=project,
+        payload={
+            "requested_operation": "list_workflows",
+            "allow_write": False,
+            "allow_execute": False,
+        },
+    )
     source_reports["mcp_permission_matrix_readiness"] = _run_mcp_permission_matrix_readiness(
         root=root,
         project=project,
@@ -2493,6 +2519,10 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "why": (source_reports["n8n_automation_readiness"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["n8n_automation_readiness"]["report"] or {}).get("advisory_only", True)),
         },
+        "n8n_api_connector_posture": (source_reports["n8n_api_connector_readiness"]["report"] or {}).get(
+            "n8n_api_connector_posture",
+            {},
+        ),
         "mcp_permission_posture": (source_reports["mcp_permission_matrix_readiness"]["report"] or {}).get(
             "mcp_permission_posture",
             {},

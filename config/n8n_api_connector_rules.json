@@ -1,0 +1,122 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "platform": "n8n_api",
+  "recommended_mode": "read_only",
+  "api_key_required": true,
+  "supported_operations": [
+    "list_workflows",
+    "get_workflow",
+    "create_workflow",
+    "update_workflow",
+    "activate_workflow",
+    "execute_workflow",
+    "delete_workflow",
+    "read_credentials"
+  ],
+  "read_only_operations": [
+    "list_workflows",
+    "get_workflow"
+  ],
+  "write_operations": [
+    "create_workflow",
+    "update_workflow"
+  ],
+  "blocked_operations": [
+    "activate_workflow",
+    "execute_workflow",
+    "delete_workflow",
+    "read_credentials"
+  ],
+  "production_blocked_operations": [
+    "activate_workflow",
+    "execute_workflow",
+    "delete_workflow"
+  ],
+  "sandbox_tag_signals": [
+    "sandbox",
+    "atlas_sandbox",
+    "atlassandbox",
+    "test"
+  ],
+  "operation_aliases": {
+    "list": "list_workflows",
+    "list_workflows": "list_workflows",
+    "get": "get_workflow",
+    "get_workflow": "get_workflow",
+    "create": "create_workflow",
+    "create_workflow": "create_workflow",
+    "update": "update_workflow",
+    "update_workflow": "update_workflow",
+    "activate": "activate_workflow",
+    "activate_workflow": "activate_workflow",
+    "execute": "execute_workflow",
+    "execute_workflow": "execute_workflow",
+    "delete": "delete_workflow",
+    "delete_workflow": "delete_workflow",
+    "credentials": "read_credentials",
+    "read_credentials": "read_credentials"
+  },
+  "input_aliases": {
+    "n8n_base_url": [
+      "n8n_base_url",
+      "base_url",
+      "N8N_BASE_URL"
+    ],
+    "base_url_configured": [
+      "base_url_configured",
+      "n8n_base_url_configured"
+    ],
+    "requested_operation": [
+      "requested_operation",
+      "operation"
+    ],
+    "allow_write": [
+      "allow_write",
+      "N8N_ALLOW_WRITE"
+    ],
+    "allow_execute": [
+      "allow_execute",
+      "N8N_ALLOW_EXECUTE"
+    ],
+    "sandbox_tags": [
+      "sandbox_tags",
+      "tags"
+    ],
+    "sandbox_tag_present": [
+      "sandbox_tag_present",
+      "has_sandbox_tag"
+    ],
+    "explicit_human_approval": [
+      "explicit_human_approval",
+      "human_approval"
+    ],
+    "dry_run_available": [
+      "dry_run_available",
+      "supports_dry_run"
+    ],
+    "rollback_available": [
+      "rollback_available",
+      "supports_rollback"
+    ],
+    "workflow_active": [
+      "workflow_active",
+      "active"
+    ],
+    "production_target": [
+      "production_target",
+      "production_write"
+    ],
+    "webhook_production_url": [
+      "webhook_production_url",
+      "production_webhook_url"
+    ]
+  },
+  "next_safe_steps": {
+    "not_configured": "Set a manual N8N_BASE_URL reference first and keep the connector in advisory mode.",
+    "read_only_ready": "Start with list/get workflow metadata only and keep writes disabled.",
+    "sandbox_write_ready": "Use sandbox-tagged workflow creation only with active:false and explicit approval.",
+    "blocked": "Stay advisory-only and fall back to exported workflow JSON or blueprints until the blocked condition is removed.",
+    "default": "Keep the connector advisory-only until manual configuration is reviewed."
+  }
+}
