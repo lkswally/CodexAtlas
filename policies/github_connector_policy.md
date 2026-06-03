@@ -18,6 +18,8 @@ This layer exists to answer:
 - allow draft PR preparation only as governed `draft_only`
 - route the permission decision through the generic MCP permission matrix
 - surface blocked capabilities before any token, connector or write path exists
+- distinguish theoretical readiness from a real read-only runtime probe
+- allow a governed `gh` CLI read-only probe without enabling any write path
 
 ## What This Layer Must Not Do
 
@@ -27,6 +29,7 @@ This layer exists to answer:
 - do not create PRs, issues or comments for real
 - do not merge, dispatch workflows, delete refs or force-push
 - do not modify repositories from this readiness layer
+- do not attempt any write probe to "test" permissions
 
 ## Initial Capability Stance
 
@@ -46,11 +49,14 @@ This layer exists to answer:
 - Block merges, workflow dispatch, secrets access, deletes and force-pushes by default.
 - If rollback or dry-run evidence is missing, keep any write-like capability blocked.
 - If a request implies tokens, secrets or sensitive repository data, raise risk and keep Atlas advisory-only.
+- Runtime probing must stay read-only: repo metadata, commits, PR metadata, Actions metadata and issue metadata only.
+- `write_attempted` must remain `false`.
 
 ## Relationship To Existing Atlas Layers
 
 - `mcp_permission_matrix_readiness` remains the generic policy engine for capability levels.
 - `github_connector_readiness` is the GitHub-specific adapter on top of that matrix.
+- The runtime probe is a sub-layer of `github_connector_readiness`, not a separate write-capable connector.
 - `mcp_readiness_check` only reports whether MCP CLI/config appears functional; it does not grant permission.
 - `quality_gate_report` may expose GitHub connector posture as advisory evidence, not as execution permission.
 

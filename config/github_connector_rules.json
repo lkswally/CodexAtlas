@@ -41,6 +41,20 @@
     "pr_draft",
     "branch_write"
   ],
+  "runtime_read_checks": [
+    "repo_accessible",
+    "default_branch_readable",
+    "prs_readable",
+    "issues_readable",
+    "actions_readable"
+  ],
+  "runtime_blocked_write_capabilities": [
+    "merge",
+    "workflow_dispatch",
+    "secrets_access",
+    "delete",
+    "force_push"
+  ],
   "blocked_capabilities": [
     "merge",
     "workflow_dispatch",

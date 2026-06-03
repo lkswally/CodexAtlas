@@ -3597,6 +3597,8 @@ def _validate_github_connector_rules(root: Path, findings: List[str]) -> None:
         "capability_levels",
         "allowed_capabilities",
         "approval_gated_capabilities",
+        "runtime_read_checks",
+        "runtime_blocked_write_capabilities",
         "blocked_capabilities",
         "hard_blocked_capabilities",
         "capability_next_safe_steps",
@@ -3640,12 +3642,43 @@ def _validate_github_connector_rules(root: Path, findings: List[str]) -> None:
     for field_name in (
         "allowed_capabilities",
         "approval_gated_capabilities",
+        "runtime_read_checks",
+        "runtime_blocked_write_capabilities",
         "blocked_capabilities",
         "hard_blocked_capabilities",
     ):
         value = rules.get(field_name)
         if not isinstance(value, list) or not all(str(item).strip() for item in value):
             findings.append(f"github_connector_rules_invalid_{field_name}")
+
+    expected_runtime_read_checks = {
+        "repo_accessible",
+        "default_branch_readable",
+        "prs_readable",
+        "issues_readable",
+        "actions_readable",
+    }
+    missing_runtime_read_checks = expected_runtime_read_checks - set(rules.get("runtime_read_checks", []))
+    if missing_runtime_read_checks:
+        findings.append(
+            "github_connector_rules_missing_runtime_read_checks:" + ",".join(sorted(missing_runtime_read_checks))
+        )
+
+    expected_runtime_blocked_write_capabilities = {
+        "merge",
+        "workflow_dispatch",
+        "secrets_access",
+        "delete",
+        "force_push",
+    }
+    missing_runtime_blocked = expected_runtime_blocked_write_capabilities - set(
+        rules.get("runtime_blocked_write_capabilities", [])
+    )
+    if missing_runtime_blocked:
+        findings.append(
+            "github_connector_rules_missing_runtime_blocked_write_capabilities:"
+            + ",".join(sorted(missing_runtime_blocked))
+        )
 
     next_safe_steps = rules.get("capability_next_safe_steps")
     if not isinstance(next_safe_steps, dict) or not next_safe_steps:

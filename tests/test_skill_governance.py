@@ -430,6 +430,7 @@ def test_github_connector_rules_require_capabilities_and_blocked_actions():
         "repo_status": "read_only",
         "pr_draft": "draft_only",
     }
+    invalid_rules["runtime_read_checks"] = ["repo_accessible"]
 
     with patch(
         "tools.atlas_governance_check._load_github_connector_rules",
@@ -439,6 +440,10 @@ def test_github_connector_rules_require_capabilities_and_blocked_actions():
 
     assert any(
         finding.startswith("github_connector_rules_missing_capabilities:")
+        for finding in findings
+    )
+    assert any(
+        finding.startswith("github_connector_rules_missing_runtime_read_checks:")
         for finding in findings
     )
     assert "github_connector_rules_workflow_dispatch_must_be_blocked" in findings
