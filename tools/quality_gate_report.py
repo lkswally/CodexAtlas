@@ -152,6 +152,10 @@ try:
 except ModuleNotFoundError:
     from github_connector_readiness import assess_github_connector_readiness
 try:
+    from tools.scheduled_automation_readiness import assess_scheduled_automation_readiness
+except ModuleNotFoundError:
+    from scheduled_automation_readiness import assess_scheduled_automation_readiness
+try:
     from tools.quality_gate_schema import CORE_REPORTS, SEVERITY_RANK
 except ModuleNotFoundError:
     from quality_gate_schema import CORE_REPORTS, SEVERITY_RANK
@@ -759,6 +763,19 @@ def _run_github_connector_readiness(
     except Exception as exc:
         return _build_failed_report("github_connector_readiness", f"github_connector_readiness_failed:{exc}")
     return _build_ok_report("github_connector_readiness", report)
+
+
+def _run_scheduled_automation_readiness(
+    *,
+    root: Path,
+    project: Path,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    try:
+        report = assess_scheduled_automation_readiness(payload, root=root, project=project)
+    except Exception as exc:
+        return _build_failed_report("scheduled_automation_readiness", f"scheduled_automation_readiness_failed:{exc}")
+    return _build_ok_report("scheduled_automation_readiness", report)
 
 
 def _run_department_registry_readiness(
@@ -2046,6 +2063,19 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "notes": "GitHub connector posture only; no token, draft, merge or workflow execution requested.",
         },
     )
+    source_reports["scheduled_automation_readiness"] = _run_scheduled_automation_readiness(
+        root=root,
+        project=project,
+        payload={
+            "task_description": "Weekly manual quality gate reminder posture only.",
+            "requested_schedule": "weekly",
+            "task_type": "quality_gate_review",
+            "dry_run_available": True,
+            "requires_external_service": False,
+            "writes_data": False,
+            "sends_notifications": False,
+        },
+    )
     inferred_complexity = (
         str((source_reports["project_intent_analyzer"]["report"] or {}).get("complexity", "low")).strip().lower()
         if source_reports["project_intent_analyzer"]["status"] == "ok"
@@ -2529,6 +2559,10 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         ),
         "github_connector_posture": (source_reports["github_connector_readiness"]["report"] or {}).get(
             "github_connector_posture",
+            {},
+        ),
+        "scheduled_automation_posture": (source_reports["scheduled_automation_readiness"]["report"] or {}).get(
+            "scheduled_automation_posture",
             {},
         ),
         "department_registry_posture": (source_reports["department_registry_readiness"]["report"] or {}).get(

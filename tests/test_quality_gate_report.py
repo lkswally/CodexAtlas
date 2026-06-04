@@ -73,6 +73,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["source_reports"]["chrome_devtools_mcp_readiness"]["status"] == "ok"
     assert result["source_reports"]["mcp_permission_matrix_readiness"]["status"] == "ok"
     assert result["source_reports"]["github_connector_readiness"]["status"] == "ok"
+    assert result["source_reports"]["scheduled_automation_readiness"]["status"] == "ok"
     assert result["source_reports"]["n8n_api_connector_readiness"]["status"] == "ok"
     assert result["source_reports"]["copywriting_conversion_readiness"]["status"] == "ok"
     assert result["source_reports"]["brand_strategy_readiness"]["status"] == "ok"
@@ -135,6 +136,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["github_connector_posture"]["runtime_probe"]["write_attempted"] is False
     assert "merge" in result["github_connector_posture"]["runtime_probe"]["blocked_write_capabilities"]
     assert result["github_connector_posture"]["allowed_to_create"] is False
+    assert isinstance(result["scheduled_automation_posture"], dict)
+    assert result["scheduled_automation_posture"]["advisory_only"] is True
     assert isinstance(result["github_connector_posture"]["github_pr_draft_create_guard"], dict)
     assert result["github_connector_posture"]["github_pr_draft_create_guard"]["allowed_to_create"] is False
     assert result["github_connector_posture"]["github_pr_draft_create_guard"]["safe_to_call_create_pull_request"] is False

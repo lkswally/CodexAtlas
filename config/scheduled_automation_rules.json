@@ -1,0 +1,214 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "supported_schedule_types": [
+    "daily",
+    "weekly",
+    "monthly",
+    "event_based",
+    "unknown"
+  ],
+  "schedule_type_aliases": {
+    "every day": "daily",
+    "daily": "daily",
+    "each day": "daily",
+    "weekly": "weekly",
+    "every week": "weekly",
+    "monthly": "monthly",
+    "every month": "monthly",
+    "event": "event_based",
+    "event_based": "event_based",
+    "webhook": "event_based"
+  },
+  "input_aliases": {
+    "task_description": [
+      "task",
+      "objective",
+      "prompt",
+      "job_description"
+    ],
+    "requested_schedule": [
+      "schedule",
+      "frequency",
+      "cadence"
+    ],
+    "task_type": [
+      "job_type",
+      "automation_type"
+    ],
+    "requires_external_service": [
+      "requires_web_api",
+      "requires_api",
+      "requires_web"
+    ],
+    "requires_credentials": [
+      "needs_credentials",
+      "uses_credentials"
+    ],
+    "touches_sensitive_data": [
+      "has_sensitive_data",
+      "contains_sensitive_data"
+    ],
+    "writes_data": [
+      "modifies_data",
+      "creates_or_updates_data"
+    ],
+    "sends_notifications": [
+      "sends_email",
+      "sends_messages"
+    ],
+    "deletes_data": [
+      "deletes",
+      "remove_data"
+    ],
+    "modifies_code": [
+      "writes_code",
+      "edits_code"
+    ],
+    "requires_human_approval": [
+      "human_approval_required"
+    ],
+    "explicit_human_approval": [
+      "human_approval_granted",
+      "approval_granted"
+    ],
+    "dry_run_available": [
+      "has_dry_run",
+      "supports_dry_run"
+    ],
+    "rollback_available": [
+      "has_rollback",
+      "supports_rollback"
+    ],
+    "sandbox_target": [
+      "sandbox_allowed",
+      "sandbox_ready"
+    ],
+    "production_target": [
+      "production_write",
+      "targets_production"
+    ],
+    "recursive_risk": [
+      "is_recursive",
+      "recursive_scheduling"
+    ],
+    "auto_mutating": [
+      "self_modifying",
+      "auto_mutation"
+    ],
+    "n8n_execute_requested": [
+      "execute_n8n_workflow",
+      "run_n8n_workflow"
+    ]
+  },
+  "manual_reminder_terms": [
+    "remind",
+    "reminder",
+    "check in",
+    "follow up manually",
+    "manual reminder"
+  ],
+  "report_terms": [
+    "report",
+    "summary",
+    "digest",
+    "radar",
+    "trending",
+    "brief"
+  ],
+  "external_service_terms": [
+    "api",
+    "web",
+    "http",
+    "github",
+    "gmail",
+    "google sheets",
+    "google drive",
+    "slack",
+    "telegram",
+    "discord",
+    "vercel",
+    "n8n"
+  ],
+  "credential_terms": [
+    "token",
+    "secret",
+    "credential",
+    "oauth",
+    "api key",
+    "password"
+  ],
+  "sensitive_data_terms": [
+    "personal data",
+    "customer data",
+    "sensitive",
+    "private",
+    "confidential",
+    "pii"
+  ],
+  "side_effect_terms": [
+    "send email",
+    "email",
+    "post message",
+    "write",
+    "update",
+    "delete",
+    "activate",
+    "execute",
+    "deploy",
+    "publish",
+    "modify"
+  ],
+  "write_terms": [
+    "write",
+    "update",
+    "insert",
+    "append",
+    "save",
+    "create row",
+    "sheet",
+    "database",
+    "db"
+  ],
+  "delete_terms": [
+    "delete",
+    "remove",
+    "destroy"
+  ],
+  "blocked_task_terms": [
+    "execute workflow",
+    "activate workflow",
+    "deploy",
+    "force push",
+    "merge",
+    "delete repo"
+  ],
+  "recursion_terms": [
+    "reschedule itself",
+    "create another schedule",
+    "schedule itself",
+    "recursive",
+    "self trigger"
+  ],
+  "auto_mutation_terms": [
+    "self-improve automatically",
+    "rewrite its own prompts",
+    "modify code automatically",
+    "self-modifying",
+    "auto-mutating"
+  ],
+  "blocked_operations_defaults": [
+    "execute_workflow",
+    "activate_workflow",
+    "auto_modify_code",
+    "recursive_scheduling"
+  ],
+  "next_safe_steps": {
+    "manual_reminder_ready": "Keep it as a manual reminder or checklist item rather than a runtime automation.",
+    "dry_run_ready": "Prepare a dry-run artifact or preview output first and keep human review in the loop.",
+    "sandbox_ready": "Only consider a sandbox-bound draft after explicit approval, dry-run evidence and rollback steps.",
+    "manual_review_only": "Review scope, credentials, privacy and side effects manually before any future runtime integration.",
+    "blocked": "Keep this automation blocked until risky side effects, recursion or execution paths are removed.",
+    "watchlist": "Document the idea as watchlist only until a safer execution surface exists."
+  }
+}

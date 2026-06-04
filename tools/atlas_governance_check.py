@@ -60,6 +60,7 @@ REQUIRED_ROOT_FILES = (
     "config/brand_strategy_rules.json",
     "config/mcp_permission_matrix_rules.json",
     "config/github_connector_rules.json",
+    "config/scheduled_automation_rules.json",
     "config/department_registry_rules.json",
     "config/n8n_automation_readiness_rules.json",
     "config/n8n_api_connector_rules.json",
@@ -129,6 +130,7 @@ REQUIRED_ROOT_FILES = (
     "policies/brand_strategy_policy.md",
     "policies/mcp_permission_matrix_policy.md",
     "policies/github_connector_policy.md",
+    "policies/scheduled_automation_policy.md",
     "policies/department_registry_policy.md",
     "policies/n8n_automation_readiness_policy.md",
     "policies/n8n_api_connector_policy.md",
@@ -226,6 +228,7 @@ REQUIRED_ROOT_FILES = (
     "tools/brand_strategy_readiness.py",
     "tools/mcp_permission_matrix_readiness.py",
     "tools/github_connector_readiness.py",
+    "tools/scheduled_automation_readiness.py",
     "tools/department_registry_readiness.py",
     "tools/n8n_automation_readiness.py",
     "tools/n8n_api_connector_readiness.py",
@@ -277,6 +280,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_brand_strategy_readiness.py",
     "tests/test_mcp_permission_matrix_readiness.py",
     "tests/test_github_connector_readiness.py",
+    "tests/test_scheduled_automation_readiness.py",
     "tests/test_department_registry_readiness.py",
     "tests/test_n8n_automation_readiness.py",
     "tests/test_n8n_api_connector_readiness.py",
@@ -1490,6 +1494,10 @@ def _load_mcp_permission_matrix_rules(root: Path) -> Dict[str, Any]:
 
 def _load_github_connector_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "github_connector_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_scheduled_automation_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "scheduled_automation_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_department_registry(root: Path) -> Dict[str, Any]:
@@ -3990,6 +3998,93 @@ def _validate_n8n_api_connector_rules(root: Path, findings: List[str]) -> None:
             findings.append(f"n8n_api_connector_rules_missing_next_safe_step:{mode}")
 
 
+def _validate_scheduled_automation_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_scheduled_automation_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_scheduled_automation_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("scheduled_automation_rules_not_object")
+        return
+
+    required_fields = {
+        "version",
+        "advisory_only",
+        "supported_schedule_types",
+        "schedule_type_aliases",
+        "input_aliases",
+        "manual_reminder_terms",
+        "report_terms",
+        "external_service_terms",
+        "credential_terms",
+        "sensitive_data_terms",
+        "side_effect_terms",
+        "write_terms",
+        "blocked_task_terms",
+        "recursion_terms",
+        "auto_mutation_terms",
+        "blocked_operations_defaults",
+        "next_safe_steps",
+    }
+    missing_fields = required_fields - set(rules.keys())
+    if missing_fields:
+        findings.append(f"scheduled_automation_rules_missing_fields:{','.join(sorted(missing_fields))}")
+
+    expected_schedule_types = {"daily", "weekly", "monthly", "event_based", "unknown"}
+    supported_schedule_types = set(rules.get("supported_schedule_types", []))
+    missing_schedule_types = expected_schedule_types - supported_schedule_types
+    if missing_schedule_types:
+        findings.append(
+            "scheduled_automation_rules_missing_schedule_types:" + ",".join(sorted(missing_schedule_types))
+        )
+
+    for field_name in (
+        "supported_schedule_types",
+        "manual_reminder_terms",
+        "report_terms",
+        "external_service_terms",
+        "credential_terms",
+        "sensitive_data_terms",
+        "side_effect_terms",
+        "write_terms",
+        "blocked_task_terms",
+        "recursion_terms",
+        "auto_mutation_terms",
+        "blocked_operations_defaults",
+    ):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not all(str(item).strip() for item in value):
+            findings.append(f"scheduled_automation_rules_invalid_{field_name}")
+
+    if not isinstance(rules.get("schedule_type_aliases"), dict):
+        findings.append("scheduled_automation_rules_invalid_schedule_type_aliases")
+    if not isinstance(rules.get("input_aliases"), dict):
+        findings.append("scheduled_automation_rules_invalid_input_aliases")
+
+    blocked_defaults = set(rules.get("blocked_operations_defaults", []))
+    for operation in ("execute_workflow", "activate_workflow", "auto_modify_code", "recursive_scheduling"):
+        if operation not in blocked_defaults:
+            findings.append(f"scheduled_automation_rules_missing_blocked_default:{operation}")
+
+    next_safe_steps = rules.get("next_safe_steps", {})
+    required_states = {
+        "manual_reminder_ready",
+        "dry_run_ready",
+        "sandbox_ready",
+        "manual_review_only",
+        "blocked",
+        "watchlist",
+    }
+    if not isinstance(next_safe_steps, dict):
+        findings.append("scheduled_automation_rules_invalid_next_safe_steps")
+    else:
+        for state in required_states:
+            if not str(next_safe_steps.get(state, "")).strip():
+                findings.append(f"scheduled_automation_rules_missing_next_safe_step:{state}")
+
+
 def _validate_n8n_workflow_generation_rules(root: Path, findings: List[str]) -> None:
     try:
         rules = _load_n8n_workflow_generation_rules(root)
@@ -5075,6 +5170,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_brand_strategy_rules(root, findings)
         _validate_mcp_permission_matrix_rules(root, findings)
         _validate_github_connector_rules(root, findings)
+        _validate_scheduled_automation_rules(root, findings)
         _validate_department_registry(root, findings)
         _validate_n8n_automation_readiness_rules(root, findings)
         _validate_n8n_api_connector_rules(root, findings)

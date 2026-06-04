@@ -37,6 +37,7 @@ from tools.atlas_governance_check import (
     _load_brand_strategy_rules,
     _load_mcp_permission_matrix_rules,
     _load_github_connector_rules,
+    _load_scheduled_automation_rules,
     _load_department_registry,
     _load_n8n_automation_readiness_rules,
     _load_n8n_api_connector_rules,
@@ -71,6 +72,7 @@ from tools.atlas_governance_check import (
     _validate_brand_strategy_rules,
     _validate_mcp_permission_matrix_rules,
     _validate_github_connector_rules,
+    _validate_scheduled_automation_rules,
     _validate_department_registry,
     _validate_n8n_automation_readiness_rules,
     _validate_n8n_api_connector_rules,
@@ -460,6 +462,30 @@ def test_github_connector_rules_require_capabilities_and_blocked_actions():
     )
     assert "github_connector_rules_workflow_dispatch_must_be_blocked" in findings
     assert "github_connector_rules_secrets_access_must_be_blocked" in findings
+
+
+def test_scheduled_automation_rules_require_core_states_and_blocked_defaults():
+    findings = []
+    invalid_rules = _load_scheduled_automation_rules(ROOT)
+    invalid_rules["supported_schedule_types"] = ["weekly"]
+    invalid_rules["blocked_operations_defaults"] = ["execute_workflow"]
+    invalid_rules["next_safe_steps"] = {"blocked": "keep blocked"}
+
+    with patch(
+        "tools.atlas_governance_check._load_scheduled_automation_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_scheduled_automation_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("scheduled_automation_rules_missing_schedule_types:")
+        for finding in findings
+    )
+    assert "scheduled_automation_rules_missing_blocked_default:recursive_scheduling" in findings
+    assert any(
+        finding.startswith("scheduled_automation_rules_missing_next_safe_step:")
+        for finding in findings
+    )
 
 
 def test_n8n_automation_readiness_rules_require_core_fields_and_node_signals():
