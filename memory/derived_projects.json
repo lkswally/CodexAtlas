@@ -38,6 +38,15 @@
       "governance_mode": "atlas_completo",
       "is_factory": true,
       "status": "registered"
+    },
+    {
+      "project_name": "LucasRojo-Web",
+      "project_root": "C:\\Proyectos\\LucasRojo-Web",
+      "project_profile": "frontend_app",
+      "atlas_root": "C:\\Proyectos\\Codex-Atlas",
+      "derived_from": "Codex-Atlas",
+      "governance_mode": "atlas_completo",
+      "status": "registered"
     }
   ]
 }
