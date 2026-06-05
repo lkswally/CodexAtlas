@@ -70,6 +70,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["source_reports"]["feedback_analyzer"]["status"] == "ok"
     assert result["source_reports"]["model_router"]["status"] == "ok"
     assert result["source_reports"]["error_pattern_analyzer"]["status"] == "ok"
+    assert result["source_reports"]["post_execution_learning_review"]["status"] == "ok"
     assert result["source_reports"]["chrome_devtools_mcp_readiness"]["status"] == "ok"
     assert result["source_reports"]["mcp_permission_matrix_readiness"]["status"] == "ok"
     assert result["source_reports"]["github_connector_readiness"]["status"] == "ok"
@@ -81,6 +82,7 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert isinstance(result["intent_analysis"], dict)
     assert isinstance(result["design_quality_posture"], dict)
     assert isinstance(result["frontend_visual_execution_posture"], dict)
+    assert isinstance(result["post_execution_learning_posture"], dict)
     assert isinstance(result["model_cost_control_posture"], dict)
     assert isinstance(result["business_idea_simulation_posture"], dict)
     assert isinstance(result["copywriting_conversion_posture"], dict)
@@ -134,6 +136,8 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
         "blocked_motion_unverified",
         "blocked_generic_template_risk",
     }
+    assert result["post_execution_learning_posture"]["advisory_only"] is True
+    assert result["post_execution_learning_posture"]["auto_mutation_allowed"] is False
     assert isinstance(result["chrome_devtools_mcp_posture"], dict)
     assert result["chrome_devtools_mcp_posture"]["auto_activate"] is False
     assert result["chrome_devtools_mcp_posture"]["telemetry_risk"] in {"low", "medium", "high"}

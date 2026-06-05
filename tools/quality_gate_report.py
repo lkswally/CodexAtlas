@@ -112,6 +112,10 @@ try:
 except ModuleNotFoundError:
     from frontend_visual_execution_guard import assess_frontend_visual_execution_guard
 try:
+    from tools.post_execution_learning_review import review_post_execution_learning
+except ModuleNotFoundError:
+    from post_execution_learning_review import review_post_execution_learning
+try:
     from tools.repo_graph_readiness import assess_repo_graph_readiness
 except ModuleNotFoundError:
     from repo_graph_readiness import assess_repo_graph_readiness
@@ -837,6 +841,19 @@ def _run_frontend_visual_execution_guard(
     except Exception as exc:
         return _build_failed_report("frontend_visual_execution_guard", f"frontend_visual_execution_guard_failed:{exc}")
     return _build_ok_report("frontend_visual_execution_guard", report)
+
+
+def _run_post_execution_learning_review(
+    *,
+    root: Path,
+    project: Path,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    try:
+        report = review_post_execution_learning(payload, root=root, project=project)
+    except Exception as exc:
+        return _build_failed_report("post_execution_learning_review", f"post_execution_learning_review_failed:{exc}")
+    return _build_ok_report("post_execution_learning_review", report)
 
 
 def _run_repo_graph_readiness(
@@ -2049,6 +2066,20 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "claims_visual_ready": str((source_reports["certify-project"].get("report") or {}).get("status", "")).strip() == "ready",
         },
     )
+    source_reports["post_execution_learning_review"] = _run_post_execution_learning_review(
+        root=root,
+        project=project,
+        payload={
+            "task_summary": "Quality gate synthesis only; no execution block closed in this advisory run.",
+            "files_changed": [],
+            "validations_run": [],
+            "blocked_reasons": [],
+            "user_feedback": "",
+            "repeated_error_patterns": [],
+            "missing_evidence": [],
+            "rollback_needed": False,
+        },
+    )
     source_reports["chrome_devtools_mcp_readiness"] = _run_chrome_devtools_mcp_readiness(
         root=root,
         project=project,
@@ -2579,6 +2610,10 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "why": (source_reports["frontend_visual_execution_guard"]["report"] or {}).get("why"),
             "advisory_only": bool((source_reports["frontend_visual_execution_guard"]["report"] or {}).get("advisory_only", True)),
         },
+        "post_execution_learning_posture": (source_reports["post_execution_learning_review"]["report"] or {}).get(
+            "post_execution_learning_posture",
+            {},
+        ),
         "model_cost_control_posture": {
             "status": (source_reports["model_cost_control_readiness"]["report"] or {}).get("status"),
             "recommended_model_tier": (source_reports["model_cost_control_readiness"]["report"] or {}).get("recommended_model_tier"),

@@ -1,0 +1,131 @@
+{
+  "version": "1.0",
+  "advisory_only": true,
+  "states": [
+    "no_learning_needed",
+    "learning_candidate",
+    "policy_candidate",
+    "test_candidate",
+    "readiness_candidate",
+    "blocked_auto_mutation",
+    "needs_human_review"
+  ],
+  "input_aliases": {
+    "task_summary": [
+      "task",
+      "summary",
+      "objective"
+    ],
+    "files_changed": [
+      "changed_files",
+      "touched_files"
+    ],
+    "validations_run": [
+      "checks_run",
+      "validation_commands"
+    ],
+    "blocked_reasons": [
+      "blockers",
+      "risks"
+    ],
+    "user_feedback": [
+      "human_feedback",
+      "feedback"
+    ],
+    "repeated_error_patterns": [
+      "repeated_patterns",
+      "known_repeated_patterns"
+    ],
+    "missing_evidence": [
+      "evidence_gaps"
+    ],
+    "rollback_needed": [
+      "needs_rollback"
+    ],
+    "attempts_auto_mutation": [
+      "auto_mutation_attempt",
+      "self_modify_attempt"
+    ],
+    "bug_fixed": [
+      "bugfix_applied",
+      "bug_corrected"
+    ],
+    "feature_scope": [
+      "scope_type"
+    ]
+  },
+  "frontend_generic_repeat_terms": [
+    "generic frontend",
+    "template-like ui",
+    "ai slop",
+    "safe average layout",
+    "repeated visual drift"
+  ],
+  "external_integration_terms": [
+    "mcp",
+    "github",
+    "n8n",
+    "gmail",
+    "google sheets",
+    "google drive",
+    "slack",
+    "telegram",
+    "discord",
+    "whatsapp",
+    "vercel",
+    "provider",
+    "api"
+  ],
+  "dangerous_behavior_terms": [
+    "production write",
+    "execute workflow",
+    "activate workflow",
+    "delete",
+    "force push",
+    "secret",
+    "credential leak",
+    "unsafe side effect"
+  ],
+  "auto_mutation_terms": [
+    "rewrite skill automatically",
+    "self-improve automatically",
+    "auto-create policy",
+    "auto-create test",
+    "modify itself",
+    "self-modifying"
+  ],
+  "test_validation_terms": [
+    "pytest",
+    "unit test",
+    "integration test",
+    "test_"
+  ],
+  "readiness_candidate_terms": [
+    "readiness",
+    "manual setup",
+    "connector posture",
+    "runtime probe",
+    "permission matrix"
+  ],
+  "policy_candidate_terms": [
+    "guardrail",
+    "policy gap",
+    "approval boundary",
+    "dangerous behavior",
+    "unsafe mutation"
+  ],
+  "learning_dispositions": [
+    "accepted",
+    "deferred",
+    "rejected"
+  ],
+  "next_safe_steps": {
+    "no_learning_needed": "No durable learning signal appeared; keep the block documented but avoid creating new surfaces.",
+    "learning_candidate": "Capture the repeated pattern as an explicit recommendation for future Atlas reviews.",
+    "policy_candidate": "Propose a guarded policy change and require human review before any mutation.",
+    "test_candidate": "Add or tighten tests in a separate block before claiming the bug is closed systemically.",
+    "readiness_candidate": "Prefer a new readiness layer or connector posture before any runtime integration.",
+    "blocked_auto_mutation": "Block self-modifying behavior and keep all learning proposals review-only.",
+    "needs_human_review": "A human should decide whether this learning deserves policy, tests or no action."
+  }
+}

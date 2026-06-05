@@ -59,6 +59,7 @@ REQUIRED_ROOT_FILES = (
     "config/business_idea_simulation_rules.json",
     "config/copywriting_conversion_rules.json",
     "config/brand_strategy_rules.json",
+    "config/post_execution_learning_rules.json",
     "config/mcp_permission_matrix_rules.json",
     "config/github_connector_rules.json",
     "config/scheduled_automation_rules.json",
@@ -130,6 +131,7 @@ REQUIRED_ROOT_FILES = (
     "policies/business_idea_simulation_policy.md",
     "policies/copywriting_conversion_policy.md",
     "policies/brand_strategy_policy.md",
+    "policies/post_execution_learning_policy.md",
     "policies/mcp_permission_matrix_policy.md",
     "policies/github_connector_policy.md",
     "policies/scheduled_automation_policy.md",
@@ -229,6 +231,7 @@ REQUIRED_ROOT_FILES = (
     "tools/business_idea_simulation_readiness.py",
     "tools/copywriting_conversion_readiness.py",
     "tools/brand_strategy_readiness.py",
+    "tools/post_execution_learning_review.py",
     "tools/mcp_permission_matrix_readiness.py",
     "tools/github_connector_readiness.py",
     "tools/scheduled_automation_readiness.py",
@@ -282,6 +285,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_business_idea_simulation_readiness.py",
     "tests/test_copywriting_conversion_readiness.py",
     "tests/test_brand_strategy_readiness.py",
+    "tests/test_post_execution_learning_review.py",
     "tests/test_mcp_permission_matrix_readiness.py",
     "tests/test_github_connector_readiness.py",
     "tests/test_scheduled_automation_readiness.py",
@@ -1494,6 +1498,10 @@ def _load_copywriting_conversion_rules(root: Path) -> Dict[str, Any]:
 
 def _load_brand_strategy_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "brand_strategy_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_post_execution_learning_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "post_execution_learning_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_mcp_permission_matrix_rules(root: Path) -> Dict[str, Any]:
@@ -3558,6 +3566,86 @@ def _validate_brand_strategy_rules(root: Path, findings: List[str]) -> None:
                 findings.append(f"brand_strategy_rules_invalid_threshold:{field_name}")
 
 
+def _validate_post_execution_learning_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_post_execution_learning_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_post_execution_learning_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("post_execution_learning_rules_not_object")
+        return
+
+    required_fields = {
+        "version",
+        "advisory_only",
+        "states",
+        "input_aliases",
+        "frontend_generic_repeat_terms",
+        "external_integration_terms",
+        "dangerous_behavior_terms",
+        "auto_mutation_terms",
+        "test_validation_terms",
+        "readiness_candidate_terms",
+        "policy_candidate_terms",
+        "learning_dispositions",
+        "next_safe_steps",
+    }
+    missing_fields = required_fields - set(rules.keys())
+    if missing_fields:
+        findings.append(f"post_execution_learning_rules_missing_fields:{','.join(sorted(missing_fields))}")
+
+    if bool(rules.get("advisory_only")) is not True:
+        findings.append("post_execution_learning_rules_must_be_advisory_only")
+
+    expected_states = {
+        "no_learning_needed",
+        "learning_candidate",
+        "policy_candidate",
+        "test_candidate",
+        "readiness_candidate",
+        "blocked_auto_mutation",
+        "needs_human_review",
+    }
+    states = set(rules.get("states", []))
+    missing_states = expected_states - states
+    if missing_states:
+        findings.append("post_execution_learning_rules_missing_states:" + ",".join(sorted(missing_states)))
+
+    expected_dispositions = {"accepted", "deferred", "rejected"}
+    dispositions = set(rules.get("learning_dispositions", []))
+    missing_dispositions = expected_dispositions - dispositions
+    if missing_dispositions:
+        findings.append(
+            "post_execution_learning_rules_missing_learning_dispositions:" + ",".join(sorted(missing_dispositions))
+        )
+
+    for field_name in (
+        "frontend_generic_repeat_terms",
+        "external_integration_terms",
+        "dangerous_behavior_terms",
+        "auto_mutation_terms",
+        "test_validation_terms",
+        "readiness_candidate_terms",
+        "policy_candidate_terms",
+    ):
+        value = rules.get(field_name)
+        if not isinstance(value, list) or not all(str(item).strip() for item in value):
+            findings.append(f"post_execution_learning_rules_invalid_{field_name}")
+
+    if not isinstance(rules.get("input_aliases"), dict):
+        findings.append("post_execution_learning_rules_invalid_input_aliases")
+
+    next_safe_steps = rules.get("next_safe_steps", {})
+    if not isinstance(next_safe_steps, dict):
+        findings.append("post_execution_learning_rules_invalid_next_safe_steps")
+    else:
+        for state in expected_states:
+            if not str(next_safe_steps.get(state, "")).strip():
+                findings.append(f"post_execution_learning_rules_missing_next_safe_step:{state}")
+
+
 def _validate_mcp_permission_matrix_rules(root: Path, findings: List[str]) -> None:
     try:
         rules = _load_mcp_permission_matrix_rules(root)
@@ -5259,6 +5347,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_chrome_devtools_mcp_rules(root, findings)
         _validate_copywriting_conversion_rules(root, findings)
         _validate_brand_strategy_rules(root, findings)
+        _validate_post_execution_learning_rules(root, findings)
         _validate_mcp_permission_matrix_rules(root, findings)
         _validate_github_connector_rules(root, findings)
         _validate_scheduled_automation_rules(root, findings)

@@ -36,6 +36,7 @@ from tools.atlas_governance_check import (
     _load_chrome_devtools_mcp_rules,
     _load_copywriting_conversion_rules,
     _load_brand_strategy_rules,
+    _load_post_execution_learning_rules,
     _load_mcp_permission_matrix_rules,
     _load_github_connector_rules,
     _load_scheduled_automation_rules,
@@ -72,6 +73,7 @@ from tools.atlas_governance_check import (
     _validate_chrome_devtools_mcp_rules,
     _validate_copywriting_conversion_rules,
     _validate_brand_strategy_rules,
+    _validate_post_execution_learning_rules,
     _validate_mcp_permission_matrix_rules,
     _validate_github_connector_rules,
     _validate_scheduled_automation_rules,
@@ -375,6 +377,33 @@ def test_brand_strategy_rules_require_core_fields_and_thresholds():
     assert "brand_strategy_rules_invalid_generic_palette_terms" in findings
     assert any(
         finding.startswith("brand_strategy_rules_missing_ready_thresholds:")
+        for finding in findings
+    )
+
+
+def test_post_execution_learning_rules_require_states_and_dispositions():
+    findings = []
+    invalid_rules = _load_post_execution_learning_rules(ROOT)
+    invalid_rules["states"] = ["learning_candidate"]
+    invalid_rules["learning_dispositions"] = ["accepted"]
+    invalid_rules["next_safe_steps"] = {"learning_candidate": "capture it"}
+
+    with patch(
+        "tools.atlas_governance_check._load_post_execution_learning_rules",
+        return_value=invalid_rules,
+    ):
+        _validate_post_execution_learning_rules(ROOT, findings)
+
+    assert any(
+        finding.startswith("post_execution_learning_rules_missing_states:")
+        for finding in findings
+    )
+    assert any(
+        finding.startswith("post_execution_learning_rules_missing_learning_dispositions:")
+        for finding in findings
+    )
+    assert any(
+        finding.startswith("post_execution_learning_rules_missing_next_safe_step:")
         for finding in findings
     )
 
