@@ -35,6 +35,7 @@ QUALITY_GATE_CORE_POSTURE_KEYS: Tuple[str, ...] = (
     "brand_profile_posture",
     "brand_strategy_posture",
     "ui_ux_design_system_posture",
+    "frontend_visual_execution_posture",
     "visual_fidelity_posture",
     "chrome_devtools_mcp_posture",
     "scheduled_automation_posture",
@@ -63,6 +64,7 @@ QUALITY_GATE_SOURCE_REPORT_IDS: Tuple[str, ...] = (
     "atlas_memory_readiness",
     "skill_registry_index_first_readiness",
     "ui_ux_design_system_readiness",
+    "frontend_visual_execution_guard",
     "atlas_error_learning_review",
     "evidence_collector_readiness",
     "visual_fidelity_judge",
@@ -110,6 +112,7 @@ QUALITY_GATE_CORE_SOURCE_REPORT_KEYS: Tuple[str, ...] = (
     "department_registry_readiness",
     "repo_graph_readiness",
     "business_idea_simulation_readiness",
+    "frontend_visual_execution_guard",
 )
 
 WARNING_FIELD_ALIASES = {

@@ -77,8 +77,10 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["source_reports"]["n8n_api_connector_readiness"]["status"] == "ok"
     assert result["source_reports"]["copywriting_conversion_readiness"]["status"] == "ok"
     assert result["source_reports"]["brand_strategy_readiness"]["status"] == "ok"
+    assert result["source_reports"]["frontend_visual_execution_guard"]["status"] == "ok"
     assert isinstance(result["intent_analysis"], dict)
     assert isinstance(result["design_quality_posture"], dict)
+    assert isinstance(result["frontend_visual_execution_posture"], dict)
     assert isinstance(result["model_cost_control_posture"], dict)
     assert isinstance(result["business_idea_simulation_posture"], dict)
     assert isinstance(result["copywriting_conversion_posture"], dict)
@@ -124,6 +126,14 @@ def test_quality_gate_report_returns_real_structured_summary_for_codexatlas_web(
     assert result["visual_qa_readiness_posture"]["advisory_only"] is True
     assert isinstance(result["visual_fidelity_posture"], dict)
     assert result["visual_fidelity_posture"]["advisory_only"] is True
+    assert result["frontend_visual_execution_posture"]["advisory_only"] is True
+    assert result["frontend_visual_execution_posture"]["state"] in {
+        "ready",
+        "needs_visual_review",
+        "blocked_missing_visual_evidence",
+        "blocked_motion_unverified",
+        "blocked_generic_template_risk",
+    }
     assert isinstance(result["chrome_devtools_mcp_posture"], dict)
     assert result["chrome_devtools_mcp_posture"]["auto_activate"] is False
     assert result["chrome_devtools_mcp_posture"]["telemetry_risk"] in {"low", "medium", "high"}
@@ -290,6 +300,15 @@ def test_quality_gate_report_exposes_visual_fidelity_posture():
     assert result["visual_fidelity_posture"]["advisory_only"] is True
     assert "fidelity_state" in result["visual_fidelity_posture"]
     assert "must_not_claim_visual_pass_without_evidence" in result["visual_fidelity_posture"]
+
+
+def test_quality_gate_report_exposes_frontend_visual_execution_posture():
+    result = build_quality_gate_report(ATLAS_ROOT, WEB_ROOT)
+    assert isinstance(result["frontend_visual_execution_posture"], dict)
+    assert result["frontend_visual_execution_posture"]["advisory_only"] is True
+    assert result["source_reports"]["frontend_visual_execution_guard"]["status"] == "ok"
+    assert "browser_qa_present" in result["frontend_visual_execution_posture"]
+    assert "mobile_first_plan_present" in result["frontend_visual_execution_posture"]
 
 
 def test_quality_gate_report_exposes_chrome_devtools_mcp_posture():

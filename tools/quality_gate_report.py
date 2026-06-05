@@ -108,6 +108,10 @@ try:
 except ModuleNotFoundError:
     from ui_ux_design_system_readiness import assess_ui_ux_design_system_readiness
 try:
+    from tools.frontend_visual_execution_guard import assess_frontend_visual_execution_guard
+except ModuleNotFoundError:
+    from frontend_visual_execution_guard import assess_frontend_visual_execution_guard
+try:
     from tools.repo_graph_readiness import assess_repo_graph_readiness
 except ModuleNotFoundError:
     from repo_graph_readiness import assess_repo_graph_readiness
@@ -823,6 +827,18 @@ def _run_ui_ux_design_system_readiness(
     return _build_ok_report("ui_ux_design_system_readiness", report)
 
 
+def _run_frontend_visual_execution_guard(
+    *,
+    root: Path,
+    payload: Dict[str, Any],
+) -> Dict[str, Any]:
+    try:
+        report = assess_frontend_visual_execution_guard(payload, root=root)
+    except Exception as exc:
+        return _build_failed_report("frontend_visual_execution_guard", f"frontend_visual_execution_guard_failed:{exc}")
+    return _build_ok_report("frontend_visual_execution_guard", report)
+
+
 def _run_repo_graph_readiness(
     *,
     root: Path,
@@ -1531,6 +1547,32 @@ def _build_visual_fidelity_warnings(review: Optional[Dict[str, Any]]) -> List[Di
     return warnings
 
 
+def _build_frontend_visual_execution_warnings(review: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    review = review or {}
+    warnings: List[Dict[str, Any]] = []
+    state = str(review.get("state", "")).strip()
+    if not state or state == "ready":
+        return warnings
+
+    severity = "high" if state.startswith("blocked_") else "medium"
+    messages = {
+        "needs_visual_review": "Frontend work still needs visual review evidence before Atlas can support a visual-ready handoff.",
+        "blocked_missing_visual_evidence": "The handoff claims visual readiness, but browser or screenshot QA evidence is missing.",
+        "blocked_motion_unverified": "Motion, scroll or video behavior was requested, but Atlas has no validation evidence for it.",
+        "blocked_generic_template_risk": "The surface shows high generic-template risk without enough brief or reference evidence.",
+    }
+    warnings.append(
+        {
+            "source": "frontend_visual_execution_guard",
+            "check": state,
+            "severity": severity,
+            "message": messages.get(state, "Frontend visual execution evidence is incomplete."),
+            "evidence": list(review.get("blocked_reasons", []))[:4],
+        }
+    )
+    return warnings
+
+
 FILE_CHANGE_DECLARATION_CANDIDATES = (
     ".atlas-file-change-declaration.json",
     ".atlas/file-change-declaration.json",
@@ -1978,6 +2020,35 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "provided_evidence": (source_reports["evidence_collector_readiness"]["report"] or {}).get("provided_evidence", []),
         },
     )
+    source_reports["frontend_visual_execution_guard"] = _run_frontend_visual_execution_guard(
+        root=root,
+        payload={
+            "project_type": ((source_reports["project_intent_analyzer"]["report"] or {}).get("project_type") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "unknown",
+            "objective": ((source_reports["project_intent_analyzer"]["report"] or {}).get("objective") if source_reports["project_intent_analyzer"]["status"] == "ok" else None) or "",
+            "visual_intent_contract_review": visual_intent_from_design or visual_intent_from_intent or {},
+            "brand_profile_review": brand_profile_review or {},
+            "ui_pre_return_review": ui_pre_return_review or {},
+            "design_quality_review": design_quality_review or {},
+            "ui_ux_design_system_posture": source_reports["ui_ux_design_system_readiness"]["report"] or {},
+            "visual_fidelity_posture": source_reports["visual_fidelity_judge"]["report"] or {},
+            "evidence_collector_posture": source_reports["evidence_collector_readiness"]["report"] or {},
+            "provided_evidence": (source_reports["evidence_collector_readiness"]["report"] or {}).get("provided_evidence", []),
+            "design_references": design_report.get("recommendation_sources", []),
+            "source_text": " ".join(
+                [
+                    str(item)
+                    for item in [
+                        ((source_reports["project_intent_analyzer"]["report"] or {}).get("objective") if source_reports["project_intent_analyzer"]["status"] == "ok" else ""),
+                        " ".join(design_report.get("warnings", [])),
+                        " ".join(str((check or {}).get("recommendation", "")) for check in design_report.get("checks", []) if isinstance(check, dict)),
+                    ]
+                    if item
+                ]
+            ),
+            "limitations_declared": bool((source_reports["visual_fidelity_judge"]["report"] or {}).get("manual_next_steps")),
+            "claims_visual_ready": str((source_reports["certify-project"].get("report") or {}).get("status", "")).strip() == "ready",
+        },
+    )
     source_reports["chrome_devtools_mcp_readiness"] = _run_chrome_devtools_mcp_readiness(
         root=root,
         project=project,
@@ -2160,6 +2231,9 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     for item in _build_visual_fidelity_warnings(source_reports["visual_fidelity_judge"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
+    for item in _build_frontend_visual_execution_warnings(source_reports["frontend_visual_execution_guard"].get("report")):
+        _unique_priority_append(candidate_priorities, item, candidate_seen)
+        _unique_priority_append(warnings, item, seen)
     for item in _build_copywriting_conversion_warnings(source_reports["copywriting_conversion_readiness"].get("report")):
         _unique_priority_append(candidate_priorities, item, candidate_seen)
         _unique_priority_append(warnings, item, seen)
@@ -2215,6 +2289,7 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
     frontend_auto_audit_review = source_reports["frontend_auto_audit_rules"].get("report") or {}
     evidence_collector_review = source_reports["evidence_collector_readiness"].get("report") or {}
     visual_fidelity_review = source_reports["visual_fidelity_judge"].get("report") or {}
+    frontend_visual_execution_review = source_reports["frontend_visual_execution_guard"].get("report") or {}
     copywriting_review = source_reports["copywriting_conversion_readiness"].get("report") or {}
     brand_strategy_review = source_reports["brand_strategy_readiness"].get("report") or {}
     n8n_automation_review = source_reports["n8n_automation_readiness"].get("report") or {}
@@ -2232,6 +2307,15 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
         if str(visual_fidelity_review.get("fidelity_state", "")).strip() == "drift_detected":
             overall_status = "needs_improvement"
         if bool(visual_fidelity_review.get("screenshot_evidence_present")) and not bool(visual_fidelity_review.get("can_support_visual_pass", False)):
+            overall_status = "needs_improvement"
+        frontend_visual_execution_state = str(frontend_visual_execution_review.get("state", "")).strip()
+        if frontend_visual_execution_state in {
+            "blocked_missing_visual_evidence",
+            "blocked_motion_unverified",
+            "blocked_generic_template_risk",
+        }:
+            overall_status = "not_ready"
+        elif frontend_visual_execution_state == "needs_visual_review":
             overall_status = "needs_improvement"
         if str(copywriting_review.get("copy_readiness_state", "")).strip() == "blocked":
             overall_status = "not_ready"
@@ -2476,6 +2560,24 @@ def build_quality_gate_report(root: Path, project: Path) -> Dict[str, Any]:
             "required_redesign_level": (design_quality_review or {}).get("required_redesign_level"),
             "why": (design_quality_review or {}).get("why"),
             "advisory_only": bool((design_quality_review or {}).get("advisory_only", True)),
+        },
+        "frontend_visual_execution_posture": {
+            "state": (source_reports["frontend_visual_execution_guard"]["report"] or {}).get("state"),
+            "applicable": bool((source_reports["frontend_visual_execution_guard"]["report"] or {}).get("applicable")),
+            "visual_brief_present": bool((source_reports["frontend_visual_execution_guard"]["report"] or {}).get("visual_brief_present")),
+            "mobile_first_plan_present": bool((source_reports["frontend_visual_execution_guard"]["report"] or {}).get("mobile_first_plan_present")),
+            "design_references_present": bool((source_reports["frontend_visual_execution_guard"]["report"] or {}).get("design_references_present")),
+            "browser_qa_present": bool((source_reports["frontend_visual_execution_guard"]["report"] or {}).get("browser_qa_present")),
+            "responsive_checkpoints_present": bool((source_reports["frontend_visual_execution_guard"]["report"] or {}).get("responsive_checkpoints_present")),
+            "motion_requirements_detected": bool((source_reports["frontend_visual_execution_guard"]["report"] or {}).get("motion_requirements_detected")),
+            "motion_validated": bool((source_reports["frontend_visual_execution_guard"]["report"] or {}).get("motion_validated")),
+            "generic_template_risk": (source_reports["frontend_visual_execution_guard"]["report"] or {}).get("generic_template_risk"),
+            "visual_system_consistent": bool((source_reports["frontend_visual_execution_guard"]["report"] or {}).get("visual_system_consistent")),
+            "limitations_declared": bool((source_reports["frontend_visual_execution_guard"]["report"] or {}).get("limitations_declared")),
+            "blocked_reasons": (source_reports["frontend_visual_execution_guard"]["report"] or {}).get("blocked_reasons", []),
+            "required_next_steps": (source_reports["frontend_visual_execution_guard"]["report"] or {}).get("required_next_steps", []),
+            "why": (source_reports["frontend_visual_execution_guard"]["report"] or {}).get("why"),
+            "advisory_only": bool((source_reports["frontend_visual_execution_guard"]["report"] or {}).get("advisory_only", True)),
         },
         "model_cost_control_posture": {
             "status": (source_reports["model_cost_control_readiness"]["report"] or {}).get("status"),

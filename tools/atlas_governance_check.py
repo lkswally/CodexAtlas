@@ -54,6 +54,7 @@ REQUIRED_ROOT_FILES = (
     "config/change_proposal_rules.json",
     "config/skill_registry_index_first_rules.json",
     "config/ui_ux_design_system_rules.json",
+    "config/frontend_visual_execution_guard_rules.json",
     "config/repo_graph_readiness_rules.json",
     "config/business_idea_simulation_rules.json",
     "config/copywriting_conversion_rules.json",
@@ -124,6 +125,7 @@ REQUIRED_ROOT_FILES = (
     "policies/change_proposal_policy.md",
     "policies/skill_registry_index_first_policy.md",
     "policies/ui_ux_design_system_policy.md",
+    "policies/frontend_visual_execution_guard_policy.md",
     "policies/repo_graph_readiness_policy.md",
     "policies/business_idea_simulation_policy.md",
     "policies/copywriting_conversion_policy.md",
@@ -222,6 +224,7 @@ REQUIRED_ROOT_FILES = (
     "tools/change_proposal_readiness.py",
     "tools/skill_registry_index_first_readiness.py",
     "tools/ui_ux_design_system_readiness.py",
+    "tools/frontend_visual_execution_guard.py",
     "tools/repo_graph_readiness.py",
     "tools/business_idea_simulation_readiness.py",
     "tools/copywriting_conversion_readiness.py",
@@ -274,6 +277,7 @@ REQUIRED_ROOT_FILES = (
     "tests/test_change_proposal_readiness.py",
     "tests/test_skill_registry_index_first_readiness.py",
     "tests/test_ui_ux_design_system_readiness.py",
+    "tests/test_frontend_visual_execution_guard.py",
     "tests/test_repo_graph_readiness.py",
     "tests/test_business_idea_simulation_readiness.py",
     "tests/test_copywriting_conversion_readiness.py",
@@ -1462,6 +1466,10 @@ def _load_skill_registry_index_first_rules(root: Path) -> Dict[str, Any]:
 
 def _load_ui_ux_design_system_rules(root: Path) -> Dict[str, Any]:
     return json.loads((root / "config" / "ui_ux_design_system_rules.json").read_text(encoding="utf-8"))
+
+
+def _load_frontend_visual_execution_guard_rules(root: Path) -> Dict[str, Any]:
+    return json.loads((root / "config" / "frontend_visual_execution_guard_rules.json").read_text(encoding="utf-8"))
 
 
 def _load_repo_graph_readiness_rules(root: Path) -> Dict[str, Any]:
@@ -3148,6 +3156,88 @@ def _validate_ui_ux_design_system_rules(root: Path, findings: List[str]) -> None
     accessibility_baseline = rules.get("accessibility_baseline")
     if not isinstance(accessibility_baseline, list) or not accessibility_baseline:
         findings.append("ui_ux_design_system_rules_invalid_accessibility_baseline")
+
+
+def _validate_frontend_visual_execution_guard_rules(root: Path, findings: List[str]) -> None:
+    try:
+        rules = _load_frontend_visual_execution_guard_rules(root)
+    except Exception as exc:
+        findings.append(f"invalid_frontend_visual_execution_guard_rules_json:{exc}")
+        return
+
+    if not isinstance(rules, dict):
+        findings.append("frontend_visual_execution_guard_rules_not_object")
+        return
+
+    required_fields = {
+        "schema_version",
+        "advisory_only",
+        "frontend_project_types",
+        "ready_state",
+        "review_state",
+        "blocked_states",
+        "visual_brief_required_fields",
+        "browser_qa_evidence",
+        "responsive_evidence",
+        "design_reference_evidence",
+        "motion_terms",
+        "motion_validation_evidence",
+        "generic_template_signals",
+        "visual_system_checks",
+        "required_next_steps",
+    }
+    missing_fields = required_fields - set(rules.keys())
+    if missing_fields:
+        findings.append(
+            f"frontend_visual_execution_guard_rules_missing_fields:{','.join(sorted(missing_fields))}"
+        )
+
+    if rules.get("advisory_only") is not True:
+        findings.append("frontend_visual_execution_guard_rules_must_be_advisory_only")
+
+    for field_name in (
+        "frontend_project_types",
+        "blocked_states",
+        "visual_brief_required_fields",
+        "browser_qa_evidence",
+        "responsive_evidence",
+        "design_reference_evidence",
+        "motion_terms",
+        "motion_validation_evidence",
+        "generic_template_signals",
+        "visual_system_checks",
+    ):
+        if not _is_valid_string_list(rules.get(field_name)):
+            findings.append(f"frontend_visual_execution_guard_rules_invalid_{field_name}")
+
+    required_blocked_states = {
+        "blocked_missing_visual_evidence",
+        "blocked_motion_unverified",
+        "blocked_generic_template_risk",
+    }
+    blocked_states = set(str(item).strip() for item in rules.get("blocked_states", []) if str(item).strip())
+    missing_blocked_states = required_blocked_states - blocked_states
+    if missing_blocked_states:
+        findings.append(
+            "frontend_visual_execution_guard_rules_missing_blocked_states:"
+            + ",".join(sorted(missing_blocked_states))
+        )
+
+    if str(rules.get("ready_state", "")).strip() != "ready":
+        findings.append("frontend_visual_execution_guard_rules_invalid_ready_state")
+    if str(rules.get("review_state", "")).strip() != "needs_visual_review":
+        findings.append("frontend_visual_execution_guard_rules_invalid_review_state")
+
+    next_steps = rules.get("required_next_steps")
+    if not isinstance(next_steps, dict):
+        findings.append("frontend_visual_execution_guard_rules_invalid_required_next_steps")
+    else:
+        expected_steps = {"visual_brief", "mobile_first", "references", "browser_qa", "motion", "generic"}
+        missing_steps = [step for step in sorted(expected_steps) if not str(next_steps.get(step, "")).strip()]
+        if missing_steps:
+            findings.append(
+                f"frontend_visual_execution_guard_rules_missing_required_next_steps:{','.join(missing_steps)}"
+            )
 
 
 def _validate_repo_graph_readiness_rules(root: Path, findings: List[str]) -> None:
@@ -5162,6 +5252,7 @@ def run_check(root: Optional[Path] = None, project: Optional[Path] = None) -> Di
         _validate_change_proposal_rules(root, findings)
         _validate_skill_registry_index_first_rules(root, findings)
         _validate_ui_ux_design_system_rules(root, findings)
+        _validate_frontend_visual_execution_guard_rules(root, findings)
         _validate_repo_graph_readiness_rules(root, findings)
         _validate_business_idea_simulation_rules(root, findings)
         _validate_visual_fidelity_judge_rules(root, findings)

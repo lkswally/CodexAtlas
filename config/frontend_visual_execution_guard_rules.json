@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0",
+  "advisory_only": true,
+  "frontend_project_types": [
+    "frontend_app",
+    "frontend",
+    "landing_page",
+    "marketing_site",
+    "fullstack",
+    "internal_tool"
+  ],
+  "ready_state": "ready",
+  "review_state": "needs_visual_review",
+  "blocked_states": [
+    "blocked_missing_visual_evidence",
+    "blocked_motion_unverified",
+    "blocked_generic_template_risk"
+  ],
+  "visual_brief_required_fields": [
+    "audience",
+    "problem_or_promise",
+    "mood_or_vibe",
+    "originality_level",
+    "hero_direction",
+    "typography_intent",
+    "color_strategy"
+  ],
+  "browser_qa_evidence": [
+    "browser_qa",
+    "screenshot_desktop",
+    "screenshot_mobile",
+    "visual_fidelity_report",
+    "chrome_manual_review",
+    "playwright_visual_review"
+  ],
+  "responsive_evidence": [
+    "responsive_check",
+    "mobile_viewport_check",
+    "desktop_viewport_check",
+    "tablet_viewport_check",
+    "tap_target_check"
+  ],
+  "design_reference_evidence": [
+    "moodboard",
+    "design_references",
+    "benchmark_references",
+    "component_inspiration",
+    "reference_justification"
+  ],
+  "motion_terms": [
+    "motion",
+    "animation",
+    "animated",
+    "scroll",
+    "scroll-scrub",
+    "scrub",
+    "video",
+    "canvas",
+    "parallax",
+    "transition",
+    "microinteraction"
+  ],
+  "motion_validation_evidence": [
+    "motion_validated",
+    "scroll_event_verified",
+    "progress_calculation_verified",
+    "video_asset_verified",
+    "motion_fallback_verified",
+    "prefers_reduced_motion_verified"
+  ],
+  "generic_template_signals": [
+    "generic saas template",
+    "generic dashboard",
+    "dark hero",
+    "repeated cards",
+    "pill buttons",
+    "readme-like",
+    "template layout",
+    "cards repetidas",
+    "hero generico",
+    "botones pill"
+  ],
+  "visual_system_checks": [
+    "spacing",
+    "typography",
+    "color",
+    "buttons",
+    "cards",
+    "layout"
+  ],
+  "required_next_steps": {
+    "visual_brief": "Write or attach a visual intent contract before changing UI.",
+    "mobile_first": "Document mobile-first checkpoints for at least mobile and desktop.",
+    "references": "Add visual references or explain why references are intentionally not needed.",
+    "browser_qa": "Open the UI in a real browser and capture/record desktop and mobile visual evidence.",
+    "motion": "Validate promised motion/scroll/video behavior, including asset, event, progress calculation and fallback.",
+    "generic": "Replace generic hero/cards/pill-button patterns with a project-specific layout and visual system."
+  }
+}
