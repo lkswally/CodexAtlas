@@ -58,7 +58,7 @@ jobs:
           }
 
           New-Item -ItemType Directory -Force -Path (Split-Path $reportPath) | Out-Null
-          python tools\evidence_quality_report_cli.py $bundlePath | Out-File -FilePath $reportPath -Encoding utf8
+          python -m tools.evidence_quality_report_cli $bundlePath | Out-File -FilePath $reportPath -Encoding utf8
           $exitCode = $LASTEXITCODE
           "generated=true" >> $env:GITHUB_OUTPUT
           "path=$reportPath" >> $env:GITHUB_OUTPUT

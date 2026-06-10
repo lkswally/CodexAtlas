@@ -56,13 +56,13 @@ python -c "import json; from pathlib import Path; from tools.evidence_session im
 Emitir Summary V1 desde un bundle:
 
 ```powershell
-python tools/evidence_bundle_summary_cli.py .atlas_evidence/bundle.json
+python -m tools.evidence_bundle_summary_cli .atlas_evidence/bundle.json
 ```
 
 Emitir Evidence Quality Report V1:
 
 ```powershell
-python tools/evidence_quality_report_cli.py .atlas_evidence/bundle.json
+python -m tools.evidence_quality_report_cli .atlas_evidence/bundle.json
 ```
 
 Si el bundle no existe o es invalido, la CLI devuelve `FAIL` y exit code 1. Ese comportamiento es correcto para uso manual: obliga a mirar la causa tecnica en el JSON impreso por stdout.
@@ -80,7 +80,7 @@ Como ejecutarlo:
 
 Comportamiento esperado:
 
-- Si el bundle existe, el workflow ejecuta `tools/evidence_quality_report_cli.py`.
+- Si el bundle existe, el workflow ejecuta `python -m tools.evidence_quality_report_cli`.
 - Si se genera reporte, lo sube como artifact `evidence-quality-report`.
 - Si el bundle no existe, emite un warning claro y termina con exit code 0.
 - Si el reporte devuelve `FAIL`, queda registrado como warning, pero el workflow no bloquea.
@@ -120,6 +120,16 @@ Accion futura recomendada:
 - Considerar pin de runner si `windows-latest` cambia comportamiento relevante.
 
 Estado operativo: PASS con warnings menores.
+
+### Fixture minimo para validar artifact
+
+El repo incluye `tests/fixtures/evidence_bundle_valid.json` como Evidence Bundle V1 minimo y deterministico. Sirve para ejecutar una corrida manual del workflow con `bundle_path` apuntando a ese fixture y verificar que se genere el reporte y el artifact.
+
+Comando local equivalente:
+
+```powershell
+python -m tools.evidence_quality_report_cli tests/fixtures/evidence_bundle_valid.json
+```
 
 ## Interpretacion de estados
 
