@@ -63,6 +63,25 @@ Emitir Evidence Quality Report V1:
 python tools/evidence_quality_report_cli.py .atlas_evidence/bundle.json
 ```
 
+## GitHub Actions opt-in
+
+El workflow manual `.github/workflows/evidence-quality-report.yml` permite publicar el reporte desde GitHub Actions sin convertirlo en quality gate obligatorio.
+
+Como ejecutarlo:
+
+1. Abrir la pestana Actions en GitHub.
+2. Seleccionar `Evidence Quality Report`.
+3. Ejecutar `Run workflow`.
+4. Opcionalmente ajustar `bundle_path`. El valor por defecto es `.atlas_evidence/bundle.json`.
+
+Comportamiento esperado:
+
+- Si el bundle existe, el workflow ejecuta `tools/evidence_quality_report_cli.py`.
+- Si se genera reporte, lo sube como artifact `evidence-quality-report`.
+- Si el bundle no existe, emite un warning claro y termina con exit code 0.
+- Si el reporte devuelve `FAIL`, queda registrado como warning, pero el workflow no bloquea.
+- El workflow no requiere secrets y no ejecuta navegador real.
+
 ## Interpretacion de estados
 
 `PASS` significa que el bundle es tecnicamente valido, tiene al menos un screenshot, al menos un viewport report y no contiene console errors ni network errors.

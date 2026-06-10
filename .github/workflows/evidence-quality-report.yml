@@ -1,0 +1,76 @@
+name: Evidence Quality Report
+
+on:
+  workflow_dispatch:
+    inputs:
+      bundle_path:
+        description: "Optional path to an Evidence Bundle V1 JSON file."
+        required: false
+        default: ".atlas_evidence/bundle.json"
+
+jobs:
+  evidence-quality-report:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if (Test-Path "requirements-dev.txt") {
+            python -m pip install -r requirements-dev.txt
+          } else {
+            python -m pip install pytest
+          }
+
+      - name: Evidence pipeline tests
+        run: |
+          python -m pytest `
+            tests\test_evidence_runner.py `
+            tests\test_evidence_contract_validator.py `
+            tests\test_evidence_session.py `
+            tests\test_evidence_bundle_summary.py `
+            tests\test_evidence_bundle_summary_cli.py `
+            tests\test_evidence_quality_gate_adapter.py `
+            tests\test_evidence_quality_report.py `
+            tests\test_evidence_quality_report_cli.py `
+            -q
+
+      - name: Generate Evidence Quality Report if bundle exists
+        id: evidence_report
+        continue-on-error: true
+        run: |
+          $bundlePath = "${{ inputs.bundle_path }}"
+          $reportPath = ".atlas_evidence/evidence_quality_report.json"
+          if (-not (Test-Path $bundlePath)) {
+            Write-Warning "Evidence bundle not found at '$bundlePath'. Skipping non-blocking report generation."
+            "generated=false" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+
+          New-Item -ItemType Directory -Force -Path (Split-Path $reportPath) | Out-Null
+          python tools\evidence_quality_report_cli.py $bundlePath | Out-File -FilePath $reportPath -Encoding utf8
+          $exitCode = $LASTEXITCODE
+          "generated=true" >> $env:GITHUB_OUTPUT
+          "path=$reportPath" >> $env:GITHUB_OUTPUT
+
+          if ($exitCode -ne 0) {
+            Write-Warning "Evidence Quality Report returned FAIL. This workflow is opt-in and non-blocking."
+          }
+          exit 0
+
+      - name: Upload Evidence Quality Report artifact
+        if: steps.evidence_report.outputs.generated == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-quality-report
+          path: ${{ steps.evidence_report.outputs.path }}
