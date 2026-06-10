@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+from pathlib import Path
 from typing import Any, Dict, List
 
 from tools.evidence_contract_validator import validate_evidence_contract
@@ -25,6 +27,10 @@ class EvidenceSessionError(ValueError):
         self.findings = findings
 
 
+class EvidenceBundleWriteError(OSError):
+    pass
+
+
 def build_evidence_bundle(contract: Any) -> Dict[str, Any]:
     validation = validate_evidence_contract(contract)
     if not validation["valid"]:
@@ -42,3 +48,18 @@ def build_evidence_bundle(contract: Any) -> Dict[str, Any]:
         "build_report": contract["build_report"],
     }
     return {field: bundle[field] for field in BUNDLE_FIELDS}
+
+
+def write_evidence_bundle(bundle: Dict[str, Any], output_path: Path) -> Path:
+    path = Path(output_path)
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        rendered = json.dumps(
+            {field: bundle[field] for field in BUNDLE_FIELDS},
+            ensure_ascii=False,
+            indent=2,
+        )
+        path.write_text(rendered + "\n", encoding="utf-8")
+    except (KeyError, OSError, TypeError, ValueError) as exc:
+        raise EvidenceBundleWriteError(f"Could not write Evidence Bundle V1 to `{path}`.") from exc
+    return path

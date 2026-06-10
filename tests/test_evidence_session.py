@@ -1,6 +1,13 @@
+import json
+
 import pytest
 
-from tools.evidence_session import EvidenceSessionError, build_evidence_bundle
+from tools.evidence_session import (
+    EvidenceBundleWriteError,
+    EvidenceSessionError,
+    build_evidence_bundle,
+    write_evidence_bundle,
+)
 
 
 def _valid_contract():
@@ -104,3 +111,41 @@ def test_preserves_source_commit():
     bundle = build_evidence_bundle(contract)
 
     assert bundle["source_commit"] == contract["source_commit"]
+
+
+def test_writes_valid_bundle_to_file(tmp_path):
+    bundle = build_evidence_bundle(_valid_contract())
+    output_path = tmp_path / "bundle.json"
+
+    written_path = write_evidence_bundle(bundle, output_path)
+
+    assert written_path == output_path
+    assert output_path.exists()
+    assert output_path.read_text(encoding="utf-8").startswith("{\n  \"contract_version\"")
+
+
+def test_reads_written_bundle_and_preserves_content(tmp_path):
+    bundle = build_evidence_bundle(_valid_contract())
+    output_path = tmp_path / "bundle.json"
+
+    write_evidence_bundle(bundle, output_path)
+    loaded = json.loads(output_path.read_text(encoding="utf-8"))
+
+    assert loaded == bundle
+    assert loaded["contract_version"] == bundle["contract_version"]
+    assert loaded["validation_status"] == bundle["validation_status"]
+    assert loaded["evidence_timestamp"] == bundle["evidence_timestamp"]
+    assert loaded["source_commit"] == bundle["source_commit"]
+    assert loaded["screenshots"] == bundle["screenshots"]
+    assert loaded["viewport_reports"] == bundle["viewport_reports"]
+    assert loaded["console_errors"] == bundle["console_errors"]
+    assert loaded["network_errors"] == bundle["network_errors"]
+    assert loaded["build_report"] == bundle["build_report"]
+
+
+def test_invalid_bundle_output_fails_controlled(tmp_path):
+    bundle = build_evidence_bundle(_valid_contract())
+    del bundle["source_commit"]
+
+    with pytest.raises(EvidenceBundleWriteError):
+        write_evidence_bundle(bundle, tmp_path / "bundle.json")
