@@ -131,6 +131,37 @@ Comando local equivalente:
 python -m tools.evidence_quality_report_cli tests/fixtures/evidence_bundle_valid.json
 ```
 
+### Observacion real con bundle y artifact
+
+Run observado: `27252455700`.
+
+Bundle usado: `tests/fixtures/evidence_bundle_valid.json`.
+
+Resultado:
+
+- El workflow termino en PASS.
+- Se genero el artifact `evidence-quality-report`.
+- Artifact ID: `7526286711`.
+- Tamano descargado: `505 bytes`.
+- El ZIP contenia `evidence_quality_report.json`.
+
+Validacion local del JSON descargado:
+
+- `report_name`: `evidence_quality_report`.
+- `mode`: `opt_in_non_blocking`.
+- `result`: `PASS`.
+- `blocking`: `false`.
+- `gate.source_commit`: `fixture`.
+
+La corrida confirma el camino completo Bundle V1 -> Report CLI -> artifact de GitHub Actions. El reporte sigue siendo opt-in y no bloqueante.
+
+Warnings residuales:
+
+- Deprecation de Node.js 20 en actions.
+- Redireccion de `windows-latest` a `windows-2025`.
+
+Estado operativo con bundle: PASS con warnings menores.
+
 ## Interpretacion de estados
 
 `PASS` significa que el bundle es tecnicamente valido, tiene al menos un screenshot, al menos un viewport report y no contiene console errors ni network errors.
