@@ -88,6 +88,39 @@ Comportamiento esperado:
 
 Diferencia importante: la CLI local falla con exit code 1 ante bundle invalido o ausente, pero el workflow manual captura ese caso como observacion no bloqueante. El workflow existe para publicar evidencia cuando ya hay bundle, no para exigir que todos los runs generen evidencia visual.
 
+### Observacion real de workflow
+
+Run observado: `27251943469`.
+
+Resultado:
+
+- `workflow_dispatch` termino en PASS.
+- Tests en GitHub Actions: `69 passed`.
+- Sin bundle: el workflow emitio aviso claro y termino con exit code 0.
+- Artifact: no se genero artifact porque no se genero reporte, correcto para corrida sin bundle.
+
+Interpretacion:
+
+- El workflow es operativo en modo opt-in/no bloqueante.
+- La ausencia de bundle no es un fallo.
+- El comportamiento observado coincide con el proposito de publicar reporte solo cuando ya existe evidencia persistida.
+
+Warnings observados:
+
+- GitHub Actions aviso de deprecation para acciones basadas en Node.js 20.
+- `windows-latest` redirigio a `windows-2025`.
+
+Riesgo:
+
+- Bajo y no bloqueante. No afecta el resultado actual, pero conviene monitorearlo.
+
+Accion futura recomendada:
+
+- Revisar versiones de actions antes de que Node.js 20 sea removido.
+- Considerar pin de runner si `windows-latest` cambia comportamiento relevante.
+
+Estado operativo: PASS con warnings menores.
+
 ## Interpretacion de estados
 
 `PASS` significa que el bundle es tecnicamente valido, tiene al menos un screenshot, al menos un viewport report y no contiene console errors ni network errors.
