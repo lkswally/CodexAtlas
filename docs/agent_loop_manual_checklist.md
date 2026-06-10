@@ -97,6 +97,7 @@ Outputs:
 - Evidence Contract V1
 - Evidence Bundle V1
 - screenshots, viewport reports, console errors y network errors cuando aplique
+- para tareas documentales: revision real, diff, tests/checks y notas de hallazgos
 
 Criterios:
 
@@ -104,6 +105,8 @@ Criterios:
 - WARN: evidencia parcial pero util.
 - FAIL: evidencia invalida.
 - BLOCKED: no hay entorno para generar evidencia.
+
+Nota: no todas las tareas requieren Evidence Bundle. Si la tarea es documental, la evidencia puede ser la revision comparativa de docs, el diff y los checks ejecutados. Si la tarea prometia evidencia de navegador y no se genero, no puede declararse PASS.
 
 ## 5. Verification
 
@@ -149,6 +152,8 @@ Criterios:
 - BLOCKED: reporte no pudo ejecutarse por runtime o archivo faltante indispensable.
 
 Nota: PASS tecnico no aprueba visualmente el producto.
+
+Nota de aplicabilidad: Evidence Quality Report es obligatorio solo cuando el plan definio que un Evidence Bundle V1 debia existir. Para tareas de documentacion, arquitectura o policy sin bundle, registrar `no aplica` y verificar con tests/checks/diff.
 
 ## 7. Final Report
 
@@ -204,17 +209,17 @@ Criterios:
 Mapa previsto:
 
 Atlas Planner
-↓
+->
 Model Routing Policy
-↓
+->
 Codex Executor
-↓
+->
 Evidence Pipeline
-↓
+->
 CodexAtlas Verifier
-↓
+->
 Evidence Quality Report
-↓
+->
 Failure Recorder
 
 La decision de modelo se toma entre Planning y Execution. La toma Atlas Planner usando Model Routing Policy V1 como recomendacion advisory-only.

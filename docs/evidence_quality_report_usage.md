@@ -39,6 +39,8 @@ La capacidad actual permite:
 
 ## Comandos de ejemplo
 
+Prerequisito: estos comandos asumen que existe una app o URL accesible para generar evidencia y que el bundle se escribira en `.atlas_evidence/bundle.json`.
+
 Generar Evidence Contract V1 desde una URL:
 
 ```powershell
@@ -63,6 +65,8 @@ Emitir Evidence Quality Report V1:
 python tools/evidence_quality_report_cli.py .atlas_evidence/bundle.json
 ```
 
+Si el bundle no existe o es invalido, la CLI devuelve `FAIL` y exit code 1. Ese comportamiento es correcto para uso manual: obliga a mirar la causa tecnica en el JSON impreso por stdout.
+
 ## GitHub Actions opt-in
 
 El workflow manual `.github/workflows/evidence-quality-report.yml` permite publicar el reporte desde GitHub Actions sin convertirlo en quality gate obligatorio.
@@ -81,6 +85,8 @@ Comportamiento esperado:
 - Si el bundle no existe, emite un warning claro y termina con exit code 0.
 - Si el reporte devuelve `FAIL`, queda registrado como warning, pero el workflow no bloquea.
 - El workflow no requiere secrets y no ejecuta navegador real.
+
+Diferencia importante: la CLI local falla con exit code 1 ante bundle invalido o ausente, pero el workflow manual captura ese caso como observacion no bloqueante. El workflow existe para publicar evidencia cuando ya hay bundle, no para exigir que todos los runs generen evidencia visual.
 
 ## Interpretacion de estados
 

@@ -127,6 +127,8 @@ Outputs:
 6. Report: Evidence Reporter emite reporte tecnico, preferentemente con Evidence Quality Report cuando exista bundle.
 7. Failure/learning record: Failure Recorder propone registro si el resultado es WARN, FAIL o BLOCKED.
 
+Para tareas documentales o de arquitectura sin UI ejecutable, la evidencia minima puede ser revision real, diff, tests aplicables y checks de repositorio. Evidence Quality Report aplica cuando existe un Evidence Bundle V1; no debe fingirse un bundle para trabajos que no generan evidencia visual o de navegador.
+
 ## Que no debe hacer
 
 Agent Loop V1 no debe:
@@ -166,6 +168,8 @@ Uso previsto:
 4. El loop conserva que `blocking` es `false` hasta una fase futura.
 
 Un reporte `PASS` no aprueba visualmente el producto. Solo confirma que la evidencia tecnica minima esta sana segun las reglas actuales.
+
+Si no hay bundle porque la tarea no tiene superficie verificable por navegador, el Verifier debe registrar `Evidence Quality Report: no aplica` y sostener la decision con la evidencia real disponible. Si habia obligacion explicita de generar bundle y no se pudo, el estado debe ser WARN, FAIL o BLOCKED segun la causa.
 
 ## Conexion futura con Failure Registry
 
