@@ -1,5 +1,10 @@
+import copy
+from unittest.mock import patch
+
 import pytest
 
+from tests._support_paths import ATLAS_ROOT
+from tools.atlas_governance_check import _load_model_routing_rules, _validate_model_routing_rules
 from tools.model_routing_policy import ModelRoutingPolicyError, select_model_class
 
 
@@ -98,3 +103,22 @@ def test_unknown_task_type_fails_controlled():
 def test_unknown_risk_level_fails_controlled():
     with pytest.raises(ModelRoutingPolicyError):
         select_model_class("documentation", "unknown")
+
+
+def test_governance_accepts_model_routing_policy_v1():
+    findings = []
+
+    _validate_model_routing_rules(ATLAS_ROOT, findings)
+
+    assert findings == []
+
+
+def test_governance_rejects_v1_auto_switch():
+    rules = copy.deepcopy(_load_model_routing_rules(ATLAS_ROOT))
+    rules["auto_switch_allowed"] = True
+    findings = []
+
+    with patch("tools.atlas_governance_check._load_model_routing_rules", return_value=rules):
+        _validate_model_routing_rules(ATLAS_ROOT, findings)
+
+    assert "model_routing_v1_auto_switch_must_be_false" in findings

@@ -480,6 +480,38 @@ MODEL_ROUTING_RULE_REQUIRED_FIELDS = {
     "reason",
     "requires_confirmation_when_ambiguous",
 }
+MODEL_ROUTING_V1_TASK_TYPES = {
+    "documentation",
+    "summarization",
+    "formatting",
+    "code_small_change",
+    "code_refactor",
+    "test_generation",
+    "test_execution_analysis",
+    "architecture_decision",
+    "security_review",
+    "production_operation",
+    "secrets_or_credentials",
+    "external_side_effect",
+    "visual_qa",
+    "outcome_evaluation",
+}
+MODEL_ROUTING_V1_RISK_LEVELS = {"low", "medium", "high", "blocked"}
+MODEL_ROUTING_V1_MODEL_CLASSES = {
+    "cheap_fast",
+    "balanced",
+    "premium_reasoning",
+    "human_required",
+    "blocked",
+}
+MODEL_ROUTING_V1_OUTPUT_FIELDS = {
+    "task_type",
+    "risk_level",
+    "selected_model_class",
+    "reason",
+    "requires_human_approval",
+    "auto_switch_allowed",
+}
 EXTERNAL_TOOL_POLICY_REQUIRED_FIELDS = {
     "version",
     "mode",
@@ -1610,6 +1642,10 @@ def _validate_model_routing_rules(root: Path, findings: List[str]) -> None:
         findings.append("model_routing_rules_not_object")
         return
 
+    if rules.get("policy_name") == "model_routing_policy_v1":
+        _validate_model_routing_rules_v1(rules, findings)
+        return
+
     profile_names = set(profiles.get("profiles", {}).keys()) if isinstance(profiles, dict) else set()
     available_models = rules.get("available_models")
     if not isinstance(available_models, list) or not available_models:
@@ -1685,6 +1721,61 @@ def _validate_model_routing_rules(root: Path, findings: List[str]) -> None:
 
         if not isinstance(rule.get("requires_confirmation_when_ambiguous"), bool):
             findings.append(f"model_routing_rule_invalid_confirmation_flag:{index}")
+
+
+def _validate_model_routing_rules_v1(rules: Dict[str, Any], findings: List[str]) -> None:
+    if str(rules.get("version", "")).strip() != "1.0":
+        findings.append("model_routing_v1_invalid_version")
+    if rules.get("advisory_only") is not True:
+        findings.append("model_routing_v1_must_be_advisory_only")
+    if rules.get("auto_switch_allowed") is not False:
+        findings.append("model_routing_v1_auto_switch_must_be_false")
+
+    task_types = rules.get("task_types")
+    task_type_set = set(task_types) if isinstance(task_types, list) else set()
+    if task_type_set != MODEL_ROUTING_V1_TASK_TYPES:
+        findings.append("model_routing_v1_task_types_mismatch")
+
+    risk_levels = rules.get("risk_levels")
+    risk_level_set = set(risk_levels) if isinstance(risk_levels, list) else set()
+    if risk_level_set != MODEL_ROUTING_V1_RISK_LEVELS:
+        findings.append("model_routing_v1_risk_levels_mismatch")
+
+    model_classes = rules.get("model_classes")
+    model_class_set = set(model_classes) if isinstance(model_classes, list) else set()
+    if model_class_set != MODEL_ROUTING_V1_MODEL_CLASSES:
+        findings.append("model_routing_v1_model_classes_mismatch")
+
+    routes = rules.get("default_task_routes")
+    if not isinstance(routes, dict) or set(routes.keys()) != MODEL_ROUTING_V1_TASK_TYPES:
+        findings.append("model_routing_v1_default_routes_mismatch")
+    elif any(route not in MODEL_ROUTING_V1_MODEL_CLASSES for route in routes.values()):
+        findings.append("model_routing_v1_default_route_unknown_class")
+
+    overrides = rules.get("risk_overrides")
+    if not isinstance(overrides, dict):
+        findings.append("model_routing_v1_invalid_risk_overrides")
+    else:
+        high_override = overrides.get("high")
+        blocked_override = overrides.get("blocked")
+        if not isinstance(high_override, dict) or high_override.get("minimum_model_class") == "cheap_fast":
+            findings.append("model_routing_v1_high_risk_allows_cheap_fast")
+        if not isinstance(blocked_override, dict) or blocked_override.get("selected_model_class") != "blocked":
+            findings.append("model_routing_v1_blocked_risk_not_blocked")
+
+    human_tasks = rules.get("human_approval_task_types")
+    if not isinstance(human_tasks, list) or not set(human_tasks).issubset(MODEL_ROUTING_V1_TASK_TYPES):
+        findings.append("model_routing_v1_invalid_human_approval_tasks")
+
+    blocked_tasks = rules.get("blocked_task_types")
+    if not isinstance(blocked_tasks, list) or not set(blocked_tasks).issubset(MODEL_ROUTING_V1_TASK_TYPES):
+        findings.append("model_routing_v1_invalid_blocked_tasks")
+
+    output_contract = rules.get("output_contract")
+    if not isinstance(output_contract, dict) or set(output_contract.keys()) != MODEL_ROUTING_V1_OUTPUT_FIELDS:
+        findings.append("model_routing_v1_invalid_output_contract")
+    elif output_contract.get("auto_switch_allowed") is not False:
+        findings.append("model_routing_v1_output_allows_auto_switch")
 
 
 def _validate_model_cost_control_profiles(root: Path, findings: List[str]) -> None:
