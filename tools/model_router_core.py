@@ -272,6 +272,52 @@ def _default_route(rules: Dict[str, Any]) -> Dict[str, Any]:
     return dict(rules.get("default_rule", {}))
 
 
+def _v1_compatibility_route(
+    rules: Dict[str, Any],
+    *,
+    task_type: str,
+    complexity: str,
+    risk_level: str,
+) -> Dict[str, Any]:
+    if rules.get("policy_name") != "model_routing_policy_v1":
+        return {}
+
+    if task_type in {"documentation", "lightweight_editing"}:
+        return {
+            "id": "v1_cheap_fast_compatibility",
+            "recommended_model": "GPT-5.4-Mini",
+            "fallback_model": "GPT-5.1-Codex-Mini",
+            "cost_saver_model": "GPT-5.1-Codex-Mini",
+            "recommended_model_profile": "cost_saver",
+            "reason": "V1 cheap_fast class translated for the legacy advisory consumer.",
+        }
+    if task_type == "code_execution":
+        if complexity == "high" or risk_level == "high":
+            return {
+                "id": "v1_high_risk_code_compatibility",
+                "recommended_model": "GPT-5.1-Codex-Max",
+                "fallback_model": "GPT-5.2-Codex",
+                "cost_saver_model": "GPT-5.1-Codex-Mini",
+                "recommended_model_profile": "code_execution",
+                "reason": "V1 high-risk code route translated for the legacy advisory consumer.",
+            }
+        return {
+            "id": "v1_balanced_code_compatibility",
+            "recommended_model": "GPT-5.3-Codex",
+            "fallback_model": "GPT-5.2-Codex",
+            "cost_saver_model": "GPT-5.1-Codex-Mini",
+            "recommended_model_profile": "code_execution",
+            "reason": "V1 balanced class translated for the legacy advisory consumer.",
+        }
+    return {
+        "id": "v1_premium_reasoning_compatibility",
+        "recommended_model": "GPT-5.4",
+        "fallback_model": "GPT-5.2",
+        "cost_saver_model": "GPT-5.4-Mini",
+        "reason": "V1 premium_reasoning class translated for the legacy advisory consumer.",
+    }
+
+
 def _build_missing_information(*, task_type_bundle: Dict[str, Any], current_phase: Optional[str]) -> List[str]:
     missing: List[str] = []
     if not task_type_bundle.get("task_type"):
@@ -332,7 +378,12 @@ def recommend_model_profile(*, root: Path, task: str = "", intent: Optional[str]
         ambiguous_route = len({str(rule.get("recommended_model", "")).strip() for rule in top_rules}) > 1
         selected_rule = top_rules[0]
     else:
-        selected_rule = _default_route(rules)
+        selected_rule = _default_route(rules) or _v1_compatibility_route(
+            rules,
+            task_type=task_type,
+            complexity=normalized_complexity,
+            risk_level=normalized_risk,
+        )
         ambiguous_route = True
 
     switch_support = switch_support or inspect_model_switch_support(root=root)
