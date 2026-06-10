@@ -3,9 +3,11 @@ import json
 import pytest
 
 from tools.evidence_session import (
+    EvidenceBundleReadError,
     EvidenceBundleWriteError,
     EvidenceSessionError,
     build_evidence_bundle,
+    read_evidence_bundle,
     write_evidence_bundle,
 )
 
@@ -149,3 +151,76 @@ def test_invalid_bundle_output_fails_controlled(tmp_path):
 
     with pytest.raises(EvidenceBundleWriteError):
         write_evidence_bundle(bundle, tmp_path / "bundle.json")
+
+
+def test_reads_valid_persisted_bundle(tmp_path):
+    bundle = build_evidence_bundle(_valid_contract())
+    output_path = tmp_path / "bundle.json"
+    write_evidence_bundle(bundle, output_path)
+
+    loaded = read_evidence_bundle(output_path)
+
+    assert loaded == bundle
+
+
+def test_read_missing_path_fails_controlled(tmp_path):
+    with pytest.raises(EvidenceBundleReadError):
+        read_evidence_bundle(tmp_path / "missing.json")
+
+
+def test_read_invalid_json_fails_controlled(tmp_path):
+    output_path = tmp_path / "bundle.json"
+    output_path.write_text("{not-json", encoding="utf-8")
+
+    with pytest.raises(EvidenceBundleReadError):
+        read_evidence_bundle(output_path)
+
+
+def test_read_missing_field_fails_controlled(tmp_path):
+    bundle = build_evidence_bundle(_valid_contract())
+    del bundle["screenshots"]
+    output_path = tmp_path / "bundle.json"
+    output_path.write_text(json.dumps(bundle), encoding="utf-8")
+
+    with pytest.raises(EvidenceBundleReadError):
+        read_evidence_bundle(output_path)
+
+
+def test_read_extra_field_fails_controlled(tmp_path):
+    bundle = build_evidence_bundle(_valid_contract())
+    bundle["score"] = 100
+    output_path = tmp_path / "bundle.json"
+    output_path.write_text(json.dumps(bundle), encoding="utf-8")
+
+    with pytest.raises(EvidenceBundleReadError):
+        read_evidence_bundle(output_path)
+
+
+def test_read_invalid_contract_version_fails_controlled(tmp_path):
+    bundle = build_evidence_bundle(_valid_contract())
+    bundle["contract_version"] = "v2"
+    output_path = tmp_path / "bundle.json"
+    output_path.write_text(json.dumps(bundle), encoding="utf-8")
+
+    with pytest.raises(EvidenceBundleReadError):
+        read_evidence_bundle(output_path)
+
+
+def test_read_non_pass_validation_status_fails_controlled(tmp_path):
+    bundle = build_evidence_bundle(_valid_contract())
+    bundle["validation_status"] = "FAIL"
+    output_path = tmp_path / "bundle.json"
+    output_path.write_text(json.dumps(bundle), encoding="utf-8")
+
+    with pytest.raises(EvidenceBundleReadError):
+        read_evidence_bundle(output_path)
+
+
+def test_read_invalid_types_fail_controlled(tmp_path):
+    bundle = build_evidence_bundle(_valid_contract())
+    bundle["network_errors"] = {}
+    output_path = tmp_path / "bundle.json"
+    output_path.write_text(json.dumps(bundle), encoding="utf-8")
+
+    with pytest.raises(EvidenceBundleReadError):
+        read_evidence_bundle(output_path)
