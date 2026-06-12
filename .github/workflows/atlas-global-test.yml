@@ -1,0 +1,68 @@
+name: Atlas Global Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  global-test:
+    runs-on: windows-2025
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.13"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if (Test-Path "requirements-dev.txt") {
+            python -m pip install -r requirements-dev.txt
+          } else {
+            python -m pip install pytest
+          }
+
+      - name: Global test suite
+        run: |
+          $timer = [System.Diagnostics.Stopwatch]::StartNew()
+          python -m pytest -q
+          $result = $LASTEXITCODE
+          $timer.Stop()
+          Write-Host "Atlas global suite duration: $($timer.Elapsed)"
+          Write-Host "Atlas global suite exit code: $result"
+          exit $result
+
+      - name: Atlas governance check
+        run: |
+          $timer = [System.Diagnostics.Stopwatch]::StartNew()
+          python tools\atlas_governance_check.py
+          $result = $LASTEXITCODE
+          $timer.Stop()
+          Write-Host "Atlas governance duration: $($timer.Elapsed)"
+          Write-Host "Atlas governance exit code: $result"
+          exit $result
+
+      - name: Atlas verify
+        run: |
+          $timer = [System.Diagnostics.Stopwatch]::StartNew()
+          python tools\atlas_verify.py
+          $result = $LASTEXITCODE
+          $timer.Stop()
+          Write-Host "Atlas verify duration: $($timer.Elapsed)"
+          Write-Host "Atlas verify exit code: $result"
+          exit $result
+
+      - name: Compile tools
+        run: |
+          $timer = [System.Diagnostics.Stopwatch]::StartNew()
+          python -m compileall -q tools
+          $result = $LASTEXITCODE
+          $timer.Stop()
+          Write-Host "Compileall duration: $($timer.Elapsed)"
+          Write-Host "Compileall exit code: $result"
+          exit $result
