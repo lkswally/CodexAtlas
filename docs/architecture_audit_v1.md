@@ -31,6 +31,12 @@ The full local suite remains the broadest repository validation. CI still exclud
 
 First observed run: `27414397174`, completed successfully on 2026-06-12. The suite reported `578 passed in 13.45s`; the measured suite step took `14.00s`, and the complete job took approximately `46s` from job start to completion. Governance, `atlas_verify`, and `compileall` each returned exit code `0`. The hosted runner continued to report the external `windows-2025` to `windows-2025-vs2026` redirection notice. This measurement supports keeping the workflow manual while gathering more runtime and stability samples before any gate decision.
 
+## Evidence Runner real-browser smoke (2026-06-12)
+
+Evidence Runner was executed against `tests/fixtures/codexatlas_web_stub` through an ephemeral local HTTP server and real Playwright Chromium under an isolated Python 3.13 `.venv`. The fixture needed one direct correction: `index.html` did not link its existing `styles.css`, so the smoke now exercises the intended styled surface rather than unstyled markup.
+
+The isolated smoke test passed in `2.65s`. It produced valid full-page desktop and mobile PNGs, two viewport reports, zero console errors, zero network errors, a non-empty UTC timestamp and source commit, a PASS Evidence Contract V1 validation, a persisted Evidence Bundle V1, and a non-blocking Evidence Quality Report with result PASS. The observed screenshots were 1440x1603 (481026 bytes) and 390x1332 (131727 bytes). Generated PNG/JSON artifacts remain local under `.atlas_test_tmp` and are not versioned. The smoke remains outside CI while browser provisioning and repeatability are evaluated; it runs only when `ATLAS_RUN_REAL_BROWSER_SMOKE=1` is explicitly set.
+
 ## 1. Executive summary
 
 Codex-Atlas ya es un sistema real en tres areas: governance estructural, ejecucion local de tests/checks y Evidence Pipeline opt-in. No es todavia un runtime de agentes ni una plataforma de aprendizaje automatico. La mayor parte de sus integraciones externas, routing, learning y readiness son clasificadores advisory-only que producen postura y recomendaciones, no efectos operativos.
