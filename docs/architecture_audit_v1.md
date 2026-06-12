@@ -4,6 +4,17 @@ Fecha de evidencia: 2026-06-12.
 
 Estado del informe: auditoria read-only. No implementa cambios funcionales, no elimina capas y no modifica governance, workflows, policies ni Evidence Pipeline.
 
+## P0 workflow compatibility update (2026-06-12)
+
+Decision applied without changing workflow behavior:
+
+- `actions/checkout` was upgraded from v4 to v6.
+- `actions/setup-python` was upgraded from v5 to v6.
+- `actions/upload-artifact` was upgraded from v4 to v7 in the opt-in Evidence Quality Report workflow.
+- Both workflows now pin `windows-2025` instead of following the moving `windows-latest` alias.
+
+These action majors declare Node.js 24 runtimes natively, so `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` is not required. The Evidence Quality Report remains manual, opt-in, and non-blocking. Closure requires observed Atlas CI and Evidence Quality Report runs. Residual risk is limited to normal hosted-image drift within the `windows-2025` label.
+
 ## 1. Executive summary
 
 Codex-Atlas ya es un sistema real en tres areas: governance estructural, ejecucion local de tests/checks y Evidence Pipeline opt-in. No es todavia un runtime de agentes ni una plataforma de aprendizaje automatico. La mayor parte de sus integraciones externas, routing, learning y readiness son clasificadores advisory-only que producen postura y recomendaciones, no efectos operativos.
@@ -55,7 +66,7 @@ Ultimos cinco runs de Atlas CI observados:
 
 Evidence Quality Report tiene tres runs manuales observados; el run `27252455700` genero artifact valido desde `tests/fixtures/evidence_bundle_valid.json`.
 
-Warning vigente: `actions/checkout@v4` y `actions/setup-python@v5` usan Node.js 20. GitHub anuncia Node.js 24 por defecto desde 2026-06-16 y remocion de Node.js 20 el 2026-09-16. El runner observado ya reporta Windows 2025/VS 2026.
+Remediacion P0 aplicada el 2026-06-12: `actions/checkout@v6`, `actions/setup-python@v6` y `actions/upload-artifact@v7` declaran Node.js 24; ambos workflows fijan `windows-2025`. La validacion operativa posterior queda registrada en la seccion de actualizacion P0.
 
 ## 3. Current architecture map
 
@@ -275,8 +286,8 @@ Gaps:
 - only a focused subset runs
 - does not exercise Failure Registry, routing policy/router or Evidence Pipeline
 - does not fail on full-suite regressions
-- action runtime warning is time-sensitive
-- `windows-latest`/runner image behavior can drift
+- Node.js 24 action majors require an observed post-change CI run
+- the pinned `windows-2025` hosted image can still drift internally
 
 ### Evidence Quality Report
 
@@ -333,7 +344,7 @@ Overall architecture score: **61/100**.
 
 | ID | Risk | Severity | Evidence | Mitigation direction |
 |---|---|---|---|---|
-| R1 | CI runtime action deprecation | High/time-bound | Node.js 20 warning; default changes 2026-06-16 | test/update action versions |
+| R1 | CI action runtime migration | Low/monitoring | Node.js 24 action majors and `windows-2025` applied on 2026-06-12 | observe Atlas CI and manual Evidence workflow |
 | R2 | Full suite not green | High | 575 pass / 3 fail | isolate external fixtures and align error contracts |
 | R3 | CI coverage false confidence | High | main CI runs four test files | define canonical suite manifest or broader test job |
 | R4 | Readiness proliferation | Medium-high | 20+ readiness tools, 55 policies | measure consumers; consolidate by evidence/value |
@@ -350,13 +361,13 @@ Overall architecture score: **61/100**.
 
 ### P0
 
-#### P0.1 GitHub Actions Node runtime compatibility
+#### P0.1 GitHub Actions Node runtime compatibility (implemented, pending observed runs)
 
-- Problem: current actions use deprecated Node.js 20 days before the default runtime transition.
-- Evidence: warning in run `27388610730`; Node.js 24 default starts 2026-06-16.
-- Impact: CI can change behavior or fail independently of Atlas code.
-- Risk: high, time-bound.
-- Recommendation: verify supported action versions and run one observed CI cycle.
+- Problem: previous action majors used deprecated Node.js 20 before the runtime transition.
+- Evidence: warning in run `27388610730`; official stable majors now declare Node.js 24.
+- Impact: migration removes the time-bound Node.js 20 dependency without changing job logic.
+- Risk: low while observed workflow validation is pending.
+- Recommendation: observe Atlas CI and one manual Evidence workflow run, then retain monitoring only.
 - Files: both `.github/workflows/*.yml`.
 - Effort: S.
 - Human approval: yes, workflow change.
@@ -458,7 +469,7 @@ Overall architecture score: **61/100**.
 
 ## 15. Recommended next five implementation phases
 
-1. **CI continuity phase**: resolve Node action warning and observe successful runs.
+1. **CI continuity phase**: observe the Node.js 24 workflow migration and close P0 after successful runs.
 2. **Deterministic test phase**: make full suite green without sibling-repo state leakage.
 3. **Critical coverage phase**: include Evidence/Failure/Model critical tests in canonical CI.
 4. **Evidence execution phase**: run a deterministic browser capture smoke test and verify produced bundle/report.

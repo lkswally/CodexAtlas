@@ -10,16 +10,16 @@ on:
 
 jobs:
   evidence-quality-report:
-    runs-on: windows-latest
+    runs-on: windows-2025
     defaults:
       run:
         shell: pwsh
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Setup Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: "3.13"
 
@@ -70,7 +70,7 @@ jobs:
 
       - name: Upload Evidence Quality Report artifact
         if: steps.evidence_report.outputs.generated == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: evidence-quality-report
           path: ${{ steps.evidence_report.outputs.path }}
