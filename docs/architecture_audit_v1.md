@@ -13,7 +13,7 @@ Decision applied without changing workflow behavior:
 - `actions/upload-artifact` was upgraded from v4 to v7 in the opt-in Evidence Quality Report workflow.
 - Both workflows now pin `windows-2025` instead of following the moving `windows-latest` alias.
 
-These action majors declare Node.js 24 runtimes natively, so `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` is not required. The Evidence Quality Report remains manual, opt-in, and non-blocking. Closure requires observed Atlas CI and Evidence Quality Report runs. Residual risk is limited to normal hosted-image drift within the `windows-2025` label.
+These action majors declare Node.js 24 runtimes natively, so `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` is not required. Atlas CI run `27390047784` and Evidence Quality Report run `27390064634` passed without Node.js 20 warnings. The manual report run preserved opt-in/non-blocking behavior and published artifact `7581555415` through `actions/upload-artifact@v7`. GitHub still emits a hosted-runner notice that `windows-2025` is redirected to `windows-2025-vs2026`; this external image transition remains a low monitoring risk.
 
 ## 1. Executive summary
 
@@ -344,7 +344,7 @@ Overall architecture score: **61/100**.
 
 | ID | Risk | Severity | Evidence | Mitigation direction |
 |---|---|---|---|---|
-| R1 | CI action runtime migration | Low/monitoring | Node.js 24 action majors and `windows-2025` applied on 2026-06-12 | observe Atlas CI and manual Evidence workflow |
+| R1 | Hosted runner image transition | Low/monitoring | Node.js 24 runs pass, but GitHub redirects `windows-2025` to `windows-2025-vs2026` | monitor runner release notes and observed runs |
 | R2 | Full suite not green | High | 575 pass / 3 fail | isolate external fixtures and align error contracts |
 | R3 | CI coverage false confidence | High | main CI runs four test files | define canonical suite manifest or broader test job |
 | R4 | Readiness proliferation | Medium-high | 20+ readiness tools, 55 policies | measure consumers; consolidate by evidence/value |
@@ -361,13 +361,13 @@ Overall architecture score: **61/100**.
 
 ### P0
 
-#### P0.1 GitHub Actions Node runtime compatibility (implemented, pending observed runs)
+#### P0.1 GitHub Actions Node runtime compatibility (closed 2026-06-12)
 
 - Problem: previous action majors used deprecated Node.js 20 before the runtime transition.
 - Evidence: warning in run `27388610730`; official stable majors now declare Node.js 24.
 - Impact: migration removes the time-bound Node.js 20 dependency without changing job logic.
-- Risk: low while observed workflow validation is pending.
-- Recommendation: observe Atlas CI and one manual Evidence workflow run, then retain monitoring only.
+- Risk: low; hosted runner redirection remains external and non-blocking.
+- Recommendation: retain monitoring only; runs `27390047784` and `27390064634` passed.
 - Files: both `.github/workflows/*.yml`.
 - Effort: S.
 - Human approval: yes, workflow change.
@@ -469,11 +469,11 @@ Overall architecture score: **61/100**.
 
 ## 15. Recommended next five implementation phases
 
-1. **CI continuity phase**: observe the Node.js 24 workflow migration and close P0 after successful runs.
-2. **Deterministic test phase**: make full suite green without sibling-repo state leakage.
-3. **Critical coverage phase**: include Evidence/Failure/Model critical tests in canonical CI.
-4. **Evidence execution phase**: run a deterministic browser capture smoke test and verify produced bundle/report.
-5. **Architecture consolidation audit**: produce readiness consumer/value matrix, then approve only evidence-backed merges/deprecations.
+1. **Deterministic test phase**: make full suite green without sibling-repo state leakage.
+2. **Critical coverage phase**: include Evidence/Failure/Model critical tests in canonical CI.
+3. **Evidence execution phase**: run a deterministic browser capture smoke test and verify produced bundle/report.
+4. **Architecture consolidation audit**: produce readiness consumer/value matrix, then approve only evidence-backed merges/deprecations.
+5. **Hosted runner monitoring phase**: review the `windows-2025-vs2026` transition only if observed behavior changes.
 
 ## 16. Explicit no-go list
 
