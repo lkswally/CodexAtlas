@@ -31,6 +31,9 @@ pytest-cache-files-*/
 .coverage
 coverage.xml
 htmlcov/
+.atlas_evidence/
+evidence-quality-report/
+evidence-quality-report.zip
 
 # Logs and local databases
 *.log

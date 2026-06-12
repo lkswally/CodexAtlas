@@ -1,4 +1,5 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
-
+addopts = "--basetemp=.atlas_test_tmp/pytest"
+cache_dir = ".atlas_test_tmp/pytest_cache"
