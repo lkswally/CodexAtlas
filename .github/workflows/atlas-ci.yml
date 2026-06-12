@@ -42,5 +42,9 @@ jobs:
       - name: Focused governance tests
         run: python -m pytest tests\test_skill_governance.py tests\test_quality_gate_report.py tests\test_atlas_project_bootstrap.py tests\test_atlas_run.py -q
 
+      - name: Critical architecture tests
+        run: |
+          python -m pytest tests/test_evidence_runner.py tests/test_evidence_contract_validator.py tests/test_evidence_session.py tests/test_evidence_bundle_summary.py tests/test_evidence_bundle_summary_cli.py tests/test_evidence_quality_gate_adapter.py tests/test_evidence_quality_report.py tests/test_evidence_quality_report_cli.py tests/test_model_routing_policy.py tests/test_model_router.py tests/test_failure_registry.py -q
+
       - name: Git diff check
         run: git diff --check

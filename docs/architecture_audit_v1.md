@@ -19,6 +19,12 @@ These action majors declare Node.js 24 runtimes natively, so `FORCE_JAVASCRIPT_A
 
 The global suite is now fixture-first and independent from the optional sibling repository `../CodexAtlas-Web`. Dispatcher exposure tests create a temporary governed project with metadata derived from the active Atlas root instead of relying on stale, machine-specific fixture metadata. The three original failures reproduce independently on the old setup and pass after this isolation; the complete suite now reports `578 passed` on Python 3.14.5.
 
+## Critical CI coverage update (2026-06-12)
+
+Atlas CI keeps the focused governance suite and now adds a separate `Critical architecture tests` step. The added coverage exercises the Evidence Pipeline contracts and CLIs, Model Routing policy/core behavior, and Failure Registry including similarity lookup. This expands CI without launching browsers, requiring external services, or running the complete 578-test suite. Agent Loop remains documentation-only and therefore has no runtime test suite to include.
+
+The full local suite remains the broadest repository validation. CI still excludes most advisory readiness modules, visual/browser execution, external integrations, and the long tail of unit tests; those remain explicit residual coverage rather than implied guarantees.
+
 ## 1. Executive summary
 
 Codex-Atlas ya es un sistema real en tres areas: governance estructural, ejecucion local de tests/checks y Evidence Pipeline opt-in. No es todavia un runtime de agentes ni una plataforma de aprendizaje automatico. La mayor parte de sus integraciones externas, routing, learning y readiness son clasificadores advisory-only que producen postura y recomendaciones, no efectos operativos.
@@ -184,8 +190,8 @@ The Markdown workflows are operational guidance, not executable automation.
 
 Test modules cover almost every named tool family. Important limitations:
 
-- Atlas CI runs only four focused files: skill governance, quality gate report, project bootstrap and atlas run.
-- It does not run Failure Registry, Model Routing Policy, Model Router or the Evidence suite.
+- Atlas CI runs the original four-file governance subset plus 130 critical Evidence, Model Routing and Failure Registry tests.
+- It still does not run the complete 578-test suite, browser execution or external integration checks.
 - Evidence workflow runs its Evidence subset only on manual dispatch.
 - The full local suite is green and fixture-first after the 2026-06-12 determinism fix.
 - Many tests use stubs/fixtures and prove contract behavior, not external integration behavior.
@@ -349,7 +355,7 @@ Overall architecture score: **61/100**.
 |---|---|---|---|---|
 | R1 | Hosted runner image transition | Low/monitoring | Node.js 24 runs pass, but GitHub redirects `windows-2025` to `windows-2025-vs2026` | monitor runner release notes and observed runs |
 | R2 | Full-suite determinism regression | Low/monitoring | 578 pass after fixture isolation; previously 575 pass / 3 fail | keep tests fixture-first and require full-suite validation |
-| R3 | CI coverage false confidence | High | main CI runs four test files | define canonical suite manifest or broader test job |
+| R3 | CI coverage gap | Medium/monitoring | main CI now adds 130 critical tests but not the complete 578-test suite | keep critical manifest explicit and expand only with measured value |
 | R4 | Readiness proliferation | Medium-high | 20+ readiness tools, 55 policies | measure consumers; consolidate by evidence/value |
 | R5 | Governance monolith | Medium-high | ~4.800 lines | characterize and split validators by domain later |
 | R6 | Quality report monolith | Medium-high | ~2.700 lines, many posture adapters | separate aggregation from domain checks |
@@ -386,13 +392,13 @@ Overall architecture score: **61/100**.
 - Effort: S.
 - Human approval: no runtime contract changed.
 
-#### P1.2 Define and run a canonical CI test manifest
+#### P1.2 Define and run a canonical CI test manifest (critical layer implemented 2026-06-12)
 
-- Evidence: main CI excludes Evidence, routing and Failure Registry tests.
-- Impact: regressions can merge while CI remains green.
-- Recommendation: one documented test set that includes all critical V2 capabilities; keep browser tests separate.
-- Files: `atlas-ci.yml`, test documentation/config.
-- Effort: S-M.
+- Evidence: main CI now runs 130 critical Evidence, routing and Failure Registry tests after its governance subset.
+- Impact: core V2 contract regressions are covered without adding browser or external-service fragility.
+- Recommendation: keep the critical set explicit; evaluate full-suite CI separately using measured runtime.
+- Files: `.github/workflows/atlas-ci.yml`, this audit.
+- Effort: S.
 - Human approval: yes.
 
 #### P1.3 Prove Evidence Runner in CI/manual browser execution
@@ -472,11 +478,11 @@ Overall architecture score: **61/100**.
 
 ## 15. Recommended next five implementation phases
 
-1. **Critical coverage phase**: include Evidence/Failure/Model critical tests in canonical CI.
-2. **Evidence execution phase**: run a deterministic browser capture smoke test and verify produced bundle/report.
-3. **Architecture consolidation audit**: produce readiness consumer/value matrix, then approve only evidence-backed merges/deprecations.
-4. **Hosted runner monitoring phase**: review the `windows-2025-vs2026` transition only if observed behavior changes.
-5. **Test determinism monitoring phase**: retain full-suite validation and keep sibling-project integration explicitly opt-in.
+1. **Evidence execution phase**: run a deterministic browser capture smoke test and verify produced bundle/report.
+2. **Architecture consolidation audit**: produce readiness consumer/value matrix, then approve only evidence-backed merges/deprecations.
+3. **Hosted runner monitoring phase**: review the `windows-2025-vs2026` transition only if observed behavior changes.
+4. **Test determinism monitoring phase**: retain full-suite validation and keep sibling-project integration explicitly opt-in.
+5. **CI coverage review phase**: measure whether the remaining unit tests justify a separate full-suite job.
 
 ## 16. Explicit no-go list
 
