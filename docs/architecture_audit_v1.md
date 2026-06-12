@@ -29,6 +29,8 @@ The full local suite remains the broadest repository validation. CI still exclud
 
 `Atlas Global Test` is a manual, observational workflow triggered only through `workflow_dispatch`. It reproduces the Atlas CI Python 3.13 environment, runs the complete pytest suite, governance, `atlas_verify`, and `compileall`, and prints duration plus exit status in the logs. It is not attached to pull requests or pushes, does not upload artifacts, and does not suppress failures. Browser and external integration execution remain out of scope.
 
+First observed run: `27414397174`, completed successfully on 2026-06-12. The suite reported `578 passed in 13.45s`; the measured suite step took `14.00s`, and the complete job took approximately `46s` from job start to completion. Governance, `atlas_verify`, and `compileall` each returned exit code `0`. The hosted runner continued to report the external `windows-2025` to `windows-2025-vs2026` redirection notice. This measurement supports keeping the workflow manual while gathering more runtime and stability samples before any gate decision.
+
 ## 1. Executive summary
 
 Codex-Atlas ya es un sistema real en tres areas: governance estructural, ejecucion local de tests/checks y Evidence Pipeline opt-in. No es todavia un runtime de agentes ni una plataforma de aprendizaje automatico. La mayor parte de sus integraciones externas, routing, learning y readiness son clasificadores advisory-only que producen postura y recomendaciones, no efectos operativos.
