@@ -1,11 +1,14 @@
 import json
+from copy import deepcopy
 
 import pytest
 
 from tools.failure_registry import (
     FAILURE_RECORD_FIELDS,
     FailureRecordValidationError,
+    FailureSimilarityLookupError,
     create_failure_record,
+    find_similar_failures,
     read_failure_record,
     validate_failure_record,
     write_failure_record,
@@ -154,3 +157,103 @@ def test_read_rejects_invalid_record(tmp_path):
 
     with pytest.raises(FailureRecordValidationError):
         read_failure_record(output_path)
+
+
+def _lookup_record(failure_id, *, task_type, summary, root_cause, tags):
+    return create_failure_record(
+        failure_id=failure_id,
+        timestamp="2026-06-11T00:00:00+00:00",
+        task_type=task_type,
+        status="FAIL",
+        summary=summary,
+        root_cause=root_cause,
+        resolution="Apply the documented correction.",
+        evidence_ref=f"evidence:{failure_id}",
+        source_commit="abc123",
+        tags=tags,
+    )
+
+
+def test_similarity_matches_summary():
+    records = [_lookup_record("failure-1", task_type="documentation", summary="Browser screenshot was missing", root_cause="Capture step was skipped", tags=[])]
+
+    matches = find_similar_failures("missing screenshot", records)
+
+    assert matches[0]["failure_id"] == "failure-1"
+    assert matches[0]["matched_terms"] == ["missing", "screenshot"]
+
+
+def test_similarity_matches_root_cause():
+    records = [_lookup_record("failure-1", task_type="test_execution_analysis", summary="CI failed", root_cause="Legacy routing schema rejected policy", tags=[])]
+
+    matches = find_similar_failures("legacy schema", records)
+
+    assert matches[0]["overlap_score"] == 2
+
+
+def test_similarity_matches_tag():
+    records = [_lookup_record("failure-1", task_type="test_execution_analysis", summary="CI failed", root_cause="Configuration mismatch", tags=["model-routing"])]
+
+    matches = find_similar_failures("routing", records)
+
+    assert matches[0]["matched_terms"] == ["routing"]
+
+
+def test_similarity_matches_task_type():
+    records = [_lookup_record("failure-1", task_type="test_execution_analysis", summary="CI failed", root_cause="Configuration mismatch", tags=[])]
+
+    matches = find_similar_failures("execution analysis", records)
+
+    assert matches[0]["overlap_score"] == 2
+
+
+def test_similarity_orders_by_overlap_then_failure_id():
+    records = [
+        _lookup_record("failure-b", task_type="documentation", summary="Network failure", root_cause="Request failed", tags=[]),
+        _lookup_record("failure-c", task_type="documentation", summary="Network timeout failure", root_cause="Request failed", tags=[]),
+        _lookup_record("failure-a", task_type="documentation", summary="Network failure", root_cause="Request failed", tags=[]),
+    ]
+
+    matches = find_similar_failures("network timeout failure", records)
+
+    assert [item["failure_id"] for item in matches] == ["failure-c", "failure-a", "failure-b"]
+
+
+def test_similarity_respects_min_overlap():
+    records = [_lookup_record("failure-1", task_type="documentation", summary="Network failure", root_cause="Request failed", tags=[])]
+
+    assert find_similar_failures("network timeout", records, min_overlap=2) == []
+
+
+def test_similarity_without_matches_returns_empty_list():
+    records = [_lookup_record("failure-1", task_type="documentation", summary="Network failure", root_cause="Request failed", tags=[])]
+
+    assert find_similar_failures("typography", records) == []
+
+
+def test_similarity_rejects_empty_query():
+    with pytest.raises(FailureSimilarityLookupError):
+        find_similar_failures("  ", [])
+
+
+@pytest.mark.parametrize("min_overlap", [0, -1, True, 1.5])
+def test_similarity_rejects_invalid_min_overlap(min_overlap):
+    with pytest.raises(FailureSimilarityLookupError):
+        find_similar_failures("failure", [], min_overlap=min_overlap)
+
+
+def test_similarity_rejects_invalid_record():
+    record = _valid_record()
+    record["status"] = "PASS"
+
+    with pytest.raises(FailureRecordValidationError):
+        find_similar_failures("routing", [record])
+
+
+def test_similarity_does_not_modify_original_records():
+    records = [_lookup_record("failure-1", task_type="test_execution_analysis", summary="Routing failure", root_cause="Schema mismatch", tags=["ci"])]
+    original = deepcopy(records)
+
+    find_similar_failures("routing schema", records)
+
+    assert records == original

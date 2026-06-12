@@ -10,7 +10,7 @@ El registro sirve para que una revision futura pueda distinguir entre un fallo n
 
 ## Que no resuelve
 
-- No encuentra fallos similares automaticamente.
+- No decide automaticamente que dos fallos sean equivalentes.
 - No cambia policies, prompts, agentes ni rutas de modelo.
 - No ejecuta remediaciones.
 - No evalua outcomes.
@@ -67,6 +67,30 @@ write_failure_record(record, Path("local-failures/failure.json"))
 
 La ubicacion del ejemplo es deliberadamente local. V1 no define un registry compartido ni agrega records automaticamente al repositorio.
 
+## Similarity lookup advisory-only
+
+`find_similar_failures` consulta una lista de Failure Record V1 ya validados. Compara tokens normalizados de `summary`, `root_cause`, `tags` y `task_type`, y devuelve coincidencias ordenadas por mayor overlap y luego por `failure_id`.
+
+```python
+from tools.failure_registry import find_similar_failures
+
+matches = find_similar_failures(
+    "governance routing schema",
+    records,
+    min_overlap=2,
+)
+```
+
+El lookup es advisory-only porque una coincidencia lexical no demuestra que la causa raiz sea la misma. Planner o Verifier pueden consultarlo antes de aprobar un plan, pero una persona o una verificacion basada en evidencia debe decidir si la resolucion previa aplica.
+
+Limitaciones:
+
+- Usa overlap simple de tokens unicos.
+- No usa embeddings.
+- No realiza llamadas a LLMs.
+- No bloquea ejecuciones ni cambia estados.
+- No modifica ni persiste los records consultados.
+
 ## Limites de seguridad
 
 - No registrar secretos, credenciales ni contenido de archivos de entorno.
@@ -77,7 +101,7 @@ La ubicacion del ejemplo es deliberadamente local. V1 no define un registry comp
 
 ## Proximo paso futuro
 
-1. Failure similarity lookup para consultar records validados sin mutar comportamiento.
+1. Integrar la consulta manual en el checklist de Planner/Verifier, sin bloqueo automatico.
 2. Outcome Evaluator para comparar resultados esperados y observados usando evidencia real.
 
 Ninguno de esos pasos forma parte de V1.

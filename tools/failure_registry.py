@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import re
+import unicodedata
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
@@ -45,6 +46,10 @@ class FailureRecordReadError(ValueError):
     pass
 
 
+class FailureSimilarityLookupError(ValueError):
+    pass
+
+
 def _finding(code: str, message: str, field: Optional[str] = None) -> Dict[str, str]:
     item = {"code": code, "message": message}
     if field:
@@ -54,6 +59,12 @@ def _finding(code: str, message: str, field: Optional[str] = None) -> Dict[str, 
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _normalized_tokens(value: str) -> set[str]:
+    normalized = unicodedata.normalize("NFKD", value.casefold())
+    without_marks = "".join(char for char in normalized if not unicodedata.combining(char))
+    return set(re.findall(r"[a-z0-9]+", without_marks))
 
 
 def validate_failure_record(record: Any) -> Dict[str, Any]:
@@ -210,3 +221,54 @@ def read_failure_record(path: Path) -> Dict[str, Any]:
             "Failure Record V1 validation failed.", validation["findings"]
         )
     return {field: payload[field] for field in FAILURE_RECORD_FIELDS}
+
+
+def find_similar_failures(
+    query: str,
+    records: List[Dict[str, Any]],
+    *,
+    min_overlap: int = 1,
+) -> List[Dict[str, Any]]:
+    if not isinstance(query, str) or not query.strip():
+        raise FailureSimilarityLookupError("Failure similarity query must be a non-empty string.")
+    if isinstance(min_overlap, bool) or not isinstance(min_overlap, int) or min_overlap < 1:
+        raise FailureSimilarityLookupError("Failure similarity min_overlap must be an integer >= 1.")
+    if not isinstance(records, list):
+        raise FailureSimilarityLookupError("Failure similarity records must be a list.")
+
+    query_tokens = _normalized_tokens(query)
+    matches: List[Dict[str, Any]] = []
+    for index, record in enumerate(records):
+        validation = validate_failure_record(record)
+        if not validation["valid"]:
+            raise FailureRecordValidationError(
+                f"Failure Record V1 validation failed at records[{index}].",
+                validation["findings"],
+            )
+
+        searchable_values = [
+            record["summary"],
+            record["root_cause"],
+            record["task_type"],
+            *record["tags"],
+        ]
+        record_tokens: set[str] = set()
+        for value in searchable_values:
+            record_tokens.update(_normalized_tokens(value))
+        matched_terms = sorted(query_tokens & record_tokens)
+        if len(matched_terms) < min_overlap:
+            continue
+        matches.append(
+            {
+                "failure_id": record["failure_id"],
+                "overlap_score": len(matched_terms),
+                "matched_terms": matched_terms,
+                "summary": record["summary"],
+                "root_cause": record["root_cause"],
+                "resolution": record["resolution"],
+                "evidence_ref": record["evidence_ref"],
+                "source_commit": record["source_commit"],
+            }
+        )
+
+    return sorted(matches, key=lambda item: (-item["overlap_score"], item["failure_id"]))
