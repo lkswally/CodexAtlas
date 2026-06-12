@@ -3,7 +3,7 @@ from pathlib import Path
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
-from tests._support_paths import ATLAS_ROOT, WEB_ROOT
+from tests._support_paths import ATLAS_ROOT, WEB_ROOT, create_governed_web_fixture
 from tools.atlas_dispatcher import dispatch
 from tools.skill_evaluator import evaluate_skill_candidate
 
@@ -81,18 +81,17 @@ def test_skill_evaluator_requires_decision_council_for_high_risk_skill():
     assert result["complexity"] == "high"
 
 
-def test_dispatcher_exposes_skill_evaluator():
+def test_dispatcher_exposes_skill_evaluator(tmp_path):
+    project = create_governed_web_fixture(tmp_path / "web-project")
     result = dispatch(
         "skill-evaluator",
         root=ATLAS_ROOT,
-        project=WEB_ROOT,
+        project=project,
         candidate="design-system-review-plus",
         problem="Need a reusable design system review skill for landing QA and typography checks.",
     )
-    if result.ok is True:
-        assert result.output["result"]["status"] == "ok"
-        assert "need_score" in result.output["result"]
-        assert "recommended_state" in result.output["result"]
-        assert "lifecycle_recommendation" in result.output["result"]
-    else:
-        assert "project_metadata_load_failed" in result.output["error"]
+    assert result.ok is True
+    assert result.output["result"]["status"] == "ok"
+    assert "need_score" in result.output["result"]
+    assert "recommended_state" in result.output["result"]
+    assert "lifecycle_recommendation" in result.output["result"]

@@ -3,7 +3,7 @@ from pathlib import Path
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
-from tests._support_paths import ATLAS_ROOT, WEB_ROOT
+from tests._support_paths import ATLAS_ROOT, WEB_ROOT, create_governed_web_fixture
 from tools.atlas_dispatcher import dispatch
 from tools.prompt_builder import build_prompt
 
@@ -85,14 +85,11 @@ def test_prompt_builder_adds_research_guidance_when_definition_is_missing():
     assert "luego adapters curados" in result["prompt"]
 
 
-def test_dispatcher_exposes_prompt_builder_and_project_intent_commands():
-    prompt_result = dispatch("prompt-builder", root=ATLAS_ROOT, project=WEB_ROOT)
-    intent_result = dispatch("project-intent-report", root=ATLAS_ROOT, project=WEB_ROOT)
-    if prompt_result.ok is True:
-        assert prompt_result.output["result"]["status"] == "ok"
-    else:
-        assert "project_metadata_load_failed" in prompt_result.output["error"]
-    if intent_result.ok is True:
-        assert intent_result.output["result"]["project_type"] in {"internal_tool", "frontend_app"}
-    else:
-        assert "project_metadata_load_failed" in intent_result.output["error"]
+def test_dispatcher_exposes_prompt_builder_and_project_intent_commands(tmp_path):
+    project = create_governed_web_fixture(tmp_path / "web-project")
+    prompt_result = dispatch("prompt-builder", root=ATLAS_ROOT, project=project)
+    intent_result = dispatch("project-intent-report", root=ATLAS_ROOT, project=project)
+    assert prompt_result.ok is True
+    assert prompt_result.output["result"]["status"] == "ok"
+    assert intent_result.ok is True
+    assert intent_result.output["result"]["project_type"] in {"internal_tool", "frontend_app"}

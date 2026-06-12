@@ -15,6 +15,10 @@ Decision applied without changing workflow behavior:
 
 These action majors declare Node.js 24 runtimes natively, so `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` is not required. Atlas CI run `27390047784` and Evidence Quality Report run `27390064634` passed without Node.js 20 warnings. The manual report run preserved opt-in/non-blocking behavior and published artifact `7581555415` through `actions/upload-artifact@v7`. GitHub still emits a hosted-runner notice that `windows-2025` is redirected to `windows-2025-vs2026`; this external image transition remains a low monitoring risk.
 
+## Test determinism update (2026-06-12)
+
+The global suite is now fixture-first and independent from the optional sibling repository `../CodexAtlas-Web`. Dispatcher exposure tests create a temporary governed project with metadata derived from the active Atlas root instead of relying on stale, machine-specific fixture metadata. The three original failures reproduce independently on the old setup and pass after this isolation; the complete suite now reports `578 passed` on Python 3.14.5.
+
 ## 1. Executive summary
 
 Codex-Atlas ya es un sistema real en tres areas: governance estructural, ejecucion local de tests/checks y Evidence Pipeline opt-in. No es todavia un runtime de agentes ni una plataforma de aprendizaje automatico. La mayor parte de sus integraciones externas, routing, learning y readiness son clasificadores advisory-only que producen postura y recomendaciones, no efectos operativos.
@@ -42,7 +46,7 @@ Veredicto: **WARN arquitectonico, PASS operativo del nucleo canónico**.
 | Compile de `tools` | `python -m compileall -q tools`, exit 0 |
 | `git diff --check` inicial | limpio |
 | `git status -sb` inicial | `main...origin/main`, limpio |
-| Suite global | `575 passed, 3 failed` |
+| Suite global | Initial audit: `575 passed, 3 failed`; after determinism fix: `578 passed` |
 
 Los tres fallos globales son:
 
@@ -183,7 +187,7 @@ Test modules cover almost every named tool family. Important limitations:
 - Atlas CI runs only four focused files: skill governance, quality gate report, project bootstrap and atlas run.
 - It does not run Failure Registry, Model Routing Policy, Model Router or the Evidence suite.
 - Evidence workflow runs its Evidence subset only on manual dispatch.
-- The full local suite has 3 failures and depends on mutable sibling paths.
+- The full local suite is green and fixture-first after the 2026-06-12 determinism fix.
 - Many tests use stubs/fixtures and prove contract behavior, not external integration behavior.
 
 ### Registries
@@ -239,15 +243,14 @@ Local files exist and memory readiness checks their presence. This is continuity
 
 No P0 runtime break was found in the canonical path. Confirmed inconsistencies:
 
-1. Full suite: 3 failing tests; canonical/CI subset hides them.
-2. Test portability: `WEB_ROOT` prefers a mutable sibling repo when present, changing expected phase and behavior.
-3. Dispatcher test contract: tests do not accept governance preflight failure as a valid failure mode.
-4. Agent Loop docs still prohibit Failure Registry after it was implemented.
-5. README/AGENTS conflict on Engram and Pixel Bridge.
-6. Main CI does not run the newly added Failure Registry or Model Routing tests.
-7. Direct invocation of `tools/evidence_quality_report_cli.py` fails package import; documented/module invocation works.
-8. Chrome readiness probe can report browser symptoms but declare frontend not applicable when project type vocabulary does not match configured types; taxonomy requires review.
-9. `atlas_verify` reports operational parity `ready` even while the full suite is not green and MCP CLI is unavailable. The label is narrower than it sounds.
+1. Agent Loop docs still prohibit Failure Registry after it was implemented.
+2. README/AGENTS conflict on Engram and Pixel Bridge.
+3. Main CI does not run the newly added Failure Registry or Model Routing tests.
+4. Direct invocation of `tools/evidence_quality_report_cli.py` fails package import; documented/module invocation works.
+5. Chrome readiness probe can report browser symptoms but declare frontend not applicable when project type vocabulary does not match configured types; taxonomy requires review.
+6. `atlas_verify` reports operational parity `ready` even when MCP CLI is unavailable. The label is narrower than it sounds.
+
+Resolved on 2026-06-12: the three global-suite failures, mutable sibling `WEB_ROOT` selection, and invalid dispatcher fixture setup.
 
 ## 8. Remove or deprecate later
 
@@ -345,14 +348,14 @@ Overall architecture score: **61/100**.
 | ID | Risk | Severity | Evidence | Mitigation direction |
 |---|---|---|---|---|
 | R1 | Hosted runner image transition | Low/monitoring | Node.js 24 runs pass, but GitHub redirects `windows-2025` to `windows-2025-vs2026` | monitor runner release notes and observed runs |
-| R2 | Full suite not green | High | 575 pass / 3 fail | isolate external fixtures and align error contracts |
+| R2 | Full-suite determinism regression | Low/monitoring | 578 pass after fixture isolation; previously 575 pass / 3 fail | keep tests fixture-first and require full-suite validation |
 | R3 | CI coverage false confidence | High | main CI runs four test files | define canonical suite manifest or broader test job |
 | R4 | Readiness proliferation | Medium-high | 20+ readiness tools, 55 policies | measure consumers; consolidate by evidence/value |
 | R5 | Governance monolith | Medium-high | ~4.800 lines | characterize and split validators by domain later |
 | R6 | Quality report monolith | Medium-high | ~2.700 lines, many posture adapters | separate aggregation from domain checks |
 | R7 | Visual PASS semantics too weak | High | screenshots counted, not inspected | add evidence-based viewport/CTA/motion checks before visual approval |
 | R8 | Documentation truth drift | Medium | Agent Loop/Failure Registry and Engram conflicts | truth-source audit and status labels |
-| R9 | External path coupling | Medium | mutable sibling `CodexAtlas-Web`, personal C paths | deterministic fixtures/env contracts |
+| R9 | External path coupling | Low/monitoring | test defaults no longer select sibling `CodexAtlas-Web`; explicit env override remains available | keep integration paths opt-in |
 | R10 | Failure learning not consumed | Medium | isolated functions only | manual Planner/Verifier dry run before runtime integration |
 | R11 | Duplicate command registry | Medium | two identical copies | generate or validate mirror ownership |
 | R12 | Advisory names imply enforcement | Medium | judge/enforcement/guard labels | document evidence consumed and authority explicitly |
@@ -374,14 +377,14 @@ Overall architecture score: **61/100**.
 
 ### P1
 
-#### P1.1 Make full test suite deterministic and green
+#### P1.1 Make full test suite deterministic and green (closed 2026-06-12)
 
-- Evidence: 3 failures; sibling project changes phase; dispatcher error expectations incomplete.
-- Impact: local PASS and CI PASS do not mean repository-wide PASS.
-- Recommendation: fixture-first `WEB_ROOT`, explicit integration tests for sibling repo, align failure contract tests.
-- Files: `tests/_support_paths.py`, prompt/skill tests, possibly dispatcher behavior after review.
-- Effort: M.
-- Human approval: no for tests; yes if dispatcher contract changes.
+- Evidence: the original three failures reproduced individually; `578 passed` after fixture isolation.
+- Impact: local results no longer change merely because `../CodexAtlas-Web` exists.
+- Resolution: fixture-first `WEB_ROOT` and temporary governed projects for dispatcher exposure tests.
+- Files: `tests/_support_paths.py`, `tests/test_prompt_builder.py`, `tests/test_skill_evaluator.py`.
+- Effort: S.
+- Human approval: no runtime contract changed.
 
 #### P1.2 Define and run a canonical CI test manifest
 
@@ -469,11 +472,11 @@ Overall architecture score: **61/100**.
 
 ## 15. Recommended next five implementation phases
 
-1. **Deterministic test phase**: make full suite green without sibling-repo state leakage.
-2. **Critical coverage phase**: include Evidence/Failure/Model critical tests in canonical CI.
-3. **Evidence execution phase**: run a deterministic browser capture smoke test and verify produced bundle/report.
-4. **Architecture consolidation audit**: produce readiness consumer/value matrix, then approve only evidence-backed merges/deprecations.
-5. **Hosted runner monitoring phase**: review the `windows-2025-vs2026` transition only if observed behavior changes.
+1. **Critical coverage phase**: include Evidence/Failure/Model critical tests in canonical CI.
+2. **Evidence execution phase**: run a deterministic browser capture smoke test and verify produced bundle/report.
+3. **Architecture consolidation audit**: produce readiness consumer/value matrix, then approve only evidence-backed merges/deprecations.
+4. **Hosted runner monitoring phase**: review the `windows-2025-vs2026` transition only if observed behavior changes.
+5. **Test determinism monitoring phase**: retain full-suite validation and keep sibling-project integration explicitly opt-in.
 
 ## 16. Explicit no-go list
 
