@@ -26,6 +26,7 @@ jobs:
 
       - name: Evidence browser smoke
         run: |
+          New-Item -ItemType Directory -Force -Path .atlas_test_tmp | Out-Null
           $env:ATLAS_RUN_REAL_BROWSER_SMOKE = "1"
           python -m pytest tests\test_evidence_runner_real_smoke.py -q --basetemp=.atlas_test_tmp\evidence-browser-smoke
 
