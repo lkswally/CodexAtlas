@@ -6,12 +6,14 @@
       "status": "PASS",
       "run_id": "27725625470",
       "observed_at": "2026-06-17T23:11:12+00:00",
+      "max_age_hours": 168,
       "notes": "Atlas CI success after dashboard v1"
     },
     "atlas_global_test": {
       "status": "PASS",
       "run_id": "27414397174",
       "observed_at": "2026-06-17T00:00:00+00:00",
+      "max_age_hours": 168,
       "notes": "Manual global suite 578 passed"
     },
     "evidence_quality_report": {
@@ -19,6 +21,7 @@
       "run_id": "27390064634",
       "artifact_id": "7581555415",
       "observed_at": "2026-06-17T00:00:00+00:00",
+      "max_age_hours": 168,
       "notes": "Manual opt-in evidence report PASS"
     },
     "evidence_browser_smoke": {
@@ -26,6 +29,7 @@
       "run_id": "27724893071",
       "artifact_id": "7709863742",
       "observed_at": "2026-06-17T22:53:00+00:00",
+      "max_age_hours": 168,
       "notes": "Manual browser smoke PASS"
     }
   }

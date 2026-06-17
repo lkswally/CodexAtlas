@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 
 DASHBOARD_NAME = "atlas_health_dashboard"
@@ -11,6 +11,7 @@ DASHBOARD_VERSION = "v1"
 VALID_STATUSES = {"PASS", "WARN", "FAIL", "UNKNOWN"}
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_WORKFLOW_OBSERVATIONS_PATH = DEFAULT_ROOT / "config" / "workflow_observations.json"
+DEFAULT_WORKFLOW_MAX_AGE_HOURS = 168
 
 REQUIRED_TOP_LEVEL_FIELDS = (
     "dashboard_name",
@@ -41,7 +42,7 @@ WORKFLOW_OBSERVATION_KEYS = {
     "Evidence Quality Report": "evidence_quality_report",
     "Evidence Browser Smoke": "evidence_browser_smoke",
 }
-WORKFLOW_OBSERVATION_OPTIONAL_FIELDS = ("run_id", "artifact_id", "observed_at", "notes")
+WORKFLOW_OBSERVATION_OPTIONAL_FIELDS = ("run_id", "artifact_id", "observed_at", "notes", "max_age_hours")
 
 
 class AtlasHealthDashboardValidationError(ValueError):
@@ -50,6 +51,10 @@ class AtlasHealthDashboardValidationError(ValueError):
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc)
 
 
 def _normalize_status(value: Any) -> str:
@@ -72,7 +77,7 @@ def _component(name: str, status: Any, summary: str, **extra: Any) -> Dict[str, 
 
 
 def _rollup_status(items: List[Dict[str, Any]]) -> str:
-    statuses = {_normalize_status(item.get("status")) for item in items}
+    statuses = {_normalize_status(item.get("effective_status", item.get("status"))) for item in items}
     if "FAIL" in statuses:
         return "FAIL"
     if "WARN" in statuses:
@@ -91,6 +96,99 @@ def _section_status(statuses: List[str]) -> str:
     if "UNKNOWN" in normalized:
         return "UNKNOWN"
     return "PASS"
+
+
+def _parse_observed_at(value: Any) -> Optional[datetime]:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    normalized = value.strip()
+    if normalized.endswith("Z"):
+        normalized = normalized[:-1] + "+00:00"
+    parsed = datetime.fromisoformat(normalized)
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def _parse_max_age_hours(value: Any) -> Tuple[int, Optional[str]]:
+    if value in (None, ""):
+        return DEFAULT_WORKFLOW_MAX_AGE_HOURS, None
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        return DEFAULT_WORKFLOW_MAX_AGE_HOURS, "invalid_max_age_hours"
+    if value <= 0:
+        return DEFAULT_WORKFLOW_MAX_AGE_HOURS, "invalid_max_age_hours"
+    return int(value), None
+
+
+def _freshness_projection(
+    *,
+    status: str,
+    observed_at: Any,
+    max_age_hours: Any,
+    now: datetime,
+) -> Tuple[Dict[str, Any], List[str]]:
+    findings: List[str] = []
+    max_age, max_age_finding = _parse_max_age_hours(max_age_hours)
+    if max_age_finding:
+        findings.append(max_age_finding)
+
+    freshness = {
+        "effective_status": status,
+        "freshness_status": "FRESH",
+        "max_age_hours": max_age,
+        "is_stale": False,
+    }
+    if not isinstance(observed_at, str) or not observed_at.strip():
+        freshness.update(
+            {
+                "effective_status": "WARN" if status != "FAIL" else "FAIL",
+                "freshness_status": "MISSING_OBSERVED_AT",
+                "is_stale": True,
+            }
+        )
+        findings.append("missing_observed_at")
+        return freshness, findings
+
+    try:
+        observed = _parse_observed_at(observed_at)
+    except (TypeError, ValueError):
+        freshness.update(
+            {
+                "effective_status": "WARN" if status != "FAIL" else "FAIL",
+                "freshness_status": "INVALID_OBSERVED_AT",
+                "is_stale": True,
+            }
+        )
+        findings.append("invalid_observed_at")
+        return freshness, findings
+
+    if observed is None:
+        freshness.update(
+            {
+                "effective_status": "WARN" if status != "FAIL" else "FAIL",
+                "freshness_status": "MISSING_OBSERVED_AT",
+                "is_stale": True,
+            }
+        )
+        findings.append("missing_observed_at")
+        return freshness, findings
+
+    age_hours = max(0.0, (now - observed).total_seconds() / 3600)
+    freshness["age_hours"] = round(age_hours, 2)
+    if status == "FAIL":
+        freshness["effective_status"] = "FAIL"
+    elif age_hours > max_age:
+        freshness.update(
+            {
+                "effective_status": "WARN",
+                "freshness_status": "STALE",
+                "is_stale": True,
+            }
+        )
+        findings.append("stale_observation")
+    elif status in {"WARN", "UNKNOWN"}:
+        freshness["effective_status"] = status
+    return freshness, findings
 
 
 def _overall_status(sections: Dict[str, Any]) -> str:
@@ -147,8 +245,9 @@ def _build_default_core_statuses(root: Path) -> Dict[str, str]:
     return statuses
 
 
-def load_workflow_observations(path: Path) -> Dict[str, Any]:
+def load_workflow_observations(path: Path, *, now: Optional[datetime] = None) -> Dict[str, Any]:
     observations_path = Path(path)
+    now = (now or _utc_now()).astimezone(timezone.utc)
     try:
         payload = json.loads(observations_path.read_text(encoding="utf-8"))
     except FileNotFoundError:
@@ -193,19 +292,34 @@ def load_workflow_observations(path: Path) -> Dict[str, Any]:
             observations[key] = {
                 "name": workflow_name,
                 "status": "WARN",
+                "effective_status": "WARN",
                 "summary": "Workflow observation has an invalid status.",
                 "observation_source": "cache_invalid",
+                "freshness_status": "INVALID_STATUS",
+                "max_age_hours": DEFAULT_WORKFLOW_MAX_AGE_HOURS,
+                "is_stale": True,
             }
             continue
+        normalized_status = _normalize_status(status)
+        freshness, freshness_findings = _freshness_projection(
+            status=normalized_status,
+            observed_at=item.get("observed_at"),
+            max_age_hours=item.get("max_age_hours"),
+            now=now,
+        )
+        findings.extend(f"workflow_freshness:{key}:{finding}" for finding in freshness_findings)
         observation = {
             "name": workflow_name,
-            "status": _normalize_status(status),
-            "summary": f"Cached workflow observation status is {_normalize_status(status)}.",
+            "status": normalized_status,
+            "summary": f"Cached workflow observation status is {normalized_status}.",
             "observation_source": "cache",
+            **freshness,
         }
         for field in WORKFLOW_OBSERVATION_OPTIONAL_FIELDS:
             value = item.get(field)
-            if isinstance(value, str) and value.strip():
+            if field == "max_age_hours" and isinstance(value, (int, float)) and not isinstance(value, bool):
+                observation[field] = int(value)
+            elif isinstance(value, str) and value.strip():
                 observation[field] = value
             elif value not in (None, ""):
                 findings.append(f"invalid_workflow_field:{key}:{field}")
@@ -233,20 +347,36 @@ def _workflow_components(
         if provided is not None and workflow_name in provided:
             status = _normalize_status(provided[workflow_name])
             source = "provided"
-            extra: Dict[str, Any] = {}
+            extra: Dict[str, Any] = {
+                "effective_status": status,
+                "freshness_status": "NOT_APPLICABLE",
+                "max_age_hours": DEFAULT_WORKFLOW_MAX_AGE_HOURS,
+                "is_stale": False,
+            }
         elif key in cached:
             item = cached[key]
             status = _normalize_status(item.get("status"))
             source = str(item.get("observation_source", "cache"))
             extra = {
                 field: item[field]
-                for field in WORKFLOW_OBSERVATION_OPTIONAL_FIELDS
-                if isinstance(item.get(field), str) and item[field].strip()
+                for field in (
+                    *WORKFLOW_OBSERVATION_OPTIONAL_FIELDS,
+                    "effective_status",
+                    "freshness_status",
+                    "age_hours",
+                    "is_stale",
+                )
+                if item.get(field) not in (None, "")
             }
         else:
             status = "UNKNOWN"
             source = "not_observed"
-            extra = {}
+            extra = {
+                "effective_status": "UNKNOWN",
+                "freshness_status": "MISSING_OBSERVATION",
+                "max_age_hours": DEFAULT_WORKFLOW_MAX_AGE_HOURS,
+                "is_stale": True,
+            }
         if status == "UNKNOWN":
             summary = "Workflow status is not observed by the local dashboard input."
         elif source == "cache_invalid":
@@ -267,11 +397,12 @@ def build_health_dashboard(
     core_statuses: Optional[Dict[str, Any]] = None,
     runner_warnings: Optional[List[str]] = None,
     generated_at: Optional[str] = None,
+    current_time: Optional[datetime] = None,
 ) -> Dict[str, Any]:
     repo_root = (root or DEFAULT_ROOT).resolve()
     core = {key: _normalize_status(value) for key, value in (core_statuses or _build_default_core_statuses(repo_root)).items()}
     observations_path = workflow_observations_path or repo_root / "config" / "workflow_observations.json"
-    observations_result = load_workflow_observations(observations_path)
+    observations_result = load_workflow_observations(observations_path, now=current_time)
     workflows = _workflow_components(workflow_statuses, observations_result["observations"])
     ci_status = _section_status([_rollup_status(workflows), observations_result["status"]])
 
@@ -335,8 +466,13 @@ def build_health_dashboard(
     risks = [
         {
             "id": "workflows_without_observation",
-            "status": "WARN" if any(item["status"] == "UNKNOWN" for item in workflows) else "PASS",
+            "status": "WARN" if any(item["effective_status"] == "UNKNOWN" for item in workflows) else "PASS",
             "summary": "Workflow health depends on supplied observations; missing observations remain UNKNOWN.",
+        },
+        {
+            "id": "stale_workflow_observations",
+            "status": "WARN" if any(item.get("is_stale") for item in workflows) else "PASS",
+            "summary": "Expired workflow observations cannot keep the dashboard in PASS.",
         },
         {
             "id": "workflow_observations_cache",
@@ -438,7 +574,7 @@ def render_health_markdown(report: Dict[str, Any]) -> str:
     ]
     for workflow in sections["ci"].get("workflows", []):
         details = []
-        for field in ("run_id", "artifact_id", "notes"):
+        for field in ("effective_status", "freshness_status", "age_hours", "max_age_hours", "is_stale", "run_id", "artifact_id", "notes"):
             if workflow.get(field):
                 details.append(f"{field}: {workflow[field]}")
         suffix = f" ({'; '.join(details)})" if details else ""

@@ -24,6 +24,7 @@ Evalua:
 - Si no se inyectan observaciones de workflows, esos estados quedan en `UNKNOWN`.
 - Si el cache de observaciones falta, esos estados quedan en `UNKNOWN`.
 - Si el cache existe pero es invalido, el dashboard queda en `WARN` controlado.
+- Si una observacion esta vencida, su estado efectivo queda en `WARN`.
 - No instala dependencias.
 
 ## Contrato JSON
@@ -78,14 +79,20 @@ Formato:
   "workflows": {
     "atlas_ci": {
       "status": "PASS",
+      "effective_status": "WARN",
+      "freshness_status": "STALE",
       "run_id": "",
       "observed_at": "",
+      "age_hours": 999,
+      "max_age_hours": 168,
+      "is_stale": true,
       "notes": ""
     },
     "atlas_global_test": {
       "status": "PASS",
       "run_id": "",
       "observed_at": "",
+      "max_age_hours": 168,
       "notes": ""
     },
     "evidence_quality_report": {
@@ -93,6 +100,7 @@ Formato:
       "run_id": "",
       "artifact_id": "",
       "observed_at": "",
+      "max_age_hours": 168,
       "notes": ""
     },
     "evidence_browser_smoke": {
@@ -100,6 +108,7 @@ Formato:
       "run_id": "",
       "artifact_id": "",
       "observed_at": "",
+      "max_age_hours": 168,
       "notes": ""
     }
   }
@@ -109,9 +118,14 @@ Formato:
 Campos:
 
 - `status`: admite `PASS`, `WARN`, `FAIL` o `UNKNOWN`.
+- `effective_status`: estado usado por el dashboard despues de aplicar frescura.
+- `freshness_status`: `FRESH`, `STALE`, `MISSING_OBSERVED_AT`, `INVALID_OBSERVED_AT`, `MISSING_OBSERVATION` o `NOT_APPLICABLE`.
 - `run_id`: referencia textual a la corrida observada.
 - `artifact_id`: opcional, solo cuando hay artifact relevante.
 - `observed_at`: momento de la observacion.
+- `age_hours`: edad calculada cuando `observed_at` es valido.
+- `max_age_hours`: ventana de frescura por workflow; default `168` horas.
+- `is_stale`: `true` cuando falta, es invalida o vencio la observacion.
 - `notes`: nota corta sin secretos.
 
 Politica:
@@ -119,19 +133,26 @@ Politica:
 - El cache no llama GitHub, no usa `gh` y no consulta APIs externas.
 - Una observacion invalida marca `WARN`, no rompe la ejecucion.
 - Una observacion faltante conserva `UNKNOWN`.
+- Cada observacion debe tener `observed_at`.
+- `max_age_hours` es opcional; si falta se usa `168`.
+- Si `observed_at` falta, el estado efectivo queda en `WARN`.
+- Si `observed_at` es invalido, el estado efectivo queda en `WARN`.
+- Si `status` es `FAIL`, el estado efectivo queda en `FAIL` aunque la observacion sea fresca.
+- Si `status` es `PASS` pero la observacion vencio, el estado efectivo queda en `WARN`.
 - `overall_status` no debe ser `PASS` si hay workflows criticos `UNKNOWN`, salvo que una politica futura lo documente explicitamente.
+- `overall_status` no debe ser `PASS` si hay workflows criticos vencidos.
 - Core local se evalua de forma independiente del cache de workflows.
 
 ## Interpretacion
 
 Un resultado `WARN` por workflows sin observacion no implica que CI este fallando. Significa que el dashboard local no recibio una observacion confiable para ese workflow.
 
-Un resultado `PASS` con cache significa que las secciones core locales estan sanas y que los workflows conocidos tienen observaciones cacheadas en `PASS`. No equivale a una consulta en vivo de GitHub Actions.
+Un resultado `PASS` con cache significa que las secciones core locales estan sanas y que los workflows conocidos tienen observaciones cacheadas en `PASS` y frescas segun `max_age_hours`. No equivale a una consulta en vivo de GitHub Actions.
 
 Browser smoke permanece manual/opt-in. Ese riesgo se reporta para visibilidad operativa, pero V1 no lo convierte en bloqueo automatico.
 
 ## Proximo paso futuro
 
-1. Definir una politica de frescura para `workflow_observations.json`.
+1. Definir quien actualiza `workflow_observations.json` y con que frecuencia.
 2. Agregar una interfaz de lectura cuando exista una politica aprobada para dashboard operativo.
 3. Mantener Autonomous Engineering Runtime fuera de alcance hasta que el dashboard tenga inputs confiables.

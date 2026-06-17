@@ -1,4 +1,5 @@
 import json
+from datetime import datetime, timezone
 
 import pytest
 
@@ -22,6 +23,7 @@ CORE_PASS = {
     "failure_registry": "PASS",
     "governance": "PASS",
 }
+NOW = datetime(2026, 6, 17, 12, 0, tzinfo=timezone.utc)
 
 
 def _dashboard(**overrides):
@@ -29,6 +31,7 @@ def _dashboard(**overrides):
         "workflow_statuses": WORKFLOW_PASS,
         "core_statuses": CORE_PASS,
         "generated_at": "2026-06-17T00:00:00+00:00",
+        "current_time": NOW,
     }
     params.update(overrides)
     return build_health_dashboard(**params)
@@ -54,27 +57,27 @@ def _valid_cached_workflows():
         "atlas_ci": {
             "status": "PASS",
             "run_id": "27725625470",
-            "observed_at": "2026-06-17T23:11:12+00:00",
+            "observed_at": "2026-06-17T10:00:00+00:00",
             "notes": "Atlas CI success after dashboard v1",
         },
         "atlas_global_test": {
             "status": "PASS",
             "run_id": "27414397174",
-            "observed_at": "2026-06-17T00:00:00+00:00",
+            "observed_at": "2026-06-17T10:00:00+00:00",
             "notes": "Manual global suite passed",
         },
         "evidence_quality_report": {
             "status": "PASS",
             "run_id": "27390064634",
             "artifact_id": "7581555415",
-            "observed_at": "2026-06-17T00:00:00+00:00",
+            "observed_at": "2026-06-17T10:00:00+00:00",
             "notes": "Manual opt-in evidence report PASS",
         },
         "evidence_browser_smoke": {
             "status": "PASS",
             "run_id": "27724893071",
             "artifact_id": "7709863742",
-            "observed_at": "2026-06-17T22:53:00+00:00",
+            "observed_at": "2026-06-17T10:00:00+00:00",
             "notes": "Manual browser smoke PASS",
         },
     }
@@ -141,6 +144,7 @@ def test_build_does_not_require_gh():
         core_statuses=CORE_PASS,
         workflow_observations_path="missing.json",
         generated_at="2026-06-17T00:00:00+00:00",
+        current_time=NOW,
     )
 
     assert report["overall_status"] == "WARN"
@@ -168,11 +172,14 @@ def test_dashboard_uses_valid_workflow_observations(tmp_path):
         core_statuses=CORE_PASS,
         workflow_observations_path=path,
         generated_at="2026-06-17T00:00:00+00:00",
+        current_time=NOW,
     )
 
     assert report["overall_status"] == "PASS"
     assert report["sections"]["ci"]["status"] == "PASS"
     assert report["sections"]["ci"]["workflows"][0]["run_id"] == "27725625470"
+    assert report["sections"]["ci"]["workflows"][0]["effective_status"] == "PASS"
+    assert report["sections"]["ci"]["workflows"][0]["freshness_status"] == "FRESH"
 
 
 def test_missing_workflow_observation_stays_unknown(tmp_path):
@@ -184,6 +191,7 @@ def test_missing_workflow_observation_stays_unknown(tmp_path):
         core_statuses=CORE_PASS,
         workflow_observations_path=path,
         generated_at="2026-06-17T00:00:00+00:00",
+        current_time=NOW,
     )
 
     atlas_global = report["sections"]["ci"]["workflows"][1]
@@ -200,6 +208,7 @@ def test_invalid_observations_file_generates_controlled_warn(tmp_path):
         core_statuses=CORE_PASS,
         workflow_observations_path=path,
         generated_at="2026-06-17T00:00:00+00:00",
+        current_time=NOW,
     )
 
     assert report["overall_status"] == "WARN"
@@ -216,6 +225,7 @@ def test_invalid_workflow_status_generates_warn(tmp_path):
         core_statuses=CORE_PASS,
         workflow_observations_path=path,
         generated_at="2026-06-17T00:00:00+00:00",
+        current_time=NOW,
     )
 
     assert report["overall_status"] == "WARN"
@@ -229,12 +239,14 @@ def test_markdown_shows_run_id_and_optional_artifact_id(tmp_path):
         core_statuses=CORE_PASS,
         workflow_observations_path=path,
         generated_at="2026-06-17T00:00:00+00:00",
+        current_time=NOW,
     )
 
     markdown = render_health_markdown(report)
 
     assert "run_id: 27725625470" in markdown
     assert "artifact_id: 7709863742" in markdown
+    assert "freshness_status: FRESH" in markdown
 
 
 def test_artifact_id_is_optional(tmp_path):
@@ -245,6 +257,7 @@ def test_artifact_id_is_optional(tmp_path):
         core_statuses=CORE_PASS,
         workflow_observations_path=path,
         generated_at="2026-06-17T00:00:00+00:00",
+        current_time=NOW,
     )
 
     atlas_ci = report["sections"]["ci"]["workflows"][0]
@@ -260,6 +273,7 @@ def test_cached_workflows_do_not_degrade_local_core_pass(tmp_path):
         core_statuses=CORE_PASS,
         workflow_observations_path=path,
         generated_at="2026-06-17T00:00:00+00:00",
+        current_time=NOW,
     )
 
     assert report["sections"]["evidence"]["components"][0]["status"] == "PASS"
@@ -275,6 +289,7 @@ def test_overall_warn_if_any_workflow_unknown(tmp_path):
         core_statuses=CORE_PASS,
         workflow_observations_path=path,
         generated_at="2026-06-17T00:00:00+00:00",
+        current_time=NOW,
     )
 
     assert report["overall_status"] == "WARN"
@@ -288,6 +303,115 @@ def test_overall_pass_if_core_and_observed_workflows_pass(tmp_path):
         core_statuses=CORE_PASS,
         workflow_observations_path=path,
         generated_at="2026-06-17T00:00:00+00:00",
+        current_time=NOW,
     )
 
     assert report["overall_status"] == "PASS"
+
+
+def test_stale_pass_observation_becomes_warn(tmp_path):
+    workflows = _valid_cached_workflows()
+    workflows["atlas_ci"]["observed_at"] = "2026-06-01T00:00:00+00:00"
+    path = _write_observations(tmp_path, workflows)
+
+    report = build_health_dashboard(
+        core_statuses=CORE_PASS,
+        workflow_observations_path=path,
+        generated_at="2026-06-17T00:00:00+00:00",
+        current_time=NOW,
+    )
+
+    atlas_ci = report["sections"]["ci"]["workflows"][0]
+    assert atlas_ci["status"] == "PASS"
+    assert atlas_ci["effective_status"] == "WARN"
+    assert atlas_ci["freshness_status"] == "STALE"
+    assert atlas_ci["is_stale"] is True
+    assert atlas_ci["age_hours"] > atlas_ci["max_age_hours"]
+    assert report["overall_status"] == "WARN"
+
+
+def test_fresh_fail_observation_stays_fail(tmp_path):
+    workflows = _valid_cached_workflows()
+    workflows["atlas_ci"]["status"] = "FAIL"
+    path = _write_observations(tmp_path, workflows)
+
+    report = build_health_dashboard(
+        core_statuses=CORE_PASS,
+        workflow_observations_path=path,
+        generated_at="2026-06-17T00:00:00+00:00",
+        current_time=NOW,
+    )
+
+    atlas_ci = report["sections"]["ci"]["workflows"][0]
+    assert atlas_ci["status"] == "FAIL"
+    assert atlas_ci["effective_status"] == "FAIL"
+    assert atlas_ci["freshness_status"] == "FRESH"
+    assert report["overall_status"] == "FAIL"
+
+
+def test_missing_observed_at_is_controlled_warn(tmp_path):
+    workflows = _valid_cached_workflows()
+    del workflows["atlas_ci"]["observed_at"]
+    path = _write_observations(tmp_path, workflows)
+
+    report = build_health_dashboard(
+        core_statuses=CORE_PASS,
+        workflow_observations_path=path,
+        generated_at="2026-06-17T00:00:00+00:00",
+        current_time=NOW,
+    )
+
+    atlas_ci = report["sections"]["ci"]["workflows"][0]
+    assert atlas_ci["effective_status"] == "WARN"
+    assert atlas_ci["freshness_status"] == "MISSING_OBSERVED_AT"
+    assert report["overall_status"] == "WARN"
+
+
+def test_invalid_observed_at_is_controlled_warn(tmp_path):
+    workflows = _valid_cached_workflows()
+    workflows["atlas_ci"]["observed_at"] = "not-a-date"
+    path = _write_observations(tmp_path, workflows)
+
+    report = build_health_dashboard(
+        core_statuses=CORE_PASS,
+        workflow_observations_path=path,
+        generated_at="2026-06-17T00:00:00+00:00",
+        current_time=NOW,
+    )
+
+    atlas_ci = report["sections"]["ci"]["workflows"][0]
+    assert atlas_ci["effective_status"] == "WARN"
+    assert atlas_ci["freshness_status"] == "INVALID_OBSERVED_AT"
+    assert "workflow_freshness:atlas_ci:invalid_observed_at" in report["sections"]["ci"]["observations_cache"]["findings"]
+
+
+def test_workflow_max_age_override_is_respected(tmp_path):
+    workflows = _valid_cached_workflows()
+    workflows["atlas_ci"]["observed_at"] = "2026-06-17T09:00:00+00:00"
+    workflows["atlas_ci"]["max_age_hours"] = 2
+    path = _write_observations(tmp_path, workflows)
+
+    report = build_health_dashboard(
+        core_statuses=CORE_PASS,
+        workflow_observations_path=path,
+        generated_at="2026-06-17T00:00:00+00:00",
+        current_time=NOW,
+    )
+
+    atlas_ci = report["sections"]["ci"]["workflows"][0]
+    assert atlas_ci["age_hours"] == 3
+    assert atlas_ci["max_age_hours"] == 2
+    assert atlas_ci["effective_status"] == "WARN"
+
+
+def test_default_max_age_hours_is_168(tmp_path):
+    path = _write_observations(tmp_path, _valid_cached_workflows())
+
+    report = build_health_dashboard(
+        core_statuses=CORE_PASS,
+        workflow_observations_path=path,
+        generated_at="2026-06-17T00:00:00+00:00",
+        current_time=NOW,
+    )
+
+    assert report["sections"]["ci"]["workflows"][0]["max_age_hours"] == 168
