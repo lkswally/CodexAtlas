@@ -43,13 +43,25 @@ jobs:
             tests\test_evidence_quality_report_cli.py `
             -q
 
+      - name: Prepare Evidence Browser Smoke artifact
+        if: always()
+        run: |
+          $artifactPath = "evidence-browser-smoke-artifact"
+          if (Test-Path $artifactPath) {
+            Remove-Item -LiteralPath $artifactPath -Recurse -Force
+          }
+          New-Item -ItemType Directory -Force -Path $artifactPath | Out-Null
+          if (Test-Path ".atlas_test_tmp\evidence-browser-smoke") {
+            Get-ChildItem ".atlas_test_tmp\evidence-browser-smoke" -Recurse -File |
+              Where-Object { $_.Name -eq "evidence-bundle.json" -or $_.Extension -eq ".png" } |
+              Copy-Item -Destination $artifactPath
+          }
+          Get-ChildItem $artifactPath -Force
+
       - name: Upload Evidence Browser Smoke artifact
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: evidence-browser-smoke
-          path: |
-            .atlas_test_tmp/evidence-browser-smoke/**/evidence/**
-            .atlas_test_tmp/evidence-browser-smoke/**/evidence-bundle.json
+          path: evidence-browser-smoke-artifact/**
           if-no-files-found: ignore
-          include-hidden-files: true
