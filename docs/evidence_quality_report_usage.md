@@ -88,6 +88,26 @@ Comportamiento esperado:
 
 Diferencia importante: la CLI local falla con exit code 1 ante bundle invalido o ausente, pero el workflow manual captura ese caso como observacion no bloqueante. El workflow existe para publicar evidencia cuando ya hay bundle, no para exigir que todos los runs generen evidencia visual.
 
+## Evidence Browser Smoke opt-in
+
+El workflow manual `.github/workflows/evidence-browser-smoke.yml` valida el camino de navegador real bajo demanda. No corre en pull requests, no corre en push y no reemplaza a Atlas CI.
+
+Como ejecutarlo:
+
+1. Abrir la pestana Actions en GitHub.
+2. Seleccionar `Evidence Browser Smoke`.
+3. Ejecutar `Run workflow`.
+
+Que hace:
+
+- usa `windows-2025` y Python `3.13`;
+- instala `pytest`, `playwright` y Chromium de Playwright;
+- ejecuta `tests/test_evidence_runner_real_smoke.py` con `ATLAS_RUN_REAL_BROWSER_SMOKE=1`;
+- corre el baseline Evidence de 69 tests;
+- sube artifact `evidence-browser-smoke` con screenshots y bundle si el smoke genero evidencia.
+
+Este workflow valida que Atlas pueda abrir una superficie local controlada con Chromium real, capturar screenshots desktop/mobile, producir viewport reports y emitir bundle/report tecnico. No evalua calidad visual, motion, CTA visibility, spacing, hierarchy ni regresion visual.
+
 ### Observacion real de workflow
 
 Run observado: `27251943469`.
