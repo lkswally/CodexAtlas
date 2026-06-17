@@ -52,3 +52,4 @@ jobs:
             .atlas_test_tmp/evidence-browser-smoke/**/evidence/**
             .atlas_test_tmp/evidence-browser-smoke/**/evidence-bundle.json
           if-no-files-found: ignore
+          include-hidden-files: true
