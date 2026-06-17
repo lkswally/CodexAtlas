@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -9,6 +10,7 @@ DASHBOARD_NAME = "atlas_health_dashboard"
 DASHBOARD_VERSION = "v1"
 VALID_STATUSES = {"PASS", "WARN", "FAIL", "UNKNOWN"}
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_WORKFLOW_OBSERVATIONS_PATH = DEFAULT_ROOT / "config" / "workflow_observations.json"
 
 REQUIRED_TOP_LEVEL_FIELDS = (
     "dashboard_name",
@@ -33,6 +35,13 @@ KNOWN_WORKFLOWS = (
     "Evidence Quality Report",
     "Evidence Browser Smoke",
 )
+WORKFLOW_OBSERVATION_KEYS = {
+    "Atlas CI": "atlas_ci",
+    "Atlas Global Test": "atlas_global_test",
+    "Evidence Quality Report": "evidence_quality_report",
+    "Evidence Browser Smoke": "evidence_browser_smoke",
+}
+WORKFLOW_OBSERVATION_OPTIONAL_FIELDS = ("run_id", "artifact_id", "observed_at", "notes")
 
 
 class AtlasHealthDashboardValidationError(ValueError):
@@ -46,6 +55,10 @@ def _utc_now_iso() -> str:
 def _normalize_status(value: Any) -> str:
     status = str(value or "UNKNOWN").upper()
     return status if status in VALID_STATUSES else "UNKNOWN"
+
+
+def _is_valid_status(value: Any) -> bool:
+    return isinstance(value, str) and value.upper() in VALID_STATUSES
 
 
 def _component(name: str, status: Any, summary: str, **extra: Any) -> Dict[str, Any]:
@@ -65,6 +78,17 @@ def _rollup_status(items: List[Dict[str, Any]]) -> str:
     if "WARN" in statuses:
         return "WARN"
     if "UNKNOWN" in statuses:
+        return "UNKNOWN"
+    return "PASS"
+
+
+def _section_status(statuses: List[str]) -> str:
+    normalized = {_normalize_status(status) for status in statuses}
+    if "FAIL" in normalized:
+        return "FAIL"
+    if "WARN" in normalized:
+        return "WARN"
+    if "UNKNOWN" in normalized:
         return "UNKNOWN"
     return "PASS"
 
@@ -123,23 +147,115 @@ def _build_default_core_statuses(root: Path) -> Dict[str, str]:
     return statuses
 
 
-def _workflow_components(workflow_statuses: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    provided = workflow_statuses or {}
+def load_workflow_observations(path: Path) -> Dict[str, Any]:
+    observations_path = Path(path)
+    try:
+        payload = json.loads(observations_path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {
+            "status": "UNKNOWN",
+            "valid": True,
+            "observations": {},
+            "findings": [],
+            "source": str(observations_path),
+        }
+    except (OSError, json.JSONDecodeError) as exc:
+        return {
+            "status": "WARN",
+            "valid": False,
+            "observations": {},
+            "findings": [f"invalid_observations_file:{exc}"],
+            "source": str(observations_path),
+        }
+
+    findings: List[str] = []
+    observations: Dict[str, Dict[str, Any]] = {}
+    if not isinstance(payload, dict):
+        findings.append("observations_not_object")
+    elif payload.get("observations_version") != "v1":
+        findings.append("invalid_observations_version")
+
+    workflows = payload.get("workflows") if isinstance(payload, dict) else None
+    if not isinstance(workflows, dict):
+        findings.append("workflows_not_object")
+        workflows = {}
+
+    for workflow_name, key in WORKFLOW_OBSERVATION_KEYS.items():
+        item = workflows.get(key)
+        if item is None:
+            continue
+        if not isinstance(item, dict):
+            findings.append(f"workflow_observation_not_object:{key}")
+            continue
+        status = item.get("status")
+        if not _is_valid_status(status):
+            findings.append(f"invalid_workflow_status:{key}")
+            observations[key] = {
+                "name": workflow_name,
+                "status": "WARN",
+                "summary": "Workflow observation has an invalid status.",
+                "observation_source": "cache_invalid",
+            }
+            continue
+        observation = {
+            "name": workflow_name,
+            "status": _normalize_status(status),
+            "summary": f"Cached workflow observation status is {_normalize_status(status)}.",
+            "observation_source": "cache",
+        }
+        for field in WORKFLOW_OBSERVATION_OPTIONAL_FIELDS:
+            value = item.get(field)
+            if isinstance(value, str) and value.strip():
+                observation[field] = value
+            elif value not in (None, ""):
+                findings.append(f"invalid_workflow_field:{key}:{field}")
+        observations[key] = observation
+
+    return {
+        "status": "WARN" if findings else "PASS",
+        "valid": not findings,
+        "observations": observations,
+        "findings": findings,
+        "source": str(observations_path),
+        "updated_at": payload.get("updated_at", "") if isinstance(payload, dict) else "",
+    }
+
+
+def _workflow_components(
+    workflow_statuses: Optional[Dict[str, Any]],
+    workflow_observations: Optional[Dict[str, Any]],
+) -> List[Dict[str, Any]]:
+    provided = workflow_statuses
+    cached = workflow_observations or {}
     components: List[Dict[str, Any]] = []
     for workflow_name in KNOWN_WORKFLOWS:
-        status = _normalize_status(provided.get(workflow_name, "UNKNOWN"))
+        key = WORKFLOW_OBSERVATION_KEYS[workflow_name]
+        if provided is not None and workflow_name in provided:
+            status = _normalize_status(provided[workflow_name])
+            source = "provided"
+            extra: Dict[str, Any] = {}
+        elif key in cached:
+            item = cached[key]
+            status = _normalize_status(item.get("status"))
+            source = str(item.get("observation_source", "cache"))
+            extra = {
+                field: item[field]
+                for field in WORKFLOW_OBSERVATION_OPTIONAL_FIELDS
+                if isinstance(item.get(field), str) and item[field].strip()
+            }
+        else:
+            status = "UNKNOWN"
+            source = "not_observed"
+            extra = {}
         if status == "UNKNOWN":
             summary = "Workflow status is not observed by the local dashboard input."
+        elif source == "cache_invalid":
+            summary = "Workflow observation is invalid and requires review."
+        elif source == "cache":
+            summary = f"Cached workflow observation status is {status}."
         else:
             summary = f"Last observed workflow status is {status}."
-        components.append(
-            _component(
-                workflow_name,
-                status,
-                summary,
-                observation_source="provided" if workflow_name in provided else "not_observed",
-            )
-        )
+        components.append(_component(workflow_name, status, summary, observation_source=source, **extra))
     return components
 
 
@@ -147,14 +263,17 @@ def build_health_dashboard(
     *,
     root: Optional[Path] = None,
     workflow_statuses: Optional[Dict[str, Any]] = None,
+    workflow_observations_path: Optional[Path] = None,
     core_statuses: Optional[Dict[str, Any]] = None,
     runner_warnings: Optional[List[str]] = None,
     generated_at: Optional[str] = None,
 ) -> Dict[str, Any]:
     repo_root = (root or DEFAULT_ROOT).resolve()
     core = {key: _normalize_status(value) for key, value in (core_statuses or _build_default_core_statuses(repo_root)).items()}
-    workflows = _workflow_components(workflow_statuses)
-    ci_status = _rollup_status(workflows)
+    observations_path = workflow_observations_path or repo_root / "config" / "workflow_observations.json"
+    observations_result = load_workflow_observations(observations_path)
+    workflows = _workflow_components(workflow_statuses, observations_result["observations"])
+    ci_status = _section_status([_rollup_status(workflows), observations_result["status"]])
 
     evidence_components = [
         _component(
@@ -171,6 +290,13 @@ def build_health_dashboard(
         "ci": {
             "status": ci_status,
             "workflows": workflows,
+            "observations_cache": {
+                "status": observations_result["status"],
+                "valid": observations_result["valid"],
+                "source": observations_result["source"],
+                "updated_at": observations_result.get("updated_at", ""),
+                "findings": observations_result["findings"],
+            },
         },
         "evidence": {
             "status": _rollup_status(evidence_components),
@@ -213,6 +339,12 @@ def build_health_dashboard(
             "summary": "Workflow health depends on supplied observations; missing observations remain UNKNOWN.",
         },
         {
+            "id": "workflow_observations_cache",
+            "status": observations_result["status"],
+            "summary": "Local workflow observations cache is optional and must remain valid evidence.",
+            "findings": observations_result["findings"],
+        },
+        {
             "id": "integrations_advisory_only",
             "status": "WARN",
             "summary": "External integrations remain advisory-only and do not prove runtime readiness.",
@@ -232,6 +364,7 @@ def build_health_dashboard(
 
     next_actions = [
         "Feed latest workflow observations into the dashboard before release decisions.",
+        "Keep workflow observations local, token-free, and evidence-based.",
         "Keep browser smoke manual until a separate blocking policy is approved.",
         "Define operational dashboard inputs before Autonomous Engineering Runtime work.",
     ]
@@ -304,7 +437,12 @@ def render_health_markdown(report: Dict[str, Any]) -> str:
         "## CI",
     ]
     for workflow in sections["ci"].get("workflows", []):
-        lines.append(f"- {workflow['name']}: {workflow['status']}")
+        details = []
+        for field in ("run_id", "artifact_id", "notes"):
+            if workflow.get(field):
+                details.append(f"{field}: {workflow[field]}")
+        suffix = f" ({'; '.join(details)})" if details else ""
+        lines.append(f"- {workflow['name']}: {workflow['status']}{suffix}")
 
     lines.extend(
         [
