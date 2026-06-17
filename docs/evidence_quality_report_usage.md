@@ -108,6 +108,15 @@ Que hace:
 
 Este workflow valida que Atlas pueda abrir una superficie local controlada con Chromium real, capturar screenshots desktop/mobile, producir viewport reports y emitir bundle/report tecnico. No evalua calidad visual, motion, CTA visibility, spacing, hierarchy ni regresion visual.
 
+Observacion real:
+
+- Run: `27724893071`.
+- Resultado: PASS.
+- Browser smoke: `1 passed in 3.03s`.
+- Evidence baseline: `69 passed in 0.31s`.
+- Artifact: `evidence-browser-smoke`, ID `7709863742`, `1212140` bytes.
+- El artifact incluyo 6 archivos desde `evidence-browser-smoke-artifact/**`.
+
 ### Observacion real de workflow
 
 Run observado: `27251943469`.
