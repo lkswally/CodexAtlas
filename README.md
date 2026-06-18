@@ -136,9 +136,21 @@ Los derivados no necesitan shims de Atlas si exponen `.atlas-project.json`.
 
 ## Estado actual
 
-**Listo con cautela**
+**Codex-Atlas V3 RC1**
 
-Atlas está listo para una primera prueba real de bootstrap sobre un proyecto nuevo, siempre que el objetivo sea generar una base derivada segura y no un runtime completo en un solo paso.
+Atlas V3 esta congelado como release candidate baseline. Es apto para uso
+interno real como sistema gobernado, local y evidence-first para crear,
+auditar y certificar proyectos derivados. No es un runtime autonomo.
+
+Estado de release:
+- RC1: GO
+- P0/P1: ninguno conocido
+- Suite global: `601 passed, 1 skipped`
+- Atlas CI: PASS
+- Health report: PASS con workflow observations cache y freshness policy
+- Evidence Pipeline: PASS
+- Failure Registry: PASS
+- Model Routing: PASS en modo advisory
 
 ## Límites actuales
 
@@ -159,10 +171,10 @@ Además:
 
 ## Roadmap inmediato
 
-- cerrar el baseline actual y usar Atlas para el primer proyecto real controlado
-- mantener fresco `config/docs_search_catalog.json`
-- seguir fortaleciendo quality gates read-only antes de sumar más autonomía
-- evaluar un segundo MCP solo si el modelo de gobernanza actual se sostiene
+V3 esta congelado. Solo acepta P0/P1.
+
+Ver `ROADMAP.md` para objetivos preliminares de V4. V4 no esta disponible en
+este release.
 
 ## Desarrollo y tests
 
@@ -177,9 +189,14 @@ Los tests resuelven la raíz del repo desde el checkout actual y aceptan overrid
 
 ## Referencias rápidas
 
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+- [ROADMAP.md](ROADMAP.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md)
 - [AGENTS.md](AGENTS.md)
 - [ATLAS_STATUS.md](ATLAS_STATUS.md)
 - [ATLAS_NEXT_STEPS.md](ATLAS_NEXT_STEPS.md)
 - [docs/architecture.md](docs/architecture.md)
+- [docs/release_candidate_rc1.md](docs/release_candidate_rc1.md)
+- [docs/release_notes_v3.md](docs/release_notes_v3.md)
 - [docs/codex_system_prompt.md](docs/codex_system_prompt.md)
 - [docs/mcp_read_only_evaluation.md](docs/mcp_read_only_evaluation.md)
