@@ -56,7 +56,7 @@ default-deny, approval-bound and mostly advisory.
 
 | MCP | Config encontrado | Prueba ejecutada | Estado | Evidencia | Riesgo | Recomendacion |
 |---|---|---|---|---|---|---|
-| Engram | `config/mcp_profiles.json` has `engram` as `external_mcp`, `atlas_decision: defer`, `experimental_enabled: false`; local Codex config does not list Engram MCP. | `engram --version`, `engram --help`, `engram doctor --json`. No memory write/read was performed. | PARTIAL | Binary exists: `engram 1.16.3`; help exposes `engram mcp --tools=agent`; doctor returned `status: ok`, 4/4 checks ok. Codex MCP readiness still reports `[WinError 5] Acceso denegado`. | False confidence: healthy CLI/store is not the same as configured Atlas MCP. Memory writes could touch real user data if not sandboxed. | Keep disabled. First V4 fix should define a sandbox data dir and explicit read/write test protocol before any MCP activation. |
+| Engram | `config/mcp_profiles.json` has `engram` as `external_mcp`, `atlas_decision: defer`, `experimental_enabled: false`; local Codex config does not list Engram MCP. | V4.0: `engram --version`, `engram --help`, `engram doctor --json`. V4.1: sandboxed `ENGRAM_DATA_DIR`, `engram save`, `engram search`. | WORKING_STANDALONE | Binary exists: `engram 1.16.3`; help exposes `engram mcp --tools=agent`; sandbox doctor returned `status: ok`, 4/4 checks ok; sandbox write/read found memory `codex-atlas-v4-engram-sandbox-test`. Codex MCP readiness still reports `[WinError 5] Acceso denegado`. | False confidence: standalone CLI/store success is not the same as configured Atlas MCP. Memory writes are safe only when `ENGRAM_DATA_DIR` is explicitly sandboxed. | Keep global MCP disabled. Treat Engram as standalone-proven and require a separate local MCP stdio test before any Atlas MCP config change. |
 | Playwright | `config/creative_pipeline_profiles.json` and `config/playwright_visual_qa_profiles.json` track Playwright visual QA as watchlist/advisory. Browser smoke workflow exists and remains manual/opt-in. | `tools/playwright_visual_qa_readiness.py`; prior browser smoke evidence from V3. | PARTIAL | Readiness returned `playwright_available: true`, `browsers_available: true`, `safe_to_run: true`, but also `advisory_only: true`, `requires_human_approval: true`, `requires_decision_council: true`. Prior manual smoke run `27724893071` passed with artifact `7709863742`. | Browser automation can hang, drift by environment or be mistaken for design proof. | Keep manual/opt-in. Allow into V4 runtime only as an approval-bound evidence step, not autonomous default. |
 | GitHub | `config/mcp_profiles.json` has GitHub on watchlist; `github_connector_readiness.py` exists; GitHub CLI is installed and authenticated. | `gh auth status`; `gh run list --limit 1`; `tools/github_connector_readiness.py`. | PARTIAL | `gh` is logged in; last run listed: `27765466069`, `success`. Readiness says theoretical read-only governance is ready, but `advisory_only: true` and runtime probe was not requested. | CLI works, but Atlas GitHub connector/MCP is still governance/advisory, and write operations remain blocked. | Use GitHub CLI for explicit read-only checks. Do not call this an active Atlas MCP until a read-only connector probe is implemented and documented. |
 | Notion | No repo MCP server config found. Notion skills may exist in the host Codex plugin environment, but Atlas has no Notion MCP profile activated. | Config/env presence only; no page reads or writes. | MISSING | No Notion env var names visible; no Notion entry in MCP profiles. | Confusing host app/plugin availability with Atlas runtime capability. | Leave out of V4 runtime until a read-only profile, secret policy and probe exist. |
@@ -80,28 +80,31 @@ Observed facts:
 - `engram --version` returned `engram 1.16.3`.
 - `engram --help` exposes `mcp [--tools=PROFILE] [--project NAME]` with stdio
   transport and profiles `agent`, `admin` and `all`.
-- `engram doctor --json` returned `status: ok`.
-- Doctor checks reported 4 total checks, 4 ok, 0 warnings, 0 blocked and 0
-  errors.
-- Doctor evidence included WAL mode and evaluated sessions/mutations.
+- `engram doctor --json` returned `status: ok` in the V4.0 real-store
+  read-only check.
+- V4.1 reran `engram doctor --json` with `ENGRAM_DATA_DIR` set to
+  `.atlas_test_tmp/engram_sandbox`; it reported 4 total checks, 4 ok, 0
+  warnings, 0 blocked and 0 errors.
+- V4.1 saved memory `codex-atlas-v4-engram-sandbox-test` with project
+  `codex-atlas-v4-sandbox` and recovered it through `engram search`.
+- The sandbox created `.atlas_test_tmp/engram_sandbox/engram.db`, which is
+  ignored by git through the existing `.atlas_test_tmp/` rule.
 - No Engram MCP server is configured in local Codex config.
 - `config/mcp_profiles.json` keeps Engram deferred and disabled.
-- No sandboxed `ENGRAM_DATA_DIR` write/read test was performed in this phase.
 
-Classification: `PARTIAL`.
+Classification after V4.1: `WORKING_STANDALONE`.
 
-Reason: Engram is locally installed and operational as a CLI/store, but it is
-not connected as an Atlas MCP and no safe sandbox memory write/read protocol was
-approved or executed. This is not `BROKEN`, because the read-only diagnostics
-passed. It is not `WORKING`, because no Atlas MCP invocation or sandboxed memory
-roundtrip was proven.
+Reason: Engram is locally installed and operational as a CLI/store, and the
+V4.1 sandbox proved a safe save/search roundtrip without touching real memory.
+It is not an Atlas MCP yet, because no Codex/Claude config was changed and no
+MCP stdio server roundtrip was executed.
 
 ## What To Fix First
 
 1. Define an MCP proof protocol that separates binary presence, server config,
    authentication, read-only probe and write-safe sandbox tests.
-2. For Engram, create a one-command sandbox test plan using a temporary
-   `ENGRAM_DATA_DIR`, then require explicit approval before running it.
+2. For Engram, design the next MCP-only stdio test using a temporary
+   `ENGRAM_DATA_DIR`; require explicit approval before any config change.
 3. Update `mcp_readiness_check.py` later to avoid counting nested env tables
    such as `node_repl.env` as independent MCP servers.
 4. Decide whether GitHub should remain CLI-only or gain an Atlas read-only
@@ -134,8 +137,8 @@ Eligible candidates, in order:
    authenticated and read-only run listing works.
 2. Playwright as an opt-in evidence step, because local readiness is true and
    prior smoke evidence exists.
-3. Engram only after a sandboxed data directory roundtrip proves safe memory
-   write/read without touching real data.
+3. Engram only as standalone memory until an MCP stdio test proves the same
+   isolation without modifying global config.
 
 Not eligible yet:
 
