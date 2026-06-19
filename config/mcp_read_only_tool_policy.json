@@ -1,0 +1,46 @@
+{
+  "policy_name": "atlas_mcp_read_only_tool_policy",
+  "version": "v1",
+  "default_classification": "unknown",
+  "blocked_classifications": [
+    "write",
+    "destructive",
+    "unknown"
+  ],
+  "tool_allowlist": {
+    "mem_doctor": {
+      "classification": "read_only",
+      "side_effects_expected": false,
+      "allowed_arguments": [
+        "check",
+        "project"
+      ],
+      "default_arguments": {},
+      "evidence": "Engram tools/list describes mem_doctor as read-only operational diagnostics.",
+      "notes": "Allowed only through sandbox ENGRAM_DATA_DIR and explicit --enable-read-only-tool-call. No memory read/write tools are allowlisted."
+    }
+  },
+  "blocked_tools": {
+    "mem_save": "write",
+    "mem_save_prompt": "write",
+    "mem_session_summary": "write",
+    "mem_session_start": "write",
+    "mem_session_end": "write",
+    "mem_update": "write",
+    "mem_delete": "destructive",
+    "mem_judge": "write",
+    "mem_compare": "write",
+    "mem_pin": "write",
+    "mem_unpin": "write",
+    "mem_capture_passive": "write",
+    "mem_search": "unknown",
+    "mem_context": "unknown",
+    "mem_get_observation": "unknown",
+    "mem_review": "unknown",
+    "mem_current_project": "unknown",
+    "mem_suggest_topic_key": "unknown",
+    "mem_stats": "unknown",
+    "mem_timeline": "unknown",
+    "mem_merge_projects": "write"
+  }
+}

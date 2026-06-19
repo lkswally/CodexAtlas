@@ -1,4 +1,5 @@
 import io
+import json
 
 from tools.mcp_stdio_diagnostic_client import (
     PROTOCOL_VERSION,
@@ -6,6 +7,7 @@ from tools.mcp_stdio_diagnostic_client import (
     build_initialized_notification,
     build_prompts_list_request,
     build_resources_list_request,
+    build_tools_call_request,
     build_tools_list_request,
     encode_stdio_message,
     run_mcp_protocol_validation,
@@ -44,22 +46,42 @@ def _initialize_response(capabilities):
     )
 
 
-def _tools_response():
+def _tools_response(tool_name="mem_search", schema=None, description="Search memory"):
+    schema = schema or {
+        "type": "object",
+        "properties": {"query": {"type": "string"}, "limit": {"type": "integer"}},
+        "required": ["query"],
+    }
     return (
-        '{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"mem_search",'
-        '"description":"Search memory","inputSchema":{"type":"object",'
-        '"properties":{"query":{"type":"string"},"limit":{"type":"integer"}},'
-        '"required":["query"]}}]}}\n'
+        '{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":'
+        + repr(tool_name).replace("'", '"')
+        + ',"description":'
+        + repr(description).replace("'", '"')
+        + ',"inputSchema":'
+        + json.dumps(schema, separators=(",", ":"))
+        + "}]}}\n"
     )
 
 
-def _run_fake(stdout_lines, tmp_path):
+def _policy():
+    return {
+        "tool_allowlist": {
+            "mem_doctor": {
+                "classification": "read_only",
+                "side_effects_expected": False,
+                "allowed_arguments": ["check", "project"],
+            }
+        }
+    }
+
+
+def _run_fake(stdout_lines, tmp_path, **kwargs):
     fake = FakeProcess(stdout_lines)
     captured = {}
 
-    def popen(command, **kwargs):
+    def popen(command, **popen_kwargs):
         captured["command"] = command
-        captured["env"] = kwargs["env"]
+        captured["env"] = popen_kwargs["env"]
         return fake
 
     report = run_mcp_protocol_validation(
@@ -67,6 +89,7 @@ def _run_fake(stdout_lines, tmp_path):
         sandbox_dir=tmp_path / "mcp",
         report_path=None,
         popen_factory=popen,
+        **kwargs,
     )
     return report, fake, captured
 
@@ -95,6 +118,12 @@ def test_initialized_notification_and_list_messages():
     }
     assert build_resources_list_request(10)["method"] == "resources/list"
     assert build_prompts_list_request(11)["method"] == "prompts/list"
+    assert build_tools_call_request("safe_tool", {"limit": 1}, 12) == {
+        "jsonrpc": "2.0",
+        "id": 12,
+        "method": "tools/call",
+        "params": {"name": "safe_tool", "arguments": {"limit": 1}},
+    }
 
 
 def test_encode_stdio_message_is_newline_delimited_json():
@@ -120,6 +149,7 @@ def test_protocol_validation_lists_tools_with_fake_server(tmp_path):
     assert report["tools_list"]["tools"][0]["parameters"] == ["limit", "query"]
     assert report["resources_list"]["status"] == "NOT_SUPPORTED"
     assert report["prompts_list"]["status"] == "NOT_SUPPORTED"
+    assert report["tool_call"]["call_status"] == "BLOCKED"
     assert "notifications/initialized" in fake.stdin.getvalue()
     assert captured["env"]["ENGRAM_DATA_DIR"] == str((tmp_path / "mcp").resolve())
 
@@ -211,6 +241,103 @@ def test_jsonrpc_error_for_optional_list_is_controlled_fail(tmp_path):
     assert report["classification"] == "MCP_PROTOCOL_PARTIAL"
 
 
+def test_read_only_allowlisted_tool_call_executes(tmp_path):
+    schema = {"type": "object", "properties": {"check": {"type": "string"}, "project": {"type": "string"}}, "required": []}
+    tool_call_response = '{"jsonrpc":"2.0","id":5,"result":{"status":"ok","total":4}}\n'
+    report, fake, _captured = _run_fake(
+        [
+            _initialize_response('{"tools":{}}'),
+            _tools_response("mem_doctor", schema, "Run read-only operational diagnostics."),
+            tool_call_response,
+        ],
+        tmp_path,
+        enable_read_only_tool_call=True,
+        read_only_tool_name="mem_doctor",
+        read_only_tool_arguments={},
+        read_only_tool_policy=_policy(),
+    )
+
+    assert report["tool_call"]["tool_call_supported"] is True
+    assert report["tool_call"]["policy_status"] == "ALLOWED"
+    assert report["tool_call"]["call_status"] == "PASS"
+    assert report["tool_call"]["side_effects_expected"] is False
+    assert '"status": "ok"' in report["tool_call"]["result_excerpt"]
+    assert '"method":"tools/call"' in fake.stdin.getvalue()
+
+
+def test_tool_not_allowlisted_is_blocked(tmp_path):
+    schema = {"type": "object", "properties": {}, "required": []}
+    report, fake, _captured = _run_fake(
+        [_initialize_response('{"tools":{}}'), _tools_response("mem_save", schema, "Save memory")],
+        tmp_path,
+        enable_read_only_tool_call=True,
+        read_only_tool_name="mem_save",
+        read_only_tool_arguments={},
+        read_only_tool_policy=_policy(),
+    )
+
+    assert report["tool_call"]["policy_status"] == "DENIED"
+    assert report["tool_call"]["call_status"] == "BLOCKED"
+    assert "tool_not_allowlisted" in report["tool_call"]["errors"]
+    assert "tools/call" not in fake.stdin.getvalue()
+
+
+def test_unknown_policy_blocks_tool_call(tmp_path):
+    schema = {"type": "object", "properties": {}, "required": []}
+    report, fake, _captured = _run_fake(
+        [_initialize_response('{"tools":{}}'), _tools_response("mem_doctor", schema, "Read-only")],
+        tmp_path,
+        enable_read_only_tool_call=True,
+        read_only_tool_name="mem_doctor",
+        read_only_tool_arguments={},
+        read_only_tool_policy=None,
+    )
+
+    assert report["tool_call"]["policy_status"] == "UNKNOWN"
+    assert report["tool_call"]["call_status"] == "BLOCKED"
+    assert "policy_missing" in report["tool_call"]["errors"]
+    assert "tools/call" not in fake.stdin.getvalue()
+
+
+def test_unexpected_schema_blocks_tool_call(tmp_path):
+    schema = {"type": "array", "items": {"type": "string"}}
+    report, fake, _captured = _run_fake(
+        [_initialize_response('{"tools":{}}'), _tools_response("mem_doctor", schema, "Read-only")],
+        tmp_path,
+        enable_read_only_tool_call=True,
+        read_only_tool_name="mem_doctor",
+        read_only_tool_arguments={},
+        read_only_tool_policy=_policy(),
+    )
+
+    assert report["tool_call"]["policy_status"] == "DENIED"
+    assert report["tool_call"]["call_status"] == "BLOCKED"
+    assert "schema_not_understood" in report["tool_call"]["errors"]
+    assert "tools/call" not in fake.stdin.getvalue()
+
+
+def test_tools_call_jsonrpc_error_is_controlled(tmp_path):
+    schema = {"type": "object", "properties": {}, "required": []}
+    tool_call_error = '{"jsonrpc":"2.0","id":5,"error":{"code":-32603,"message":"boom"}}\n'
+    report, _fake, _captured = _run_fake(
+        [
+            _initialize_response('{"tools":{}}'),
+            _tools_response("mem_doctor", schema, "Read-only"),
+            tool_call_error,
+        ],
+        tmp_path,
+        enable_read_only_tool_call=True,
+        read_only_tool_name="mem_doctor",
+        read_only_tool_arguments={},
+        read_only_tool_policy=_policy(),
+    )
+
+    assert report["tool_call"]["policy_status"] == "ALLOWED"
+    assert report["tool_call"]["call_status"] == "FAIL"
+    assert "tools_call_error_response" in report["tool_call"]["errors"]
+    assert report["classification"] == "MCP_PROTOCOL_PARTIAL"
+
+
 def test_validate_protocol_report_rejects_missing_fields():
     report = {
         "client_name": "mcp_stdio_diagnostic_client",
@@ -226,6 +353,7 @@ def test_validate_protocol_report_rejects_missing_fields():
         "tools_list": {},
         "resources_list": {},
         "prompts_list": {},
+        "tool_call": {},
         "summary": {},
         "shutdown": {},
         "classification": "MCP_PROTOCOL_VALIDATED",

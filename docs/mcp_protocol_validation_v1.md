@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-Codex-Atlas V4.3 validates the MCP base protocol with a generic stdio diagnostic client. This is not an Engram integration and does not call any Engram tools.
+Codex-Atlas V4 validates the MCP base protocol with a generic stdio diagnostic client. This is not an Engram runtime integration. Tool execution remains policy-gated and sandbox-only.
 
 Evidence:
 
@@ -13,8 +13,8 @@ Evidence:
 - prompts/list: NOT_SUPPORTED by Engram capability negotiation
 - shutdown by closing stdin and waiting: PASS
 - tools detected from Engram MCP: 18
-- tools/call: not executed
-- memory read/write: not executed
+- tools/call: PASS for one policy-allowlisted read-only sandbox call (`mem_doctor` with `{}`)
+- memory read/write tools: not executed
 - global Codex/Claude config: untouched
 
 Classification: MCP_PROTOCOL_VALIDATED.
@@ -120,7 +120,17 @@ Engram response: PASS, 18 tools returned.
 
 ### tools/call
 
-Not executed in V4.3. The adapter must not call tools until Atlas has a separate policy for tool permissioning, memory writes and evidence capture.
+`tools/call` is now validated only for one policy-allowlisted read-only sandbox call. The adapter refuses to call a tool unless all of these are true:
+
+- the call is explicitly enabled;
+- the tool appears in `tools/list`;
+- `config/mcp_read_only_tool_policy.json` allowlists the tool;
+- the policy classifies it as `read_only`;
+- `side_effects_expected` is exactly `false`;
+- the input schema is a understood JSON object;
+- all input arguments are allowlisted and present in the advertised schema.
+
+Observed Engram result: `mem_doctor` called with `{}` in sandbox `ENGRAM_DATA_DIR=.atlas_test_tmp/mcp_tools_call_read_only`; status `PASS`; returned an operational diagnostics envelope with 4 total checks, 4 ok, 0 warnings, 0 blocked and 0 errors. No memory read/write tools were called.
 
 ### resources/list and resources/read
 
@@ -170,6 +180,10 @@ sequenceDiagram
         Atlas->>MCP: prompts/list
         MCP-->>Atlas: prompts list or JSON-RPC error
     end
+    opt if explicit read-only policy allows one tool
+        Atlas->>MCP: tools/call mem_doctor {}
+        MCP-->>Atlas: diagnostics result
+    end
     Atlas->>MCP: close stdin
     MCP-->>Atlas: process exits
 ```
@@ -183,7 +197,7 @@ V4.3 added:
 - tools/mcp_stdio_diagnostic_client.py
 - tests/test_mcp_stdio_diagnostic_client.py
 
-The V4 Integration Layer extends the same generic adapter with optional `resources/list` and `prompts/list` discovery. These checks are capability-aware and do not turn unsupported server surfaces into failures.
+The V4 Integration Layer extends the same generic adapter with optional `resources/list`, optional `prompts/list`, and one explicit read-only sandbox `tools/call`. These checks are capability-aware and do not turn unsupported server surfaces into failures.
 
 This is a diagnostic adapter only. It is not connected to Planner, Runtime, Evidence, Dashboard or Failure Registry.
 
@@ -210,11 +224,11 @@ This is a diagnostic adapter only. It is not connected to Planner, Runtime, Evid
 | mem_unpin | object | id | Unpin a local observation. |
 | mem_update | object | content, id, scope, title, topic_key, type | Update an observation. |
 
-No tool was called.
+`mem_doctor` was called once through the generic adapter after policy approval. No memory read/write tool was called.
 
 ## Atlas Future
 
-A future adapter can add resources/read, prompts/get, tools/call, request cancellation, ping, pagination, richer capability-aware gating, timeout policy and structured audit records. `tools/call` is explicitly excluded from the current phase and should first be tested only against read-only sandbox tools.
+A future adapter can add resources/read, prompts/get, broader tools/call coverage, request cancellation, ping, pagination, richer capability-aware gating, timeout policy and structured audit records. Current `tools/call` coverage is limited to one read-only sandbox smoke and must not be generalized without policy expansion.
 
 ## Adapter Proposed
 
@@ -230,7 +244,7 @@ MCPStdioTransport
   -> Runtime-specific caller
 ```
 
-V4.3 implements only the first four diagnostic pieces needed to prove protocol understanding. Tool execution must remain behind a later policy gate.
+V4 implements the diagnostic pieces needed to prove protocol understanding plus one policy-gated read-only tool call. Any broader tool execution must remain behind explicit policy gates.
 
 ## Compatibility
 
@@ -261,15 +275,17 @@ V4.3 implements only the first four diagnostic pieces needed to prove protocol u
 
 1. Keep V4.3 diagnostic client separate from runtime.
 2. Keep capability-aware resources/list and prompts/list diagnostics as discovery-only checks.
-3. Add tool-catalog risk classification without calling tools.
-4. Add a sandbox-only tools/call test for a read-only tool such as mem_current_project or mem_doctor.
-5. Add permission gates before any memory-writing tool.
+3. Add broader tool-catalog risk classification without calling non-allowlisted tools.
+4. Keep read-only tools/call coverage sandbox-only until runtime policy exists.
+5. Add permission gates before any memory-reading or memory-writing tool.
 6. Only after those gates, consider Engram-specific integration.
 
 ## Decision
 
-MCP Protocol: VALIDATED for lifecycle plus discovery of `tools/list`, with optional `resources/list` and `prompts/list` recorded as `PASS` or `NOT_SUPPORTED` according to negotiated capabilities.
+MCP Protocol: VALIDATED for lifecycle plus discovery of `tools/list`, optional `resources/list`, optional `prompts/list`, and one explicit read-only sandbox `tools/call`.
 
 Engram integration: not declared.
 
-Engram tool execution: not attempted.
+Engram runtime integration: not declared.
+
+Engram tool execution: limited to policy-approved `mem_doctor` read-only sandbox smoke.

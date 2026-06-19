@@ -51,14 +51,15 @@ default-deny, approval-bound and mostly advisory.
 - No relevant secret-bearing environment variable names were visible for
   Engram, Notion, Context7, 21st Magic, Vercel, Google Drive, Slack, Telegram,
   Supabase or Postgres.
-- MCP Protocol after V4.3: `VALIDATED` for the minimal stdio diagnostic cycle
-  `initialize -> notifications/initialized -> tools/list -> shutdown`.
+- MCP Protocol after V4 Integration Layer: `VALIDATED` for the stdio diagnostic cycle
+  `initialize -> notifications/initialized -> tools/list -> optional resources/list -> optional prompts/list -> policy-gated tools/call -> shutdown`.
+  Engram advertised `tools` only; `resources/list` and `prompts/list` were recorded as `NOT_SUPPORTED`, not failures. A single `mem_doctor` read-only sandbox `tools/call` passed under explicit policy.
 
 ## MCP Status Table
 
 | MCP | Config encontrado | Prueba ejecutada | Estado | Evidencia | Riesgo | Recomendacion |
 |---|---|---|---|---|---|---|
-| Engram | `config/mcp_profiles.json` has `engram` as `external_mcp`, `atlas_decision: defer`, `experimental_enabled: false`; local Codex config does not list Engram MCP. | V4.0: `engram --version`, `engram --help`, `engram doctor --json`. V4.1: sandboxed `ENGRAM_DATA_DIR`, `engram save`, `engram search`. V4.2: official repo study and MCP startup/shutdown harness. V4.3 and Integration Layer: generic MCP diagnostic `initialize`, `notifications/initialized`, `tools/list`, optional `resources/list`, optional `prompts/list`, shutdown. | PARTIAL_MCP_AVAILABLE | Standalone CLI remains `WORKING_STANDALONE`; generic MCP protocol is `VALIDATED`; `tools/list` returned 18 tools; `resources/list` and `prompts/list` were `NOT_SUPPORTED` because Engram advertised only `tools`; no `tools/call` was executed. Codex setup remains unexecuted. | False confidence: protocol discovery is not runtime integration, and listed tools include memory-writing operations. Official `engram setup codex` mutates global Codex config and prompt files. | Keep global MCP disabled. Next gate is a read-only sandbox `tools/call` policy test through the generic adapter, still without global config changes or memory writes. |
+| Engram | `config/mcp_profiles.json` has `engram` as `external_mcp`, `atlas_decision: defer`, `experimental_enabled: false`; local Codex config does not list Engram MCP. | V4.0: `engram --version`, `engram --help`, `engram doctor --json`. V4.1: sandboxed `ENGRAM_DATA_DIR`, `engram save`, `engram search`. V4.2: official repo study and MCP startup/shutdown harness. V4.3 and Integration Layer: generic MCP diagnostic `initialize`, `notifications/initialized`, `tools/list`, optional `resources/list`, optional `prompts/list`, policy-gated `tools/call`, shutdown. | PARTIAL_MCP_AVAILABLE | Standalone CLI remains `WORKING_STANDALONE`; generic MCP protocol is `VALIDATED`; `tools/list` returned 18 tools; `resources/list` and `prompts/list` were `NOT_SUPPORTED`; one policy-allowlisted `mem_doctor` call with `{}` passed in sandbox; no memory read/write tool was executed. Codex setup remains unexecuted. | False confidence: protocol plus one safe call is not runtime integration, and listed tools include memory-reading and memory-writing operations. Official `engram setup codex` mutates global Codex config and prompt files. | Keep global MCP disabled. Next gate is broader read-only classification and audit logging before any runtime integration. |
 | Playwright | `config/creative_pipeline_profiles.json` and `config/playwright_visual_qa_profiles.json` track Playwright visual QA as watchlist/advisory. Browser smoke workflow exists and remains manual/opt-in. | `tools/playwright_visual_qa_readiness.py`; prior browser smoke evidence from V3. | PARTIAL | Readiness returned `playwright_available: true`, `browsers_available: true`, `safe_to_run: true`, but also `advisory_only: true`, `requires_human_approval: true`, `requires_decision_council: true`. Prior manual smoke run `27724893071` passed with artifact `7709863742`. | Browser automation can hang, drift by environment or be mistaken for design proof. | Keep manual/opt-in. Allow into V4 runtime only as an approval-bound evidence step, not autonomous default. |
 | GitHub | `config/mcp_profiles.json` has GitHub on watchlist; `github_connector_readiness.py` exists; GitHub CLI is installed and authenticated. | `gh auth status`; `gh run list --limit 1`; `tools/github_connector_readiness.py`. | PARTIAL | `gh` is logged in; last run listed: `27765466069`, `success`. Readiness says theoretical read-only governance is ready, but `advisory_only: true` and runtime probe was not requested. | CLI works, but Atlas GitHub connector/MCP is still governance/advisory, and write operations remain blocked. | Use GitHub CLI for explicit read-only checks. Do not call this an active Atlas MCP until a read-only connector probe is implemented and documented. |
 | Notion | No repo MCP server config found. Notion skills may exist in the host Codex plugin environment, but Atlas has no Notion MCP profile activated. | Config/env presence only; no page reads or writes. | MISSING | No Notion env var names visible; no Notion entry in MCP profiles. | Confusing host app/plugin availability with Atlas runtime capability. | Leave out of V4 runtime until a read-only profile, secret policy and probe exist. |
@@ -100,20 +101,22 @@ Observed facts:
 - No Engram MCP server is configured in local Codex config.
 - `config/mcp_profiles.json` keeps Engram deferred and disabled.
 
-Classification after V4.2: `PARTIAL_MCP_AVAILABLE`.
+Classification after V4 Integration Layer: `PARTIAL_MCP_AVAILABLE` plus `MCP_PROTOCOL_VALIDATED`.
 
 Reason: Engram is locally installed and operational as a CLI/store, the V4.1
-sandbox proved a safe save/search roundtrip without touching real memory, and
-the V4.2 harness proved the official MCP process can start and stop under a
-sandbox data dir. It is not Atlas MCP-ready yet, because no Codex/Claude config
-was changed and no MCP initialize/tool-call handshake was executed.
+sandbox proved a safe save/search roundtrip without touching real memory, the
+V4.2 harness proved the official MCP process can start and stop under a sandbox
+data dir, and V4.3/Integration Layer proved Atlas can complete the generic MCP
+stdio lifecycle, discovery path and one policy-gated read-only `tools/call`.
+It is not Atlas runtime-ready yet, because no Codex/Claude config was changed
+and memory read/write tools remain blocked.
 
 ## What To Fix First
 
 1. Define an MCP proof protocol that separates binary presence, server config,
    authentication, read-only probe and write-safe sandbox tests.
-2. For Engram, design the next MCP-only stdio test using a temporary
-   `ENGRAM_DATA_DIR`; require explicit approval before any config change.
+2. For Engram, expand read-only MCP policy only after tool-by-tool risk review;
+   require explicit approval before any config change, memory read or memory write.
 3. Update `mcp_readiness_check.py` later to avoid counting nested env tables
    such as `node_repl.env` as independent MCP servers.
 4. Decide whether GitHub should remain CLI-only or gain an Atlas read-only
@@ -146,8 +149,8 @@ Eligible candidates, in order:
    authenticated and read-only run listing works.
 2. Playwright as an opt-in evidence step, because local readiness is true and
    prior smoke evidence exists.
-3. Engram only as standalone memory until an MCP stdio test proves the same
-   isolation without modifying global config.
+3. Engram only as standalone memory plus protocol-validated MCP diagnostics until
+   runtime policy, audit logging and read/write gates exist.
 
 Not eligible yet:
 
@@ -161,5 +164,6 @@ Result: `WARN`.
 There are no P0/P1 findings in this audit because no active Atlas MCP is failing
 inside the V3 baseline. The V4 risk is posture drift: several integrations are
 documented or visible as profiles, but only a small subset has real local
-evidence. V4.3 validates the base MCP protocol cycle, but no target MCP should
-be declared fully integrated as an Atlas runtime connector yet.
+evidence. V4.3 and the Integration Layer validate the base MCP protocol cycle plus
+capability-aware discovery and one policy-gated read-only call, but no target MCP
+should be declared fully integrated as an Atlas runtime connector yet.

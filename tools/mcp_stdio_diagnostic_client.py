@@ -7,10 +7,11 @@ This client validates the base MCP lifecycle only:
 3. send notifications/initialized,
 4. request tools/list,
 5. optionally request resources/list and prompts/list when supported,
-6. close stdin and shut the server down.
+6. optionally call one allowlisted read-only tool in a sandbox,
+7. close stdin and shut the server down.
 
-It intentionally does not call tools, read resources, get prompts, or integrate
-with Atlas runtime components.
+It intentionally does not read resources, get prompts, call write-capable tools,
+or integrate with Atlas runtime components.
 """
 
 from __future__ import annotations
@@ -30,6 +31,8 @@ from typing import Any, Dict, Iterable, List, Mapping, Optional
 PROTOCOL_VERSION = "2025-06-18"
 DEFAULT_SANDBOX = Path(".atlas_test_tmp") / "mcp_protocol_validation"
 DEFAULT_REPORT = DEFAULT_SANDBOX / "mcp_protocol_validation_report.json"
+DEFAULT_POLICY = Path("config") / "mcp_read_only_tool_policy.json"
+TOOL_CALL_REQUEST_ID = 5
 
 
 def _utc_now() -> str:
@@ -67,6 +70,15 @@ def build_resources_list_request(request_id: int = 3) -> Dict[str, Any]:
 
 def build_prompts_list_request(request_id: int = 4) -> Dict[str, Any]:
     return {"jsonrpc": "2.0", "id": request_id, "method": "prompts/list", "params": {}}
+
+
+def build_tools_call_request(tool_name: str, arguments: Mapping[str, Any], request_id: int = TOOL_CALL_REQUEST_ID) -> Dict[str, Any]:
+    return {
+        "jsonrpc": "2.0",
+        "id": request_id,
+        "method": "tools/call",
+        "params": {"name": tool_name, "arguments": dict(arguments)},
+    }
 
 
 def encode_stdio_message(message: Mapping[str, Any]) -> str:
@@ -146,6 +158,16 @@ def _tool_summary(tools_result: Mapping[str, Any]) -> List[Dict[str, Any]]:
     return summarized
 
 
+def _tool_by_name(tools_result: Mapping[str, Any], tool_name: str) -> Dict[str, Any] | None:
+    tools = tools_result.get("tools", [])
+    if not isinstance(tools, list):
+        return None
+    for tool in tools:
+        if isinstance(tool, dict) and tool.get("name") == tool_name:
+            return tool
+    return None
+
+
 def _resource_summary(resources_result: Mapping[str, Any]) -> List[Dict[str, Any]]:
     resources = resources_result.get("resources", [])
     if not isinstance(resources, list):
@@ -216,6 +238,125 @@ def _optional_list_status(
     return "FAIL"
 
 
+def load_read_only_tool_policy(policy_path: Path | str = DEFAULT_POLICY) -> Dict[str, Any]:
+    path = Path(policy_path)
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _empty_tool_call_report() -> Dict[str, Any]:
+    return {
+        "tool_call_supported": False,
+        "tool_name": "",
+        "input": {},
+        "policy_status": "UNKNOWN",
+        "call_status": "BLOCKED",
+        "side_effects_expected": False,
+        "result_excerpt": "",
+        "errors": [],
+    }
+
+
+def _tool_policy_entry(policy: Mapping[str, Any], tool_name: str) -> Mapping[str, Any] | None:
+    allowlist = policy.get("tool_allowlist", {})
+    if not isinstance(allowlist, dict):
+        return None
+    entry = allowlist.get(tool_name)
+    return entry if isinstance(entry, dict) else None
+
+
+def _schema_is_understood(schema: Mapping[str, Any]) -> bool:
+    schema_type = schema.get("type")
+    properties = schema.get("properties", {})
+    required = schema.get("required", [])
+    return (
+        schema_type == "object"
+        and isinstance(properties, dict)
+        and isinstance(required, list)
+        and all(isinstance(item, str) for item in required)
+    )
+
+
+def _evaluate_read_only_tool_policy(
+    *,
+    policy: Mapping[str, Any] | None,
+    tool: Mapping[str, Any] | None,
+    tool_name: str,
+    arguments: Mapping[str, Any],
+) -> Dict[str, Any]:
+    report = _empty_tool_call_report()
+    report["tool_name"] = tool_name
+    report["input"] = dict(arguments)
+
+    if policy is None:
+        report["policy_status"] = "UNKNOWN"
+        report["errors"].append("policy_missing")
+        return report
+    entry = _tool_policy_entry(policy, tool_name)
+    if entry is None:
+        report["policy_status"] = "DENIED"
+        report["errors"].append("tool_not_allowlisted")
+        return report
+    if tool is None:
+        report["policy_status"] = "DENIED"
+        report["errors"].append("tool_not_advertised")
+        return report
+    if entry.get("classification") != "read_only":
+        report["policy_status"] = "DENIED"
+        report["errors"].append("tool_not_read_only")
+        return report
+    if entry.get("side_effects_expected") is not False:
+        report["policy_status"] = "DENIED"
+        report["side_effects_expected"] = True
+        report["errors"].append("side_effects_not_false")
+        return report
+
+    schema = tool.get("inputSchema") if isinstance(tool.get("inputSchema"), dict) else {}
+    if not _schema_is_understood(schema):
+        report["policy_status"] = "DENIED"
+        report["errors"].append("schema_not_understood")
+        return report
+
+    properties = schema.get("properties", {})
+    schema_parameters = set(properties.keys())
+    allowed_arguments = entry.get("allowed_arguments", [])
+    if not isinstance(allowed_arguments, list) or not all(isinstance(arg, str) for arg in allowed_arguments):
+        report["policy_status"] = "DENIED"
+        report["errors"].append("policy_allowed_arguments_invalid")
+        return report
+    allowed_set = set(allowed_arguments)
+    required = set(schema.get("required", []))
+    input_set = set(arguments.keys())
+
+    if not input_set <= allowed_set:
+        report["policy_status"] = "DENIED"
+        report["errors"].append("argument_not_allowlisted")
+        return report
+    if not input_set <= schema_parameters:
+        report["policy_status"] = "DENIED"
+        report["errors"].append("argument_not_in_schema")
+        return report
+    if not required <= input_set:
+        report["policy_status"] = "DENIED"
+        report["errors"].append("required_argument_missing")
+        return report
+    if not required <= allowed_set:
+        report["policy_status"] = "DENIED"
+        report["errors"].append("required_argument_not_allowlisted")
+        return report
+
+    report["tool_call_supported"] = True
+    report["policy_status"] = "ALLOWED"
+    return report
+
+
+def _result_excerpt(response: Mapping[str, Any], max_chars: int = 500) -> str:
+    result = response.get("result", {})
+    encoded = json.dumps(result, sort_keys=True, ensure_ascii=False)
+    if len(encoded) <= max_chars:
+        return encoded
+    return encoded[:max_chars] + "..."
+
+
 def run_mcp_protocol_validation(
     *,
     command: List[str],
@@ -225,6 +366,10 @@ def run_mcp_protocol_validation(
     request_timeout_seconds: float = 5.0,
     shutdown_timeout_seconds: float = 5.0,
     popen_factory: Any = subprocess.Popen,
+    enable_read_only_tool_call: bool = False,
+    read_only_tool_name: str = "",
+    read_only_tool_arguments: Mapping[str, Any] | None = None,
+    read_only_tool_policy: Mapping[str, Any] | None = None,
 ) -> Dict[str, Any]:
     sandbox = Path(sandbox_dir)
     sandbox.mkdir(parents=True, exist_ok=True)
@@ -253,10 +398,12 @@ def run_mcp_protocol_validation(
         "tools_list": {"status": "UNKNOWN", "tool_count": 0, "tools": []},
         "resources_list": {"status": "UNKNOWN", "resource_count": 0, "resources": []},
         "prompts_list": {"status": "UNKNOWN", "prompt_count": 0, "prompts": []},
+        "tool_call": _empty_tool_call_report(),
         "summary": {
             "tools_count": 0,
             "resources_status": "UNKNOWN",
             "prompts_status": "UNKNOWN",
+            "tool_call_status": "BLOCKED",
         },
         "shutdown": {"status": "UNKNOWN", "exit_code": None},
         "notifications_received": [],
@@ -316,8 +463,10 @@ def run_mcp_protocol_validation(
                 timeout_seconds=request_timeout_seconds,
                 notifications=report["notifications_received"],
             )
+            raw_tools_result: Mapping[str, Any] = {}
             if "result" in tools_response:
-                tools = _tool_summary(tools_response["result"])
+                raw_tools_result = tools_response["result"]
+                tools = _tool_summary(raw_tools_result)
                 report["tools_list"] = {
                     "status": "PASS",
                     "tool_count": len(tools),
@@ -381,6 +530,32 @@ def run_mcp_protocol_validation(
                 if prompts_status == "FAIL":
                     report["errors"].append("prompts_list_error_response")
             report["summary"]["prompts_status"] = report["prompts_list"]["status"]
+
+            if enable_read_only_tool_call:
+                tool_arguments = dict(read_only_tool_arguments or {})
+                advertised_tool = _tool_by_name(raw_tools_result, read_only_tool_name)
+                tool_call_report = _evaluate_read_only_tool_policy(
+                    policy=read_only_tool_policy,
+                    tool=advertised_tool,
+                    tool_name=read_only_tool_name,
+                    arguments=tool_arguments,
+                )
+                if tool_call_report["policy_status"] == "ALLOWED":
+                    _write_message(process.stdin, build_tools_call_request(read_only_tool_name, tool_arguments))
+                    tool_call_response = _wait_for_response(
+                        stdout_queue,
+                        request_id=TOOL_CALL_REQUEST_ID,
+                        timeout_seconds=request_timeout_seconds,
+                        notifications=report["notifications_received"],
+                    )
+                    if "result" in tool_call_response:
+                        tool_call_report["call_status"] = "PASS"
+                        tool_call_report["result_excerpt"] = _result_excerpt(tool_call_response)
+                    else:
+                        tool_call_report["call_status"] = "FAIL"
+                        tool_call_report["errors"].append("tools_call_error_response")
+                report["tool_call"] = tool_call_report
+            report["summary"]["tool_call_status"] = report["tool_call"]["call_status"]
     except Exception as exc:
         report["errors"].append(f"{type(exc).__name__}:{exc}")
         if report["initialize"]["status"] == "UNKNOWN":
@@ -390,6 +565,8 @@ def run_mcp_protocol_validation(
         for optional_key in ("resources_list", "prompts_list"):
             if report[optional_key]["status"] == "UNKNOWN":
                 report[optional_key]["status"] = "FAIL"
+        if report["tool_call"]["call_status"] == "BLOCKED" and enable_read_only_tool_call:
+            report["tool_call"]["call_status"] = "FAIL"
     finally:
         if process is not None:
             if process.stdin is not None:
@@ -424,6 +601,7 @@ def run_mcp_protocol_validation(
         and report["resources_list"]["status"] in {"PASS", "NOT_SUPPORTED"}
         and report["prompts_list"]["status"] in {"PASS", "NOT_SUPPORTED"}
         and report["shutdown"]["status"] in {"PASS", "TERMINATED"}
+        and report["tool_call"]["call_status"] in {"PASS", "BLOCKED"}
     ):
         report["classification"] = "MCP_PROTOCOL_VALIDATED"
     else:
@@ -465,6 +643,7 @@ def validate_mcp_protocol_report(report: Mapping[str, Any]) -> Dict[str, Any]:
         "tools_list",
         "resources_list",
         "prompts_list",
+        "tool_call",
         "summary",
         "shutdown",
         "classification",
@@ -482,7 +661,18 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
     parser.add_argument("--project", default="codex-atlas-v4-mcp-protocol")
     parser.add_argument("--request-timeout-seconds", type=float, default=5.0)
     parser.add_argument("--shutdown-timeout-seconds", type=float, default=5.0)
+    parser.add_argument("--enable-read-only-tool-call", action="store_true")
+    parser.add_argument("--read-only-tool-name", default="mem_doctor")
+    parser.add_argument("--read-only-tool-arguments", default="{}")
+    parser.add_argument("--read-only-tool-policy", default=str(DEFAULT_POLICY))
     args = parser.parse_args(list(argv) if argv is not None else None)
+
+    policy = None
+    if args.enable_read_only_tool_call:
+        policy = load_read_only_tool_policy(args.read_only_tool_policy)
+    tool_arguments = json.loads(args.read_only_tool_arguments)
+    if not isinstance(tool_arguments, dict):
+        raise ValueError("--read-only-tool-arguments must be a JSON object")
 
     report = run_mcp_protocol_validation(
         command=args.command,
@@ -491,6 +681,10 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
         project=args.project,
         request_timeout_seconds=args.request_timeout_seconds,
         shutdown_timeout_seconds=args.shutdown_timeout_seconds,
+        enable_read_only_tool_call=args.enable_read_only_tool_call,
+        read_only_tool_name=args.read_only_tool_name,
+        read_only_tool_arguments=tool_arguments,
+        read_only_tool_policy=policy,
     )
     print(json.dumps(report, indent=2, sort_keys=True))
     return 0 if report["classification"] == "MCP_PROTOCOL_VALIDATED" else 1
