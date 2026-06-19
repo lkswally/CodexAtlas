@@ -1,0 +1,46 @@
+{
+  "policy_name": "dangerous_command_policy",
+  "version": "v1",
+  "status_order": ["DENY", "WARN", "SAFE"],
+  "categories": {
+    "destructive_filesystem": "Recursive deletion, formatting, wiping, or raw filesystem writes.",
+    "credential_exposure": "Commands or literals that can reveal credentials or tokens.",
+    "network_exfiltration": "Remote content passed directly to an executable shell.",
+    "privilege_escalation": "Elevated deletion or dangerously broad permissions.",
+    "package_script_execution": "Package installation that may execute third-party scripts.",
+    "git_history_rewrite": "Git operations that rewrite history or remove recovery data.",
+    "production_deploy": "Commands that can publish or apply hosted changes.",
+    "database_destructive": "Statements that remove databases, schemas, tables, or unscoped rows.",
+    "shell_obfuscation": "Encoded or dynamically evaluated shell execution.",
+    "read_only_operation": "Recognized local inspection or verification operations.",
+    "local_state_change": "Commands that may alter local repository or container state."
+  },
+  "rules": [
+    {"id": "linux_recursive_delete", "status": "DENY", "category": "destructive_filesystem", "pattern": "(?:^|[;&|]\\s*)rm\\s+-[a-z]*r[a-z]*f[a-z]*\\s+(?:/|(?:\\./)?\\*)(?:\\s|$)", "reason": "Recursive forced deletion can destroy a filesystem tree.", "confidence": 1.0},
+    {"id": "sudo_rm", "status": "DENY", "category": "privilege_escalation", "pattern": "(?:^|[;&|]\\s*)sudo\\s+rm(?:\\s|$)", "reason": "Privileged file deletion has a high destructive impact.", "confidence": 1.0},
+    {"id": "chmod_root", "status": "DENY", "category": "privilege_escalation", "pattern": "(?:^|[;&|]\\s*)chmod\\s+(?:-[a-z]+\\s+)*777\\s+/(?:\\s|$)", "reason": "World-writable permissions on the filesystem root are unsafe.", "confidence": 1.0},
+    {"id": "filesystem_format_or_raw_write", "status": "DENY", "category": "destructive_filesystem", "pattern": "(?:^|[;&|]\\s*)(?:(?:sudo\\s+)?mkfs(?:\\.[a-z0-9]+)?(?:\\s|$)|(?:sudo\\s+)?dd\\b[^;&|]*\\sif=|format(?:\\.com)?(?:\\s+[a-z]:|\\s+/)|cipher\\s+/w(?::|\\s|$))", "reason": "Formatting, wiping, or raw copying can destroy filesystem data.", "confidence": 1.0},
+    {"id": "windows_recursive_delete", "status": "DENY", "category": "destructive_filesystem", "pattern": "(?:^|[;&|]\\s*)(?:remove-item\\b(?=[^;&|]*-recurse\\b)(?=[^;&|]*-force\\b)|del\\s+(?=[^;&|]*?/s(?:\\s|$))(?=[^;&|]*?/q(?:\\s|$)))", "reason": "Quiet or forced recursive deletion can remove a complete directory tree.", "confidence": 0.99},
+    {"id": "powershell_dynamic_execution", "status": "DENY", "category": "shell_obfuscation", "pattern": "(?:^|[;|]\\s*)(?:invoke-expression\\b|iex\\s*(?:\\(|\\s))", "reason": "Dynamic PowerShell evaluation obscures the executed command.", "confidence": 1.0},
+    {"id": "powershell_remote_execution", "status": "DENY", "category": "network_exfiltration", "pattern": "(?:invoke-webrequest|iwr)\\b[^|]*\\|\\s*(?:invoke-expression|iex)\\b", "reason": "Remote content is piped into dynamic PowerShell execution.", "confidence": 1.0},
+    {"id": "encoded_shell_execution", "status": "DENY", "category": "shell_obfuscation", "pattern": "(?:(?:powershell|pwsh)(?:\\.exe)?\\b[^;&|]*(?:-enc|-encodedcommand)\\b|base64\\s+(?:--decode|-d)\\b[^|;&]*\\|\\s*(?:ba)?sh\\b)", "reason": "Encoded content hides the shell command being executed.", "confidence": 0.99},
+    {"id": "git_history_rewrite", "status": "DENY", "category": "git_history_rewrite", "pattern": "(?:^|[;&|]\\s*)git\\s+(?:push\\b[^;&|]*(?:--force(?:-with-lease)?|-f)(?:\\s|$)|reset\\s+--hard(?:\\s|$)|reflog\\s+expire(?:\\s|$)|gc\\b[^;&|]*--prune=now(?:\\s|$))", "reason": "The Git operation can rewrite history or remove recovery data.", "confidence": 1.0},
+    {"id": "database_destructive", "status": "DENY", "category": "database_destructive", "pattern": "(?:\\bdrop\\s+(?:database|schema)\\b|\\btruncate\\s+(?:table\\s+)?[a-z0-9_.\"`\\[\\]-]+|\\bdelete\\s+from\\s+[a-z0-9_.\"`\\[\\]-]+\\s*;?\\s*$)", "reason": "The statement can destroy database structures or all rows in a table.", "confidence": 0.99},
+    {"id": "dotenv_read", "status": "DENY", "category": "credential_exposure", "pattern": "(?:^|[;&|]\\s*)(?:cat|type|get-content)\\s+(?:[^;&|]*[\\\\/])?\\.env(?:\\.[a-z0-9_.-]+)?(?:\\s|$)", "reason": "Reading dotenv files can expose credentials and tokens.", "confidence": 0.99},
+    {"id": "credential_literal", "status": "DENY", "category": "credential_exposure", "pattern": "(?:\\bghp_[a-z0-9_]+|\\bgithub_pat_[a-z0-9_]+|\\bsk-[a-z0-9_-]{8,}|\\b(?:token|password|api_key)\\s*=\\s*[^\\s;&|]+)", "reason": "The command contains a credential-shaped literal or assignment.", "confidence": 0.95},
+    {"id": "remote_pipe_to_shell", "status": "DENY", "category": "network_exfiltration", "pattern": "(?:(?:^|[;&|]\\s*)(?:curl|wget)\\b[^|]*\\|\\s*(?:sudo\\s+)?(?:ba)?sh\\b|(?:^|[;&|]\\s*)bash\\s+<\\()", "reason": "Remote or substituted content is executed directly by a shell.", "confidence": 1.0},
+
+    {"id": "package_install", "status": "WARN", "category": "package_script_execution", "pattern": "(?:^|[;&|]\\s*)(?:(?:npm|pnpm)\\s+(?:install|i)|yarn\\s+(?:install|add)|(?:python(?:3)?\\s+-m\\s+)?pip3?\\s+install|(?:python\\s+-m\\s+)?playwright\\s+install)(?:\\s|$)", "reason": "Package installation may execute third-party code or modify tooling state.", "confidence": 0.95},
+    {"id": "container_cleanup", "status": "WARN", "category": "local_state_change", "pattern": "(?:^|[;&|]\\s*)docker\\s+(?:compose\\s+(?:down|rm)|system\\s+prune)(?:\\s|$)", "reason": "The command removes or stops local container resources.", "confidence": 0.95},
+    {"id": "git_worktree_change", "status": "WARN", "category": "local_state_change", "pattern": "(?:^|[;&|]\\s*)git\\s+(?:clean|checkout|switch|stash)(?:\\s|$)", "reason": "The command can alter or move local working tree state.", "confidence": 0.95},
+    {"id": "production_deploy", "status": "WARN", "category": "production_deploy", "pattern": "(?:^|[;&|]\\s*)(?:vercel\\s+(?:deploy|--prod)|fly(?:ctl)?\\s+deploy|railway\\s+up|supabase\\s+db\\s+push)(?:\\s|$)", "reason": "The command can publish or apply changes to a hosted environment.", "confidence": 0.95},
+
+    {"id": "git_read", "status": "SAFE", "category": "read_only_operation", "pattern": "^git\\s+(?:status|diff|log)(?:\\s+[^;&|]+)?$", "reason": "Reads repository state without changing it.", "confidence": 1.0},
+    {"id": "pytest", "status": "SAFE", "category": "read_only_operation", "pattern": "^(?:python(?:3)?\\s+-m\\s+)?pytest(?:\\s+[^;&|]+)?$", "reason": "Runs the local Python test suite.", "confidence": 0.99},
+    {"id": "compileall", "status": "SAFE", "category": "read_only_operation", "pattern": "^python(?:3)?\\s+-m\\s+compileall(?:\\s+[^;&|]+)?$", "reason": "Compiles Python sources for syntax validation.", "confidence": 0.99},
+    {"id": "atlas_verify", "status": "SAFE", "category": "read_only_operation", "pattern": "^(?:python(?:3)?\\s+)?(?:tools[\\\\/])?atlas_verify(?:\\.py)?(?:\\s+[^;&|]+)?$", "reason": "Runs the Atlas verification utility.", "confidence": 1.0},
+    {"id": "engram_doctor", "status": "SAFE", "category": "read_only_operation", "pattern": "^engram\\s+doctor(?:\\s+[^;&|]+)?$", "reason": "Runs Engram diagnostics without writing memory.", "confidence": 1.0},
+    {"id": "github_run_read", "status": "SAFE", "category": "read_only_operation", "pattern": "^gh\\s+run\\s+(?:list|view)(?:\\s+[^;&|]+)?$", "reason": "Reads GitHub Actions run metadata.", "confidence": 0.99},
+    {"id": "shell_read", "status": "SAFE", "category": "read_only_operation", "pattern": "^(?:(?:ls|dir|cd)(?:\\s+[^;&|]+)?|pwd|echo(?:\\s+[^;&|><]+)?|cat\\s+(?![^;&|]*[\\\\/]?\\.env(?:\\.|\\s|$))[^;&|<>]+)$", "reason": "Performs a recognized local read or shell navigation operation.", "confidence": 0.98}
+  ]
+}
