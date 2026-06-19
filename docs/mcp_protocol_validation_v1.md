@@ -1,4 +1,4 @@
-﻿# MCP Protocol Validation V1
+# MCP Protocol Validation V1
 
 ## Executive Summary
 
@@ -9,10 +9,11 @@ Evidence:
 - initialize: PASS
 - notifications/initialized: PASS
 - tools/list: PASS
+- resources/list: NOT_SUPPORTED by Engram capability negotiation
+- prompts/list: NOT_SUPPORTED by Engram capability negotiation
 - shutdown by closing stdin and waiting: PASS
 - tools detected from Engram MCP: 18
 - tools/call: not executed
-- resources/prompts: documented for future adapter scope, not requested
 - memory read/write: not executed
 - global Codex/Claude config: untouched
 
@@ -123,11 +124,19 @@ Not executed in V4.3. The adapter must not call tools until Atlas has a separate
 
 ### resources/list and resources/read
 
-Documented MCP operations for servers exposing resources. Not requested in V4.3 because Engram only negotiated the tools capability in the observed initialize response.
+`resources/list` is now implemented as optional discovery in the diagnostic adapter. The client only sends it when the server advertises the `resources` capability. If capability negotiation omits resources, or the server responds with JSON-RPC `-32601 Method not found`, Atlas records `NOT_SUPPORTED` and keeps the main protocol validation intact.
+
+Observed Engram result in V4 Integration Layer: `NOT_SUPPORTED`; Engram advertised only `tools` in `initialize`.
+
+`resources/read` remains out of scope. No resource content is read.
 
 ### prompts/list and prompts/get
 
-Documented MCP operations for prompt templates. Not requested in V4.3 because Engram did not negotiate prompts capability in the observed initialize response.
+`prompts/list` is now implemented as optional discovery in the diagnostic adapter. The client only sends it when the server advertises the `prompts` capability. If capability negotiation omits prompts, or the server responds with JSON-RPC `-32601 Method not found`, Atlas records `NOT_SUPPORTED` and keeps the main protocol validation intact.
+
+Observed Engram result in V4 Integration Layer: `NOT_SUPPORTED`; Engram advertised only `tools` in `initialize`.
+
+`prompts/get` remains out of scope. No prompt content is requested.
 
 ### notifications
 
@@ -153,6 +162,14 @@ sequenceDiagram
     Atlas->>MCP: notifications/initialized
     Atlas->>MCP: tools/list
     MCP-->>Atlas: tools list
+    opt if resources capability exists
+        Atlas->>MCP: resources/list
+        MCP-->>Atlas: resources list or JSON-RPC error
+    end
+    opt if prompts capability exists
+        Atlas->>MCP: prompts/list
+        MCP-->>Atlas: prompts list or JSON-RPC error
+    end
     Atlas->>MCP: close stdin
     MCP-->>Atlas: process exits
 ```
@@ -161,10 +178,12 @@ sequenceDiagram
 
 Atlas had advisory MCP profiles, Engram CLI sandbox proof and MCP process startup proof. It did not previously have an executable MCP client lifecycle.
 
-V4.3 adds:
+V4.3 added:
 
 - tools/mcp_stdio_diagnostic_client.py
 - tests/test_mcp_stdio_diagnostic_client.py
+
+The V4 Integration Layer extends the same generic adapter with optional `resources/list` and `prompts/list` discovery. These checks are capability-aware and do not turn unsupported server surfaces into failures.
 
 This is a diagnostic adapter only. It is not connected to Planner, Runtime, Evidence, Dashboard or Failure Registry.
 
@@ -195,7 +214,7 @@ No tool was called.
 
 ## Atlas Future
 
-A future adapter can add resources/list, resources/read, prompts/list, prompts/get, tools/call, request cancellation, ping, pagination, capability-aware gating, timeout policy and structured audit records.
+A future adapter can add resources/read, prompts/get, tools/call, request cancellation, ping, pagination, richer capability-aware gating, timeout policy and structured audit records. `tools/call` is explicitly excluded from the current phase and should first be tested only against read-only sandbox tools.
 
 ## Adapter Proposed
 
@@ -241,7 +260,7 @@ V4.3 implements only the first four diagnostic pieces needed to prove protocol u
 ## Roadmap
 
 1. Keep V4.3 diagnostic client separate from runtime.
-2. Add capability-aware resources/list and prompts/list diagnostics.
+2. Keep capability-aware resources/list and prompts/list diagnostics as discovery-only checks.
 3. Add tool-catalog risk classification without calling tools.
 4. Add a sandbox-only tools/call test for a read-only tool such as mem_current_project or mem_doctor.
 5. Add permission gates before any memory-writing tool.
@@ -249,7 +268,7 @@ V4.3 implements only the first four diagnostic pieces needed to prove protocol u
 
 ## Decision
 
-MCP Protocol: VALIDATED.
+MCP Protocol: VALIDATED for lifecycle plus discovery of `tools/list`, with optional `resources/list` and `prompts/list` recorded as `PASS` or `NOT_SUPPORTED` according to negotiated capabilities.
 
 Engram integration: not declared.
 

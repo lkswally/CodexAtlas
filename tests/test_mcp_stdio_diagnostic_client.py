@@ -4,6 +4,8 @@ from tools.mcp_stdio_diagnostic_client import (
     PROTOCOL_VERSION,
     build_initialize_request,
     build_initialized_notification,
+    build_prompts_list_request,
+    build_resources_list_request,
     build_tools_list_request,
     encode_stdio_message,
     run_mcp_protocol_validation,
@@ -34,51 +36,25 @@ class FakeProcess:
         self.returncode = -9
 
 
-def test_build_initialize_request_matches_mcp_lifecycle():
-    request = build_initialize_request(7)
-
-    assert request["jsonrpc"] == "2.0"
-    assert request["id"] == 7
-    assert request["method"] == "initialize"
-    assert request["params"]["protocolVersion"] == PROTOCOL_VERSION
-    assert request["params"]["capabilities"] == {}
-    assert request["params"]["clientInfo"]["name"] == "codex-atlas-mcp-diagnostic-client"
-
-
-def test_initialized_notification_and_tools_list_messages():
-    assert build_initialized_notification() == {
-        "jsonrpc": "2.0",
-        "method": "notifications/initialized",
-    }
-    assert build_tools_list_request(9) == {
-        "jsonrpc": "2.0",
-        "id": 9,
-        "method": "tools/list",
-        "params": {},
-    }
-
-
-def test_encode_stdio_message_is_newline_delimited_json():
-    encoded = encode_stdio_message({"jsonrpc": "2.0", "id": 1, "method": "ping"})
-
-    assert encoded.endswith("\n")
-    assert encoded.count("\n") == 1
-    assert '"method":"ping"' in encoded
-
-
-def test_protocol_validation_lists_tools_with_fake_server(tmp_path):
-    initialize_response = (
+def _initialize_response(capabilities):
+    return (
         '{"jsonrpc":"2.0","id":1,"result":{"protocolVersion":"2025-06-18",'
-        '"capabilities":{"tools":{"listChanged":true}},'
+        f'"capabilities":{capabilities},'
         '"serverInfo":{"name":"fake","version":"1"}}}\n'
     )
-    tools_response = (
+
+
+def _tools_response():
+    return (
         '{"jsonrpc":"2.0","id":2,"result":{"tools":[{"name":"mem_search",'
         '"description":"Search memory","inputSchema":{"type":"object",'
         '"properties":{"query":{"type":"string"},"limit":{"type":"integer"}},'
         '"required":["query"]}}]}}\n'
     )
-    fake = FakeProcess([initialize_response, tools_response])
+
+
+def _run_fake(stdout_lines, tmp_path):
+    fake = FakeProcess(stdout_lines)
     captured = {}
 
     def popen(command, **kwargs):
@@ -92,6 +68,48 @@ def test_protocol_validation_lists_tools_with_fake_server(tmp_path):
         report_path=None,
         popen_factory=popen,
     )
+    return report, fake, captured
+
+
+def test_build_initialize_request_matches_mcp_lifecycle():
+    request = build_initialize_request(7)
+
+    assert request["jsonrpc"] == "2.0"
+    assert request["id"] == 7
+    assert request["method"] == "initialize"
+    assert request["params"]["protocolVersion"] == PROTOCOL_VERSION
+    assert request["params"]["capabilities"] == {}
+    assert request["params"]["clientInfo"]["name"] == "codex-atlas-mcp-diagnostic-client"
+
+
+def test_initialized_notification_and_list_messages():
+    assert build_initialized_notification() == {
+        "jsonrpc": "2.0",
+        "method": "notifications/initialized",
+    }
+    assert build_tools_list_request(9) == {
+        "jsonrpc": "2.0",
+        "id": 9,
+        "method": "tools/list",
+        "params": {},
+    }
+    assert build_resources_list_request(10)["method"] == "resources/list"
+    assert build_prompts_list_request(11)["method"] == "prompts/list"
+
+
+def test_encode_stdio_message_is_newline_delimited_json():
+    encoded = encode_stdio_message({"jsonrpc": "2.0", "id": 1, "method": "ping"})
+
+    assert encoded.endswith("\n")
+    assert encoded.count("\n") == 1
+    assert '"method":"ping"' in encoded
+
+
+def test_protocol_validation_lists_tools_with_fake_server(tmp_path):
+    report, fake, captured = _run_fake(
+        [_initialize_response('{"tools":{"listChanged":true}}'), _tools_response()],
+        tmp_path,
+    )
 
     assert report["classification"] == "MCP_PROTOCOL_VALIDATED"
     assert report["initialize"]["status"] == "PASS"
@@ -100,8 +118,97 @@ def test_protocol_validation_lists_tools_with_fake_server(tmp_path):
     assert report["tools_list"]["tool_count"] == 1
     assert report["tools_list"]["tools"][0]["name"] == "mem_search"
     assert report["tools_list"]["tools"][0]["parameters"] == ["limit", "query"]
+    assert report["resources_list"]["status"] == "NOT_SUPPORTED"
+    assert report["prompts_list"]["status"] == "NOT_SUPPORTED"
     assert "notifications/initialized" in fake.stdin.getvalue()
     assert captured["env"]["ENGRAM_DATA_DIR"] == str((tmp_path / "mcp").resolve())
+
+
+def test_resources_list_supported(tmp_path):
+    resources_response = (
+        '{"jsonrpc":"2.0","id":3,"result":{"resources":[{"uri":"file:///a",'
+        '"name":"alpha","description":"A","mimeType":"text/plain"}]}}\n'
+    )
+    report, _fake, _captured = _run_fake(
+        [
+            _initialize_response('{"tools":{},"resources":{"listChanged":true}}'),
+            _tools_response(),
+            resources_response,
+        ],
+        tmp_path,
+    )
+
+    assert report["resources_list"]["status"] == "PASS"
+    assert report["resources_list"]["resource_count"] == 1
+    assert report["resources_list"]["resources"][0]["uri"] == "file:///a"
+    assert report["prompts_list"]["status"] == "NOT_SUPPORTED"
+
+
+def test_resources_list_not_supported_by_capability_absence(tmp_path):
+    report, fake, _captured = _run_fake(
+        [_initialize_response('{"tools":{}}'), _tools_response()],
+        tmp_path,
+    )
+
+    assert report["resources_list"]["status"] == "NOT_SUPPORTED"
+    assert "resources/list" not in fake.stdin.getvalue()
+
+
+def test_prompts_list_supported(tmp_path):
+    prompts_response = (
+        '{"jsonrpc":"2.0","id":4,"result":{"prompts":[{"name":"review",'
+        '"description":"Review code","arguments":[{"name":"code","required":true}]}]}}\n'
+    )
+    report, _fake, _captured = _run_fake(
+        [
+            _initialize_response('{"tools":{},"prompts":{"listChanged":true}}'),
+            _tools_response(),
+            prompts_response,
+        ],
+        tmp_path,
+    )
+
+    assert report["prompts_list"]["status"] == "PASS"
+    assert report["prompts_list"]["prompt_count"] == 1
+    assert report["prompts_list"]["prompts"][0]["name"] == "review"
+    assert report["resources_list"]["status"] == "NOT_SUPPORTED"
+
+
+def test_prompts_list_not_supported_by_method_not_found(tmp_path):
+    prompts_error = (
+        '{"jsonrpc":"2.0","id":4,"error":{"code":-32601,'
+        '"message":"Method not found"}}\n'
+    )
+    report, _fake, _captured = _run_fake(
+        [
+            _initialize_response('{"tools":{},"prompts":{"listChanged":true}}'),
+            _tools_response(),
+            prompts_error,
+        ],
+        tmp_path,
+    )
+
+    assert report["prompts_list"]["status"] == "NOT_SUPPORTED"
+    assert report["classification"] == "MCP_PROTOCOL_VALIDATED"
+
+
+def test_jsonrpc_error_for_optional_list_is_controlled_fail(tmp_path):
+    resources_error = (
+        '{"jsonrpc":"2.0","id":3,"error":{"code":-32603,'
+        '"message":"Internal error"}}\n'
+    )
+    report, _fake, _captured = _run_fake(
+        [
+            _initialize_response('{"tools":{},"resources":{"listChanged":true}}'),
+            _tools_response(),
+            resources_error,
+        ],
+        tmp_path,
+    )
+
+    assert report["resources_list"]["status"] == "FAIL"
+    assert "resources_list_error_response" in report["errors"]
+    assert report["classification"] == "MCP_PROTOCOL_PARTIAL"
 
 
 def test_validate_protocol_report_rejects_missing_fields():
@@ -110,10 +217,16 @@ def test_validate_protocol_report_rejects_missing_fields():
         "version": "v1",
         "generated_at": "2026-06-18T00:00:00+00:00",
         "protocol_version_requested": PROTOCOL_VERSION,
+        "protocol_version": PROTOCOL_VERSION,
+        "server_info": {},
+        "capabilities": {},
         "command": ["fake-mcp"],
         "initialize": {},
         "initialized": {},
         "tools_list": {},
+        "resources_list": {},
+        "prompts_list": {},
+        "summary": {},
         "shutdown": {},
         "classification": "MCP_PROTOCOL_VALIDATED",
     }

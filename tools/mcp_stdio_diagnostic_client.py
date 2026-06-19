@@ -6,7 +6,8 @@ This client validates the base MCP lifecycle only:
 2. send initialize,
 3. send notifications/initialized,
 4. request tools/list,
-5. close stdin and shut the server down.
+5. optionally request resources/list and prompts/list when supported,
+6. close stdin and shut the server down.
 
 It intentionally does not call tools, read resources, get prompts, or integrate
 with Atlas runtime components.
@@ -60,6 +61,14 @@ def build_tools_list_request(request_id: int = 2) -> Dict[str, Any]:
     return {"jsonrpc": "2.0", "id": request_id, "method": "tools/list", "params": {}}
 
 
+def build_resources_list_request(request_id: int = 3) -> Dict[str, Any]:
+    return {"jsonrpc": "2.0", "id": request_id, "method": "resources/list", "params": {}}
+
+
+def build_prompts_list_request(request_id: int = 4) -> Dict[str, Any]:
+    return {"jsonrpc": "2.0", "id": request_id, "method": "prompts/list", "params": {}}
+
+
 def encode_stdio_message(message: Mapping[str, Any]) -> str:
     encoded = json.dumps(message, separators=(",", ":"), ensure_ascii=False)
     if "\n" in encoded or "\r" in encoded:
@@ -111,6 +120,10 @@ def _write_message(stdin: Any, message: Mapping[str, Any]) -> None:
     stdin.flush()
 
 
+def _schema_parameters(schema: Mapping[str, Any]) -> List[str]:
+    return sorted((schema.get("properties") or {}).keys())
+
+
 def _tool_summary(tools_result: Mapping[str, Any]) -> List[Dict[str, Any]]:
     tools = tools_result.get("tools", [])
     if not isinstance(tools, list):
@@ -126,11 +139,81 @@ def _tool_summary(tools_result: Mapping[str, Any]) -> List[Dict[str, Any]]:
                 "title": tool.get("title", ""),
                 "description": tool.get("description", ""),
                 "input_schema_type": schema.get("type", ""),
-                "parameters": sorted((schema.get("properties") or {}).keys()),
+                "parameters": _schema_parameters(schema),
                 "required": schema.get("required", []),
             }
         )
     return summarized
+
+
+def _resource_summary(resources_result: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    resources = resources_result.get("resources", [])
+    if not isinstance(resources, list):
+        return []
+    summarized = []
+    for resource in resources:
+        if not isinstance(resource, dict):
+            continue
+        summarized.append(
+            {
+                "uri": resource.get("uri", ""),
+                "name": resource.get("name", ""),
+                "title": resource.get("title", ""),
+                "description": resource.get("description", ""),
+                "mime_type": resource.get("mimeType", ""),
+            }
+        )
+    return summarized
+
+
+def _prompt_summary(prompts_result: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    prompts = prompts_result.get("prompts", [])
+    if not isinstance(prompts, list):
+        return []
+    summarized = []
+    for prompt in prompts:
+        if not isinstance(prompt, dict):
+            continue
+        arguments = prompt.get("arguments", [])
+        if not isinstance(arguments, list):
+            arguments = []
+        summarized.append(
+            {
+                "name": prompt.get("name", ""),
+                "title": prompt.get("title", ""),
+                "description": prompt.get("description", ""),
+                "arguments": [
+                    argument.get("name", "")
+                    for argument in arguments
+                    if isinstance(argument, dict) and argument.get("name")
+                ],
+            }
+        )
+    return summarized
+
+
+def _jsonrpc_error_code(response: Mapping[str, Any]) -> Any:
+    error = response.get("error")
+    if not isinstance(error, dict):
+        return None
+    return error.get("code")
+
+
+def _optional_list_status(
+    *,
+    capability_name: str,
+    capabilities: Mapping[str, Any],
+    response: Mapping[str, Any] | None,
+) -> str:
+    if capability_name not in capabilities:
+        return "NOT_SUPPORTED"
+    if response is None:
+        return "FAIL"
+    if "result" in response:
+        return "PASS"
+    if _jsonrpc_error_code(response) == -32601:
+        return "NOT_SUPPORTED"
+    return "FAIL"
 
 
 def run_mcp_protocol_validation(
@@ -156,6 +239,9 @@ def run_mcp_protocol_validation(
         "version": "v1",
         "generated_at": _utc_now(),
         "protocol_version_requested": PROTOCOL_VERSION,
+        "protocol_version": "",
+        "server_info": {},
+        "capabilities": {},
         "command": command,
         "sandbox_dir": str(resolved_sandbox),
         "env": {
@@ -165,6 +251,13 @@ def run_mcp_protocol_validation(
         "initialize": {"status": "UNKNOWN", "response": None},
         "initialized": {"status": "UNKNOWN"},
         "tools_list": {"status": "UNKNOWN", "tool_count": 0, "tools": []},
+        "resources_list": {"status": "UNKNOWN", "resource_count": 0, "resources": []},
+        "prompts_list": {"status": "UNKNOWN", "prompt_count": 0, "prompts": []},
+        "summary": {
+            "tools_count": 0,
+            "resources_status": "UNKNOWN",
+            "prompts_status": "UNKNOWN",
+        },
         "shutdown": {"status": "UNKNOWN", "exit_code": None},
         "notifications_received": [],
         "stderr": [],
@@ -202,6 +295,12 @@ def run_mcp_protocol_validation(
         report["initialize"]["response"] = initialize_response
         if "result" in initialize_response:
             report["initialize"]["status"] = "PASS"
+            initialize_result = initialize_response["result"]
+            if isinstance(initialize_result, dict):
+                report["protocol_version"] = initialize_result.get("protocolVersion", "")
+                report["server_info"] = initialize_result.get("serverInfo", {})
+                capabilities = initialize_result.get("capabilities", {})
+                report["capabilities"] = capabilities if isinstance(capabilities, dict) else {}
         else:
             report["initialize"]["status"] = "FAIL"
             report["errors"].append("initialize_error_response")
@@ -224,15 +323,73 @@ def run_mcp_protocol_validation(
                     "tool_count": len(tools),
                     "tools": tools,
                 }
+                report["summary"]["tools_count"] = len(tools)
             else:
                 report["tools_list"]["status"] = "FAIL"
                 report["errors"].append("tools_list_error_response")
+
+            resources_response = None
+            if "resources" in report["capabilities"]:
+                _write_message(process.stdin, build_resources_list_request(3))
+                resources_response = _wait_for_response(
+                    stdout_queue,
+                    request_id=3,
+                    timeout_seconds=request_timeout_seconds,
+                    notifications=report["notifications_received"],
+                )
+            resources_status = _optional_list_status(
+                capability_name="resources",
+                capabilities=report["capabilities"],
+                response=resources_response,
+            )
+            if resources_status == "PASS" and resources_response is not None:
+                resources = _resource_summary(resources_response["result"])
+                report["resources_list"] = {
+                    "status": "PASS",
+                    "resource_count": len(resources),
+                    "resources": resources,
+                }
+            else:
+                report["resources_list"]["status"] = resources_status
+                if resources_status == "FAIL":
+                    report["errors"].append("resources_list_error_response")
+            report["summary"]["resources_status"] = report["resources_list"]["status"]
+
+            prompts_response = None
+            if "prompts" in report["capabilities"]:
+                _write_message(process.stdin, build_prompts_list_request(4))
+                prompts_response = _wait_for_response(
+                    stdout_queue,
+                    request_id=4,
+                    timeout_seconds=request_timeout_seconds,
+                    notifications=report["notifications_received"],
+                )
+            prompts_status = _optional_list_status(
+                capability_name="prompts",
+                capabilities=report["capabilities"],
+                response=prompts_response,
+            )
+            if prompts_status == "PASS" and prompts_response is not None:
+                prompts = _prompt_summary(prompts_response["result"])
+                report["prompts_list"] = {
+                    "status": "PASS",
+                    "prompt_count": len(prompts),
+                    "prompts": prompts,
+                }
+            else:
+                report["prompts_list"]["status"] = prompts_status
+                if prompts_status == "FAIL":
+                    report["errors"].append("prompts_list_error_response")
+            report["summary"]["prompts_status"] = report["prompts_list"]["status"]
     except Exception as exc:
         report["errors"].append(f"{type(exc).__name__}:{exc}")
         if report["initialize"]["status"] == "UNKNOWN":
             report["initialize"]["status"] = "FAIL"
         if report["tools_list"]["status"] == "UNKNOWN":
             report["tools_list"]["status"] = "FAIL"
+        for optional_key in ("resources_list", "prompts_list"):
+            if report[optional_key]["status"] == "UNKNOWN":
+                report[optional_key]["status"] = "FAIL"
     finally:
         if process is not None:
             if process.stdin is not None:
@@ -264,6 +421,8 @@ def run_mcp_protocol_validation(
         report["initialize"]["status"] == "PASS"
         and report["initialized"]["status"] == "PASS"
         and report["tools_list"]["status"] == "PASS"
+        and report["resources_list"]["status"] in {"PASS", "NOT_SUPPORTED"}
+        and report["prompts_list"]["status"] in {"PASS", "NOT_SUPPORTED"}
         and report["shutdown"]["status"] in {"PASS", "TERMINATED"}
     ):
         report["classification"] = "MCP_PROTOCOL_VALIDATED"
@@ -297,10 +456,16 @@ def validate_mcp_protocol_report(report: Mapping[str, Any]) -> Dict[str, Any]:
         "version",
         "generated_at",
         "protocol_version_requested",
+        "protocol_version",
+        "server_info",
+        "capabilities",
         "command",
         "initialize",
         "initialized",
         "tools_list",
+        "resources_list",
+        "prompts_list",
+        "summary",
         "shutdown",
         "classification",
     )
