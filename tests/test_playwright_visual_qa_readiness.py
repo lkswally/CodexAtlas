@@ -5,7 +5,10 @@ from unittest.mock import patch
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
 from tests._support_paths import ATLAS_ROOT, PLAYWRIGHT_HOME_HINT
-from tools.playwright_visual_qa_readiness import check_playwright_visual_qa_readiness
+from tools.playwright_visual_qa_readiness import (
+    _probe_playwright_cli,
+    check_playwright_visual_qa_readiness,
+)
 
 
 ROOT = ATLAS_ROOT
@@ -91,3 +94,20 @@ def test_playwright_visual_qa_readiness_blocks_profiles_when_runtime_is_missing(
 
     blocked = next(item for item in result["blocked_profiles"] if item["profile"] == "responsive_visual_qa")
     assert "playwright_not_available" in blocked["blockers"]
+
+
+def test_playwright_probe_requires_sync_api_import():
+    completed = type(
+        "Completed",
+        (),
+        {"returncode": 1, "stdout": "", "stderr": "ImportError: DLL load failed"},
+    )()
+
+    with patch("tools.playwright_visual_qa_readiness.subprocess.run", return_value=completed) as run:
+        result = _probe_playwright_cli()
+
+    command = run.call_args.args[0]
+    assert command[:2] == [os.sys.executable, "-c"]
+    assert "from playwright.sync_api import sync_playwright" in command[2]
+    assert result["available"] is False
+    assert "DLL load failed" in result["stderr"]

@@ -46,7 +46,15 @@ def _load_profiles(root: Path) -> Dict[str, Any]:
 def _probe_playwright_cli() -> Dict[str, Any]:
     try:
         result = subprocess.run(
-            [sys.executable, "-m", "playwright", "--version"],
+            [
+                sys.executable,
+                "-c",
+                (
+                    "from importlib.metadata import version; "
+                    "from playwright.sync_api import sync_playwright; "
+                    "print(version('playwright'))"
+                ),
+            ],
             capture_output=True,
             text=True,
             timeout=15,
@@ -180,7 +188,7 @@ def check_playwright_visual_qa_readiness(root: Optional[Path] = None) -> Dict[st
 
     if not playwright_available:
         required_manual_steps.append(
-            "Install Playwright manually only after approval, then verify with `python -m playwright --version`."
+            "Install Playwright manually only after approval, then verify that the playwright.sync_api import succeeds."
         )
     if playwright_available and not browsers_available:
         required_manual_steps.append(
@@ -213,7 +221,7 @@ def check_playwright_visual_qa_readiness(root: Optional[Path] = None) -> Dict[st
         "risks": risks,
         "requires_human_approval": requires_human_approval,
         "requires_decision_council": requires_decision_council,
-        "why": "Playwright visual-QA readiness is derived only from local CLI detection, local browser-cache inspection and governed profile metadata.",
+        "why": "Playwright visual-QA readiness is derived only from a local sync API import probe, local browser-cache inspection and governed profile metadata.",
         "advisory_only": bool(rules.get("advisory_only", True)),
         "timestamp": _utc_now_iso(),
     }
