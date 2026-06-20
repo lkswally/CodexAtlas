@@ -309,3 +309,22 @@ Abrir una fase separada de hardening de intent/risk classification, con tests an
 5. repetir estos seis casos como regression suite.
 
 No integrar runtime hasta que esos casos produzcan routing seguro sin ayuda externa del caller.
+
+## Hardening Follow-up
+
+Fecha: 2026-06-20
+
+Los hallazgos anteriores se conservan como evidencia historica de la simulacion ejecutada sobre `418ff37`. El hardening posterior los convirtio en regresiones ejecutables:
+
+- delete/remove/clean/reset/purge y operaciones destructivas de Git o database elevan risk a high antes de evaluar comandos;
+- un `DENY` eleva risk a critical y produce `BLOCK`;
+- un `WARN`/`UNKNOWN` sensible propaga `requires_human_approval`;
+- arquitectura o integracion de runtime usa `premium_reasoning` y requiere approval;
+- seguridad usa `premium_reasoning` con Security Reviewer y Verifier;
+- MCP con side effects usa routing premium, conserva MCP Specialist y no pasa de `NEEDS_APPROVAL`;
+- MCP read-only puede usar balanced/verifier, pero un dominio MCP `WARN`/`UNKNOWN` propaga approval;
+- README simple permanece bounded y cheap/balanced;
+- la tarea ambigua conserva una sola pregunta y una sola ronda;
+- ningun caso asigna mas de tres roles.
+
+La decision sigue siendo advisory. `runtime_execution` permanece `false`; no se ejecutaron comandos, tools MCP, agentes ni writes. Este follow-up corrige los gaps de routing observados, pero no habilita un consumer runtime.

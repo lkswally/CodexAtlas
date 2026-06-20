@@ -223,3 +223,135 @@ def test_loop_control_never_allows_more_than_three_agents():
     assert report["loop_control"]["max_agents"] == 3
     assert report["loop_control"]["planned_agents"] <= 3
     assert report["loop_control"]["agents_may_converse"] is False
+
+
+def test_delete_intent_is_high_risk_and_requires_approval():
+    report = simulate_orchestration("Remove temporary files from the repository")
+
+    assert report["intake"]["risk_level"] == "high"
+    assert report["intake"]["task_type"] == "destructive_operation"
+    assert report["final_decision"] == "NEEDS_APPROVAL"
+    assert report["model_routing"]["selected_model_class"] != "cheap_fast"
+
+
+def test_git_reset_hard_deny_escalates_to_critical_block():
+    report = simulate_orchestration(
+        "Reset the repository to discard local changes",
+        proposed_commands=["git reset --hard"],
+    )
+
+    assert report["intake"]["risk_level"] == "critical"
+    assert report["final_decision"] == "BLOCK"
+    assert report["decision_gate"]["requires_human_approval"] is True
+    assert report["model_routing"]["selected_model_class"] == "premium_reasoning"
+
+
+def test_runtime_architecture_uses_premium_reasoning():
+    report = simulate_orchestration(
+        "Design the runtime integration for the Failure Registry"
+    )
+
+    assert report["intake"]["task_type"] == "architecture"
+    assert report["intake"]["risk_level"] == "high"
+    assert report["model_routing"]["selected_model_class"] == "premium_reasoning"
+    assert report["final_decision"] == "NEEDS_APPROVAL"
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "Deploy this service to production",
+        "Drop database tables during cleanup",
+        "Force push rewritten Git history",
+        "Inspect runtime behavior before integration",
+    ],
+)
+def test_sensitive_intents_are_high_risk_and_never_cheap(prompt):
+    report = simulate_orchestration(prompt)
+
+    assert report["intake"]["risk_level"] == "high"
+    assert report["model_routing"]["selected_model_class"] != "cheap_fast"
+    assert report["final_decision"] == "NEEDS_APPROVAL"
+
+def test_security_audit_uses_premium_reasoning_and_verifier():
+    report = simulate_orchestration("Perform a security audit of Atlas configuration")
+
+    roles = [item["agent"] for item in report["agent_assignments"]]
+    assert report["model_routing"]["selected_model_class"] == "premium_reasoning"
+    assert "Security Reviewer" in roles
+    assert "Verifier" in roles
+
+
+def test_mcp_write_tool_requires_approval_and_keeps_mcp_specialist():
+    report = simulate_orchestration("Use an MCP write tool to update server memory")
+
+    roles = [item["agent"] for item in report["agent_assignments"]]
+    assert report["intake"]["mcp_side_effects"] is True
+    assert report["final_decision"] == "NEEDS_APPROVAL"
+    assert report["model_routing"]["selected_model_class"] == "premium_reasoning"
+    assert "MCP Specialist" in roles
+    assert report["runtime_execution"] is False
+
+
+def test_mcp_read_only_diagnostic_can_use_balanced_routing():
+    report = simulate_orchestration("Run an MCP read-only diagnostic with tools/list")
+
+    assert report["intake"]["mcp_side_effects"] is False
+    assert report["model_routing"]["selected_model_class"] in {"balanced", "verifier"}
+    assert report["final_decision"] == "EXECUTE_SIMULATED"
+
+
+def test_mcp_architecture_warning_propagates_to_approval():
+    state = _passing_state()
+    state["domains"]["mcp"]["status"] = "WARN"
+    state["overall_status"] = "WARN"
+
+    report = simulate_orchestration(
+        "Run an MCP read-only diagnostic with tools/list",
+        architecture_state=state,
+    )
+
+    assert report["final_decision"] == "NEEDS_APPROVAL"
+    assert "architecture_domain_warn:mcp" in report["decision_gate"]["approval_reasons"]
+
+
+def test_sensitive_dangerous_warning_propagates_to_approval():
+    report = simulate_orchestration(
+        "Clean untracked files from the repository",
+        proposed_commands=["git clean -fd"],
+    )
+
+    assert report["command_assessments"][0]["status"] == "WARN"
+    assert report["decision_gate"]["requires_human_approval"] is True
+    assert report["final_decision"] == "NEEDS_APPROVAL"
+
+
+def test_simple_readme_edit_stays_bounded_and_cheap():
+    report = simulate_orchestration("Update README with a minor clarification")
+
+    assert report["intake"]["risk_level"] == "low"
+    assert report["model_routing"]["selected_model_class"] in {"cheap_fast", "balanced"}
+    assert report["decision_gate"]["split_task"] is False
+
+
+def test_ambiguous_improve_atlas_asks_one_question_once():
+    report = simulate_orchestration("Mejor\u00e1 Atlas")
+
+    assert report["final_decision"] == "ASK_ONE_QUESTION"
+    assert report["clarification"]["question_count"] == 1
+    assert report["loop_control"]["max_decision_rounds"] == 1
+
+
+@pytest.mark.parametrize(
+    "prompt",
+    [
+        "Remove temporary files from the repository",
+        "Design the runtime integration for the Failure Registry",
+        "Perform a security audit of Atlas configuration",
+        "Use an MCP write tool to update server memory",
+    ],
+)
+def test_sensitive_tasks_never_exceed_three_roles(prompt):
+    report = simulate_orchestration(prompt)
+
+    assert report["loop_control"]["planned_agents"] <= 3

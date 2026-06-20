@@ -65,6 +65,57 @@ HIGH_RISK_KEYWORDS = (
     "critical",
     "critico",
 )
+DESTRUCTIVE_INTENT_KEYWORDS = (
+    "delete",
+    "remove",
+    "clean",
+    "reset",
+    "purge",
+    "destroy",
+    "wipe",
+    "eliminar",
+    "borrar",
+    "limpiar",
+    "purgar",
+    "git reset",
+    "git clean",
+    "drop database",
+    "drop table",
+    "truncate table",
+    "drop schema",
+    "delete from",
+    "force push",
+    "git checkout --",
+    "git restore",
+)
+RUNTIME_ARCHITECTURE_KEYWORDS = (
+    "runtime",
+    "runtime architecture",
+    "architecture runtime",
+    "runtime integration",
+    "integration runtime",
+    "autonomous runtime",
+    "runtime autonomo",
+    "runtime aut\u00f3nomo",
+    "integracion runtime",
+    "integraci\u00f3n runtime",
+    "disenar runtime",
+    "dise\u00f1ar runtime",
+    "design runtime",
+)
+MCP_SIDE_EFFECT_KEYWORDS = (
+    "mcp write",
+    "mcp save",
+    "mcp update",
+    "mcp delete",
+    "mcp mutate",
+    "write tool",
+    "tool write",
+    "non-read-only",
+    "not read-only",
+    "con side effects",
+    "with side effects",
+)
 COMPLEXITY_KEYWORDS = (
     "architecture",
     "arquitectura",
@@ -97,17 +148,45 @@ def analyze_intake(prompt: str, proposed_commands: Sequence[str] = ()) -> Dict[s
     words = text.split()
     clear = len(words) >= 3 and lowered not in VAGUE_PROMPTS
 
-    task_type = "general"
-    for candidate, keywords in TASK_KEYWORDS.items():
-        if any(keyword in lowered for keyword in keywords):
-            task_type = candidate
-            break
+    destructive_intent = any(item in lowered for item in DESTRUCTIVE_INTENT_KEYWORDS)
+    runtime_architecture = any(item in lowered for item in RUNTIME_ARCHITECTURE_KEYWORDS)
+    mcp_side_effects = "mcp" in lowered and any(
+        item in lowered for item in MCP_SIDE_EFFECT_KEYWORDS
+    )
+
+    if destructive_intent:
+        task_type = "destructive_operation"
+    elif runtime_architecture:
+        task_type = "architecture"
+    else:
+        task_type = "general"
+        for candidate, keywords in TASK_KEYWORDS.items():
+            if any(keyword in lowered for keyword in keywords):
+                task_type = candidate
+                break
 
     risk_level = "high" if any(item in lowered for item in HIGH_RISK_KEYWORDS) else "low"
+    risk_reasons = []
+    if destructive_intent:
+        risk_level = "high"
+        risk_reasons.append("destructive_intent")
+    if runtime_architecture:
+        risk_level = "high"
+        risk_reasons.append("runtime_architecture")
+    if task_type == "security":
+        risk_level = "high"
+        risk_reasons.append("security_sensitive")
+    if mcp_side_effects:
+        risk_level = "high"
+        risk_reasons.append("mcp_side_effects")
     if risk_level == "low" and task_type in {"code", "mcp", "release", "security"}:
         risk_level = "medium"
 
-    if any(item in lowered for item in COMPLEXITY_KEYWORDS) or len(words) > 50:
+    if (
+        runtime_architecture
+        or any(item in lowered for item in COMPLEXITY_KEYWORDS)
+        or len(words) > 50
+    ):
         complexity = "complex"
     elif len(words) <= 12:
         complexity = "simple"
@@ -134,6 +213,8 @@ def analyze_intake(prompt: str, proposed_commands: Sequence[str] = ()) -> Dict[s
         "evidence_required": evidence_required,
         "expected_cost": "low" if complexity == "simple" and risk_level == "low" else ("high" if risk_level == "high" else "medium"),
         "clear": clear,
+        "risk_reasons": risk_reasons,
+        "mcp_side_effects": mcp_side_effects,
     }
 
 
@@ -147,9 +228,13 @@ def select_model_class(intake: Mapping[str, Any]) -> Dict[str, str]:
     elif task_type == "summary":
         selected = "summarizer"
         reason = "Pure consolidation uses the summarizer class."
-    elif risk_level == "high" or (task_type == "architecture" and complexity == "complex"):
+    elif risk_level in {"high", "critical"} or task_type in {
+        "architecture",
+        "security",
+        "destructive_operation",
+    }:
         selected = "premium_reasoning"
-        reason = "High-risk or complex architecture work requires premium reasoning."
+        reason = "Sensitive, high-risk, or architecture work requires premium reasoning."
     elif task_type == "code" and complexity == "complex":
         selected = "code_specialist"
         reason = "Complex code work benefits from a code-specialist class."
@@ -179,6 +264,7 @@ def _primary_role(task_type: str) -> str:
         "summary": "Documentation Specialist",
         "failure": "Failure Recorder",
         "code": "Executor",
+        "destructive_operation": "Security Reviewer",
     }.get(task_type, "Orchestrator")
 
 
@@ -187,13 +273,16 @@ def _route_roles(intake: Mapping[str, Any]) -> list[str]:
     if not intake["multiple_agents_useful"]:
         return [primary]
 
-    roles = ["Planner"] if primary != "Planner" else [primary]
-    if intake["risk_level"] == "high":
-        roles.append("Security Reviewer")
-    elif primary not in roles:
-        roles.append(primary)
-    elif primary == "Planner":
-        roles.append("Executor")
+    if intake["risk_level"] in {"high", "critical"}:
+        roles = [primary]
+        if primary != "Security Reviewer":
+            roles.append("Security Reviewer")
+    else:
+        roles = ["Planner"] if primary != "Planner" else [primary]
+        if primary not in roles:
+            roles.append(primary)
+        elif primary == "Planner":
+            roles.append("Executor")
     if "Verifier" not in roles:
         roles.append("Verifier")
     return _dedupe(roles)[:MAX_AGENT_COUNT]
@@ -211,6 +300,7 @@ def _relevant_domains(task_type: str) -> list[str]:
         "summary": ["docs"],
         "failure": ["failure_registry", "evidence"],
         "code": ["tests", "governance"],
+        "destructive_operation": ["security", "governance"],
     }.get(task_type, [])
     return _dedupe(specific + shared)[:4]
 
@@ -327,18 +417,47 @@ def simulate_orchestration(
 ) -> Dict[str, Any]:
     """Produce one advisory orchestration plan without executing tools or agents."""
     intake = analyze_intake(prompt, proposed_commands)
-    routing = select_model_class(intake)
     command_assessments = [classify_command(command) for command in proposed_commands]
     denied = [item for item in command_assessments if item["status"] == "DENY"]
     warned = [item for item in command_assessments if item["status"] in {"WARN", "UNKNOWN"}]
 
+    if denied:
+        intake["risk_level"] = "critical"
+        intake["impact"] = "high"
+        intake["expected_cost"] = "high"
+        intake["multiple_agents_useful"] = True
+        intake["risk_reasons"] = _dedupe(
+            intake["risk_reasons"] + ["dangerous_policy_deny"]
+        )
+    elif warned and (
+        intake["risk_level"] == "high"
+        or intake["task_type"]
+        in {"mcp", "security", "destructive_operation", "architecture"}
+    ):
+        intake["risk_level"] = "high"
+        intake["impact"] = "high"
+        intake["expected_cost"] = "high"
+        intake["multiple_agents_useful"] = True
+        intake["risk_reasons"] = _dedupe(
+            intake["risk_reasons"] + ["sensitive_policy_warning"]
+        )
+
+    routing = select_model_class(intake)
+
     if architecture_state is not None:
         validate_architecture_state(architecture_state)
     state_blockers = []
+    state_warnings = []
     if architecture_state is not None:
         for name in ("governance", "security"):
             if architecture_state["domains"][name]["status"] == "FAIL":
                 state_blockers.append(f"architecture_domain_failed:{name}")
+        for name in _relevant_domains(str(intake["task_type"])):
+            domain_status = architecture_state["domains"][name]["status"]
+            if domain_status in {"WARN", "UNKNOWN"}:
+                state_warnings.append(
+                    f"architecture_domain_{domain_status.lower()}:{name}"
+                )
 
     if not intake["clear"]:
         status = "NEEDS_CLARIFICATION"
@@ -359,9 +478,16 @@ def simulate_orchestration(
         for role in roles
     ]
     consolidated = consolidate_return_envelopes(agent_results) if agent_results else None
-    requires_approval = bool(
-        intake["risk_level"] == "high" or intake["impact"] == "high" or warned or denied
-    )
+    approval_reasons = []
+    if intake["risk_level"] in {"high", "critical"} or intake["impact"] == "high":
+        approval_reasons.append("elevated_risk")
+    if warned:
+        approval_reasons.append("dangerous_policy_warning_or_unknown")
+    if denied:
+        approval_reasons.append("dangerous_policy_deny")
+    approval_reasons.extend(state_warnings)
+    approval_reasons = _dedupe(approval_reasons)
+    requires_approval = bool(approval_reasons)
     blockers = state_blockers + [
         f"dangerous_command:{item['matched_pattern']}" for item in denied
     ]
@@ -369,11 +495,22 @@ def simulate_orchestration(
         blockers
         or (consolidated and consolidated["status"] in {"FAIL", "BLOCKED"})
     )
+    if status == "NEEDS_CLARIFICATION":
+        final_decision = "ASK_ONE_QUESTION"
+    elif status == "BLOCKED":
+        final_decision = "BLOCK"
+    elif requires_approval:
+        final_decision = "NEEDS_APPROVAL"
+    elif status == "READY":
+        final_decision = "EXECUTE_SIMULATED"
+    else:
+        final_decision = "REJECT"
     return {
         "orchestrator": "atlas_intelligent_orchestrator",
         "version": "v1",
         "mode": "advisory_simulation",
         "status": status,
+        "final_decision": final_decision,
         "intake": intake,
         "decision_gate": {
             "task_is_clear": intake["clear"],
@@ -383,6 +520,7 @@ def simulate_orchestration(
             "split_task": len(assignments) > 1,
             "evidence_required": intake["evidence_required"],
             "blockers": blockers,
+            "approval_reasons": approval_reasons,
         },
         "model_routing": routing,
         "agent_assignments": assignments,

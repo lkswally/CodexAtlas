@@ -190,3 +190,32 @@ El ejemplo conserva los otros dominios en UNKNOWN; por eso el overall state no s
 ## Siguiente Gate
 
 Antes de integrar con runtime se necesita evidencia de uso manual repetido, un consumidor concreto, audit trail, redaccion de secretos, approval boundaries y pruebas end-to-end que demuestren que la coordinacion reduce trabajo sin ocultar decisiones.
+
+## Intent/Risk Routing Hardening
+
+El intake eleva a high-risk las intenciones destructivas de filesystem o Git, operaciones destructivas de database, deploy/production, arquitectura o integracion de runtime, seguridad y MCP con side effects. Registra `risk_reasons` para hacer visible la causa. La deteccion es conservadora y no autoriza ejecucion.
+
+Reglas de escalamiento y approval:
+
+- un `DENY` de Dangerous Command Policy eleva el riesgo efectivo a `critical` y produce `BLOCK`;
+- `WARN` o `UNKNOWN` de comando requiere aprobacion humana;
+- riesgo high/critical requiere aprobacion;
+- un dominio relevante `WARN`/`UNKNOWN`, incluido MCP, requiere aprobacion;
+- Governance o Security `FAIL` siguen bloqueando;
+- UNKNOWN nunca se trata como SAFE.
+
+Guardrails de modelo:
+
+- `cheap_fast` queda excluido para operaciones destructivas, arquitectura/runtime, seguridad y MCP con side effects;
+- esas categorias usan `premium_reasoning`, salvo una tarea de verificacion que use explicitamente `verifier`;
+- un diagnostico MCP read-only acotado puede permanecer en `balanced` o `verifier`;
+- una edicion documental simple puede permanecer en `cheap_fast` o `balanced`.
+
+La salida expone `EXECUTE_SIMULATED`, `ASK_ONE_QUESTION`, `BLOCK`, `NEEDS_APPROVAL` o `REJECT`. Ninguna decision ejecuta la tarea. Se mantienen una ronda, una pregunta, hasta tres roles, contexto minimo y `runtime_execution:false`.
+
+Limites conocidos:
+
+- las keywords son transparentes pero no comprenden semantica compleja y pueden producir falsos positivos;
+- el approval gate sigue siendo advisory y necesita enforcement en cualquier consumer futuro;
+- detectar side effects por texto no sustituye una policy de tools ni validacion de schema;
+- no existe runtime integrado.
