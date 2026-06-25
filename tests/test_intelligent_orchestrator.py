@@ -315,15 +315,15 @@ def test_mcp_architecture_warning_propagates_to_approval():
     assert "architecture_domain_warn:mcp" in report["decision_gate"]["approval_reasons"]
 
 
-def test_sensitive_dangerous_warning_propagates_to_approval():
+def test_calibrated_git_clean_deny_propagates_to_block():
     report = simulate_orchestration(
         "Clean untracked files from the repository",
         proposed_commands=["git clean -fd"],
     )
 
-    assert report["command_assessments"][0]["status"] == "WARN"
+    assert report["command_assessments"][0]["status"] == "DENY"
     assert report["decision_gate"]["requires_human_approval"] is True
-    assert report["final_decision"] == "NEEDS_APPROVAL"
+    assert report["final_decision"] == "BLOCK"
 
 
 def test_simple_readme_edit_stays_bounded_and_cheap():

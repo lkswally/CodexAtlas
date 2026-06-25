@@ -53,7 +53,7 @@ def test_credential_exposure_is_denied(command):
     [
         "git push --force origin main", "git push -f origin main",
         "git reset --hard HEAD~1", "git reflog expire --expire=now --all",
-        "git gc --prune=now",
+        "git gc --prune=now", "git clean -fd",
     ],
 )
 def test_git_history_rewrite_is_denied(command):
@@ -100,17 +100,31 @@ def test_destructive_database_statements_are_denied(command):
     [
         "npm install", "pnpm install", "yarn install", "pip install requests",
         "pip3 install requests", "playwright install", "docker compose down",
-        "docker compose rm", "docker system prune", "git clean -fd",
-        "git checkout main", "git switch feature", "git stash", "vercel deploy",
-        "fly deploy", "railway up", "supabase db push",
+        "docker compose rm", "docker system prune", "git checkout main",
+        "git switch feature", "git stash", "git commit -m test",
+        "git push origin main", "Move-Item docs archive",
     ],
 )
 def test_warn_commands_require_human_approval(command):
     result = classify_command(command)
     assert result["status"] == "WARN"
     assert result["requires_human_approval"] is True
-    assert 0 < result["confidence"] <= 1
 
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "rm -rf scratch",
+        "vercel deploy",
+        "fly deploy",
+        "railway up",
+        "supabase db push",
+    ],
+)
+def test_calibrated_destructive_commands_are_denied(command):
+    result = classify_command(command)
+    assert result["status"] == "DENY"
+    assert result["requires_human_approval"] is True
 
 @pytest.mark.parametrize(
     "command",
@@ -120,7 +134,7 @@ def test_warn_commands_require_human_approval(command):
         "python -m compileall -q tools", "python tools/atlas_verify.py",
         "engram doctor --json", "gh run list --limit 1", "gh run view 123",
         "ls -la", "dir config", "pwd", "cd D:\\Proyectos", "echo hello",
-        "cat README.md",
+        "cat README.md", "mkdir scratch",
     ],
 )
 def test_recognized_safe_commands_are_safe(command):

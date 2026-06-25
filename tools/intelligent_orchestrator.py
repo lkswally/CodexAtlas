@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any, Dict, Iterable, Mapping, Optional, Sequence
 
 from tools.architecture_state_model import validate_architecture_state
@@ -45,38 +46,30 @@ TASK_KEYWORDS = {
     "architecture": ("architecture", "arquitectura", "design system", "redesign"),
     "security": ("security", "seguridad", "secret", "credential", "vulnerability"),
     "mcp": ("mcp", "model context protocol", "engram"),
-    "release": ("release", "tag", "release candidate", "rc1"),
+    "release": ("tag release", "release candidate", "rc1"),
     "verification": ("verify", "verification", "validar", "audit", "review"),
     "documentation": ("documentation", "documentacion", "docs", "readme"),
     "summary": ("summarize", "summary", "resumir", "resumen"),
     "failure": ("failure registry", "record failure", "registrar fallo"),
-    "code": ("code", "codigo", "implement", "fix", "refactor", "test"),
+    "code": (
+        "code",
+        "codigo",
+        "implement",
+        "fix",
+        "refactor",
+        "test",
+        "rename",
+        "format",
+        "variable",
+    ),
 }
 HIGH_RISK_KEYWORDS = (
-    "production",
-    "produccion",
-    "deploy",
-    "delete",
-    "borrar",
     "credential",
     "secret",
-    "database",
-    "release",
     "critical",
     "critico",
 )
 DESTRUCTIVE_INTENT_KEYWORDS = (
-    "delete",
-    "remove",
-    "clean",
-    "reset",
-    "purge",
-    "destroy",
-    "wipe",
-    "eliminar",
-    "borrar",
-    "limpiar",
-    "purgar",
     "git reset",
     "git clean",
     "drop database",
@@ -88,8 +81,38 @@ DESTRUCTIVE_INTENT_KEYWORDS = (
     "git checkout --",
     "git restore",
 )
+DESTRUCTIVE_VERBS = (
+    "delete",
+    "remove",
+    "clean",
+    "reset",
+    "purge",
+    "destroy",
+    "wipe",
+    "eliminar",
+    "borrar",
+    "limpiar",
+    "purgar",
+)
+DESTRUCTIVE_TARGETS = (
+    "file",
+    "files",
+    "folder",
+    "folders",
+    "directory",
+    "directories",
+    "workspace",
+    "repository",
+    "repo",
+    "untracked",
+    "cache",
+    "memory",
+    "database",
+    "schema",
+    "table",
+    "records",
+)
 RUNTIME_ARCHITECTURE_KEYWORDS = (
-    "runtime",
     "runtime architecture",
     "architecture runtime",
     "runtime integration",
@@ -127,8 +150,30 @@ COMPLEXITY_KEYWORDS = (
     "complex",
     "complejo",
 )
-VAGUE_PROMPTS = {"help", "ayuda", "do it", "hazlo", "fix it", "arreglalo"}
+VAGUE_PROMPTS = {
+    "help",
+    "ayuda",
+    "do it",
+    "hazlo",
+    "fix it",
+    "arreglalo",
+    "mejora atlas",
+    "mejor\u00e1 atlas",
+    "optimiza esto",
+    "optimize this",
+    "make it faster",
+    "hace que sea mas rapido",
+    "hac\u00e9 que sea m\u00e1s r\u00e1pido",
+}
 
+
+def _contains_phrase(text: str, phrase: str) -> bool:
+    pattern = r"(?<!\w)" + re.escape(phrase).replace(r"\ ", r"\s+") + r"(?!\w)"
+    return re.search(pattern, text, re.IGNORECASE) is not None
+
+
+def _contains_any(text: str, phrases: Sequence[str]) -> bool:
+    return any(_contains_phrase(text, phrase) for phrase in phrases)
 
 class OrchestratorContractError(ValueError):
     """Raised when advisory orchestration inputs or envelopes are invalid."""
@@ -146,45 +191,152 @@ def analyze_intake(prompt: str, proposed_commands: Sequence[str] = ()) -> Dict[s
     text = str(prompt or "").strip()
     lowered = text.lower()
     words = text.split()
-    clear = len(words) >= 3 and lowered not in VAGUE_PROMPTS
+    normalized = re.sub(r"[^\w\s]", "", lowered).strip()
+    clear = len(words) >= 3 and normalized not in VAGUE_PROMPTS
 
-    destructive_intent = any(item in lowered for item in DESTRUCTIVE_INTENT_KEYWORDS)
-    runtime_architecture = any(item in lowered for item in RUNTIME_ARCHITECTURE_KEYWORDS)
-    mcp_side_effects = "mcp" in lowered and any(
-        item in lowered for item in MCP_SIDE_EFFECT_KEYWORDS
+    documentation_target = _contains_any(
+        lowered, ("readme", "documentation", "documentacion", "docs")
+    )
+    documentation_intent = _contains_phrase(lowered, "document") or (
+        documentation_target
+        and _contains_any(
+            lowered,
+            (
+                "update",
+                "correct",
+                "translate",
+                "add example",
+                "explain",
+                "clean up",
+                "remove ambiguity",
+                "reset example",
+                "review",
+            ),
+        )
+    )
+    destructive_intent = _contains_any(lowered, DESTRUCTIVE_INTENT_KEYWORDS) or (
+        _contains_any(lowered, DESTRUCTIVE_VERBS)
+        and _contains_any(lowered, DESTRUCTIVE_TARGETS)
+    )
+    change_intent = _contains_any(
+        lowered,
+        (
+            "modify",
+            "change",
+            "redesign",
+            "integrate",
+            "build",
+            "create",
+            "implement",
+            "inspect",
+        ),
+    )
+    runtime_architecture = _contains_any(
+        lowered, RUNTIME_ARCHITECTURE_KEYWORDS
+    ) or (_contains_phrase(lowered, "runtime") and change_intent)
+    mcp_mentioned = _contains_any(
+        lowered, ("mcp", "model context protocol", "engram")
+    )
+    read_only_mcp = _contains_any(lowered, ("read-only", "read only"))
+    mcp_side_effects = mcp_mentioned and (
+        _contains_any(lowered, ("non-read-only", "not read-only"))
+        or (
+            not read_only_mcp
+            and _contains_any(
+                lowered,
+                MCP_SIDE_EFFECT_KEYWORDS
+                + (
+                    "save",
+                    "write",
+                    "update",
+                    "delete",
+                    "remove",
+                    "mutate",
+                    "deploy",
+                ),
+            )
+        )
+    )
+    sensitive_architecture = runtime_architecture or (
+        change_intent
+        and _contains_any(
+            lowered,
+            ("architecture", "dispatcher", "evidence pipeline", "governance"),
+        )
+    )
+    security_intent = _contains_any(
+        lowered,
+        ("security", "seguridad", "secret", "credential", "vulnerability"),
+    ) or (
+        _contains_any(lowered, ("audit", "review", "modify", "change"))
+        and _contains_any(
+            lowered,
+            (
+                "permission",
+                "permissions",
+                "policy",
+                "policies",
+                "workflow",
+                "workflows",
+            ),
+        )
+    )
+    production_intent = (not documentation_intent) and (
+        _contains_any(lowered, ("deploy", "deployment"))
+        or (
+            _contains_any(lowered, ("publish", "apply", "release"))
+            and _contains_any(lowered, ("production", "produccion"))
+        )
     )
 
-    if destructive_intent:
+    if documentation_intent:
+        task_type = "documentation"
+    elif mcp_side_effects:
+        task_type = "mcp"
+    elif destructive_intent:
         task_type = "destructive_operation"
-    elif runtime_architecture:
+    elif sensitive_architecture:
         task_type = "architecture"
+    elif security_intent:
+        task_type = "security"
+    elif production_intent:
+        task_type = "release"
     else:
         task_type = "general"
         for candidate, keywords in TASK_KEYWORDS.items():
-            if any(keyword in lowered for keyword in keywords):
+            if _contains_any(lowered, keywords):
                 task_type = candidate
                 break
 
-    risk_level = "high" if any(item in lowered for item in HIGH_RISK_KEYWORDS) else "low"
+    risk_level = "high" if _contains_any(lowered, HIGH_RISK_KEYWORDS) else "low"
     risk_reasons = []
     if destructive_intent:
         risk_level = "high"
         risk_reasons.append("destructive_intent")
-    if runtime_architecture:
+    if task_type == "architecture":
         risk_level = "high"
-        risk_reasons.append("runtime_architecture")
+        risk_reasons.append("architecture_sensitive")
     if task_type == "security":
         risk_level = "high"
         risk_reasons.append("security_sensitive")
     if mcp_side_effects:
         risk_level = "high"
         risk_reasons.append("mcp_side_effects")
-    if risk_level == "low" and task_type in {"code", "mcp", "release", "security"}:
+    if production_intent:
+        risk_level = "high"
+        risk_reasons.append("production_deploy")
+    if task_type == "release":
+        risk_level = "high"
+        risk_reasons.append("release_sensitive")
+    if risk_level == "low" and task_type in {"code", "mcp"}:
         risk_level = "medium"
 
     if (
-        runtime_architecture
-        or any(item in lowered for item in COMPLEXITY_KEYWORDS)
+        task_type == "architecture"
+        or (
+            task_type != "documentation"
+            and _contains_any(lowered, COMPLEXITY_KEYWORDS)
+        )
         or len(words) > 50
     ):
         complexity = "complex"
@@ -193,7 +345,11 @@ def analyze_intake(prompt: str, proposed_commands: Sequence[str] = ()) -> Dict[s
     else:
         complexity = "moderate"
 
-    impact = "high" if risk_level == "high" else ("medium" if complexity != "simple" else "low")
+    impact = (
+        "high"
+        if risk_level == "high"
+        else ("medium" if complexity != "simple" else "low")
+    )
     tool_needs = []
     if proposed_commands:
         tool_needs.append("local_commands")
@@ -211,12 +367,15 @@ def analyze_intake(prompt: str, proposed_commands: Sequence[str] = ()) -> Dict[s
         "tool_needs": tool_needs,
         "multiple_agents_useful": complexity == "complex" or risk_level == "high",
         "evidence_required": evidence_required,
-        "expected_cost": "low" if complexity == "simple" and risk_level == "low" else ("high" if risk_level == "high" else "medium"),
+        "expected_cost": (
+            "low"
+            if complexity == "simple" and risk_level == "low"
+            else ("high" if risk_level == "high" else "medium")
+        ),
         "clear": clear,
         "risk_reasons": risk_reasons,
         "mcp_side_effects": mcp_side_effects,
     }
-
 
 def select_model_class(intake: Mapping[str, Any]) -> Dict[str, str]:
     task_type = str(intake["task_type"])
@@ -274,9 +433,12 @@ def _route_roles(intake: Mapping[str, Any]) -> list[str]:
         return [primary]
 
     if intake["risk_level"] in {"high", "critical"}:
-        roles = [primary]
-        if primary != "Security Reviewer":
-            roles.append("Security Reviewer")
+        if primary == "Planner":
+            roles = ["Planner", "Executor"]
+        else:
+            roles = [primary]
+            if primary != "Security Reviewer":
+                roles.append("Security Reviewer")
     else:
         roles = ["Planner"] if primary != "Planner" else [primary]
         if primary not in roles:
@@ -419,7 +581,13 @@ def simulate_orchestration(
     intake = analyze_intake(prompt, proposed_commands)
     command_assessments = [classify_command(command) for command in proposed_commands]
     denied = [item for item in command_assessments if item["status"] == "DENY"]
-    warned = [item for item in command_assessments if item["status"] in {"WARN", "UNKNOWN"}]
+    policy_warnings = [
+        item for item in command_assessments if item["status"] == "WARN"
+    ]
+    unknown_commands = [
+        item for item in command_assessments if item["status"] == "UNKNOWN"
+    ]
+    warned = policy_warnings + unknown_commands
 
     if denied:
         intake["risk_level"] = "critical"
@@ -429,10 +597,10 @@ def simulate_orchestration(
         intake["risk_reasons"] = _dedupe(
             intake["risk_reasons"] + ["dangerous_policy_deny"]
         )
-    elif warned and (
+    elif policy_warnings and (
         intake["risk_level"] == "high"
         or intake["task_type"]
-        in {"mcp", "security", "destructive_operation", "architecture"}
+        in {"mcp", "security", "destructive_operation", "architecture", "release"}
     ):
         intake["risk_level"] = "high"
         intake["impact"] = "high"
@@ -440,6 +608,13 @@ def simulate_orchestration(
         intake["multiple_agents_useful"] = True
         intake["risk_reasons"] = _dedupe(
             intake["risk_reasons"] + ["sensitive_policy_warning"]
+        )
+    elif policy_warnings and intake["risk_level"] == "low":
+        intake["risk_level"] = "medium"
+        intake["impact"] = "medium"
+        intake["expected_cost"] = "medium"
+        intake["risk_reasons"] = _dedupe(
+            intake["risk_reasons"] + ["state_changing_command"]
         )
 
     routing = select_model_class(intake)
