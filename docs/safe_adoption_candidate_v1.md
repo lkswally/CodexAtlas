@@ -2,8 +2,16 @@
 
 Fecha: 2026-07-29.
 
-Estado: diseno solamente. No implementa tools, tests funcionales, workflows,
-runtime, hooks, MCP, agentes, policies ni dependencias.
+Estado: diseno original. La implementacion posterior se materializo como
+evaluador deterministico read-only sin runtime, hooks, MCP, agentes, workflows
+automaticos ni dependencias nuevas.
+
+Implementacion:
+
+- `config/diagnostic_mode_checklist.json`.
+- `tools/diagnostic_mode.py`.
+- `tests/test_diagnostic_mode.py`.
+- `docs/diagnostic_mode_usage.md`.
 
 Fuente de verdad:
 

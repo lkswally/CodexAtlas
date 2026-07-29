@@ -1,0 +1,80 @@
+{
+  "policy_name": "diagnostic_mode_checklist",
+  "version": "v1",
+  "contract": {
+    "mode": "diagnostic",
+    "read_only": true,
+    "allow_file_writes": false,
+    "allow_shell_mutations": false,
+    "allow_dependency_install": false,
+    "allow_network_writes": false,
+    "allow_mcp_writes": false,
+    "allow_memory_writes": false,
+    "allow_config_changes": false,
+    "allow_runtime_changes": false,
+    "allow_deploy": false,
+    "allow_auto_fix": false,
+    "evidence_required": true,
+    "unknown_action_policy": "BLOCK",
+    "allowed_outputs": [
+      "analysis",
+      "evidence",
+      "findings",
+      "risks",
+      "recommendations",
+      "report"
+    ]
+  },
+  "allowed_actions": [
+    {"id": "read_file", "aliases": ["read_file", "read file", "leer archivo"], "reason": "Reading a file is allowed when the task is diagnostic and does not expose secrets."},
+    {"id": "list_files", "aliases": ["list_files", "list files", "listar archivos"], "reason": "Listing files is read-only inventory."},
+    {"id": "inspect_git_status", "aliases": ["inspect_git_status", "git status", "inspeccionar git status"], "reason": "Inspecting git status is read-only repository evidence."},
+    {"id": "inspect_git_diff", "aliases": ["inspect_git_diff", "git diff", "inspeccionar git diff"], "reason": "Inspecting git diff is read-only repository evidence."},
+    {"id": "run_read_only_tests", "aliases": ["run_read_only_tests", "run tests read-only", "ejecutar tests read-only"], "reason": "Running tests is allowed when it is used as verification evidence and not as auto-fix."},
+    {"id": "run_compileall", "aliases": ["run_compileall", "compileall", "ejecutar compileall"], "reason": "Compiling Python modules for syntax verification is read-only for source files."},
+    {"id": "run_governance_checks", "aliases": ["run_governance_checks", "governance checks", "ejecutar governance checks"], "reason": "Governance checks are diagnostic verification."},
+    {"id": "run_atlas_verify", "aliases": ["run_atlas_verify", "atlas_verify", "ejecutar atlas_verify"], "reason": "atlas_verify is a diagnostic verification command."},
+    {"id": "mcp_tools_list", "aliases": ["mcp_tools_list", "consultar mcp tools/list", "mcp tools/list"], "reason": "MCP tools/list is read-only discovery."},
+    {"id": "mcp_read_only_allowlisted", "aliases": ["mcp_read_only_allowlisted", "consultar mcp read-only allowlisted"], "reason": "Only explicitly allowlisted read-only MCP calls are diagnostic."},
+    {"id": "analyze_logs", "aliases": ["analyze_logs", "analizar logs"], "reason": "Analyzing logs is read-only."},
+    {"id": "generate_findings_in_memory", "aliases": ["generate_findings_in_memory", "generar hallazgos en memoria"], "reason": "Preparing findings in memory has no persistence side effects."},
+    {"id": "prepare_report_without_persisting", "aliases": ["prepare_report_without_persisting", "preparar reporte sin persistir"], "reason": "Preparing a report without writing it is allowed in diagnostic mode."}
+  ],
+  "blocked_actions": [
+    {"id": "modify_file", "aliases": ["modify_file", "modificar archivo"], "reason": "Diagnostic Mode does not modify files."},
+    {"id": "create_file", "aliases": ["create_file", "crear archivo"], "reason": "Diagnostic Mode does not create files."},
+    {"id": "delete_file", "aliases": ["delete_file", "borrar archivo"], "reason": "Diagnostic Mode does not delete files."},
+    {"id": "move_file", "aliases": ["move_file", "mover archivo"], "reason": "Diagnostic Mode does not move files."},
+    {"id": "install_dependency", "aliases": ["install_dependency", "instalar dependencia"], "reason": "Dependency installation changes the environment."},
+    {"id": "update_dependency", "aliases": ["update_dependency", "actualizar dependencia"], "reason": "Dependency updates change the environment."},
+    {"id": "git_commit", "aliases": ["git_commit", "git commit"], "reason": "Diagnostic Mode cannot commit changes."},
+    {"id": "git_push", "aliases": ["git_push", "git push"], "reason": "Diagnostic Mode cannot push changes."},
+    {"id": "git_reset", "aliases": ["git_reset", "git reset"], "reason": "Diagnostic Mode cannot reset repository state."},
+    {"id": "git_clean", "aliases": ["git_clean", "git clean"], "reason": "Diagnostic Mode cannot clean repository state."},
+    {"id": "deploy", "aliases": ["deploy", "desplegar"], "reason": "Diagnostic Mode cannot deploy."},
+    {"id": "change_secrets", "aliases": ["change_secrets", "cambiar secrets"], "reason": "Diagnostic Mode cannot change secrets."},
+    {"id": "change_config", "aliases": ["change_config", "cambiar config"], "reason": "Diagnostic Mode cannot change configuration."},
+    {"id": "change_workflow", "aliases": ["change_workflow", "cambiar workflow"], "reason": "Diagnostic Mode cannot change workflows."},
+    {"id": "mcp_write", "aliases": ["mcp_write", "mcp write", "escritura mcp"], "reason": "Diagnostic Mode cannot perform MCP writes."},
+    {"id": "memory_write", "aliases": ["memory_write", "memory write", "escritura de memoria"], "reason": "Diagnostic Mode cannot write memory."},
+    {"id": "database_write", "aliases": ["database_write", "database write", "escritura database"], "reason": "Diagnostic Mode cannot write databases."},
+    {"id": "auto_fix", "aliases": ["auto_fix", "auto-fix", "autofix"], "reason": "Diagnostic Mode observes and recommends; it does not auto-fix."},
+    {"id": "runtime_integration", "aliases": ["runtime_integration", "runtime integration", "integracion runtime"], "reason": "Diagnostic Mode cannot add runtime integration."}
+  ],
+  "unknown_action_examples": [
+    "ambiguous actions",
+    "unclassified commands",
+    "MCP calls without side-effect metadata",
+    "network operations without proven read-only contract",
+    "external tools without read-only contract"
+  ],
+  "limits": {
+    "filesystem": "Read-only inventory and inspection only.",
+    "shell": "Read-only verification commands only; no mutations.",
+    "mcp": "tools/list and allowlisted read-only calls only.",
+    "memory": "No persistence or memory writes.",
+    "network": "No writes and no unclassified external operations.",
+    "configuration": "No config changes.",
+    "deploy": "No deploy or release operations."
+  }
+}
