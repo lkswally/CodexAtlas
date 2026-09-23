@@ -11,11 +11,11 @@ TARGET_FILES = [
 ]
 
 
-def test_web_root_related_tests_do_not_hardcode_local_codexatlas_web_paths():
+def test_web_root_related_tests_do_not_hardcode_local_sibling_paths():
     forbidden_patterns = [
-        "C:" + "\\Proyectos\\CodexAtlas-Web",
-        "C:/Proyectos/CodexAtlas-Web",
-        'ROOT.parent / "CodexAtlas-Web"',
+        "C:" + "\\Proyectos\\",
+        "C:/Proyectos/",
+        "ROOT.parent /",
     ]
     offenders: dict[str, list[str]] = {}
 

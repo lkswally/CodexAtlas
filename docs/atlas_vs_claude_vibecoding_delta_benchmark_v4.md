@@ -38,7 +38,7 @@ prefiriendo tools repo-locales, tests y workflows opt-in.
 ### Claude-Vibecoding
 
 - Repo: `https://github.com/Emaleo0522/claude-vibecoding`.
-- Sandbox read-only: `D:\Proyectos\_benchmark_sandbox\claude-vibecoding`.
+- Sandbox read-only: `<benchmark_sandbox>\claude-vibecoding`.
 - Previous benchmark commit: `2f75af6efa9bd7692e39f695c468528eeadfa5e6`.
 - Current `origin/main`: `9288a09552529ffede2af59390adc35d404bb751`.
 - Delta command evidence:

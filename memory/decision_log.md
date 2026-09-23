@@ -320,7 +320,7 @@
 
 ## 2026-04-25
 - Decision: treat explicit no-deploy wording as a safety restriction, not as deploy intent
-- Reason: the first real bootstrap for `CodexAtlas-Web` exposed a false positive where `no deploy` escalated approval and blocked a legitimate safe bootstrap
+- Reason: the first real bootstrap for `sample-web-project` exposed a false positive where `no deploy` escalated approval and blocked a legitimate safe bootstrap
 - Impact: the orchestrator now distinguishes negated deploy phrases from real deploy intent in both intent classification and approval reasons
 - Risk: the phrase matcher is still heuristic and should be reviewed if more multilingual safety phrases are added
 - Rollback: revert the deploy-negation matcher and return to the previous keyword-only behavior
@@ -348,7 +348,7 @@
 
 ## 2026-04-30
 - Decision: make design-intelligence recommendations derive strictly from warning or skipped evidence instead of generic summary text
-- Reason: a real audit on `CodexAtlas-Web` showed that `next_action` could still mention a missing CTA even when the CTA check was already passing
+- Reason: a real audit on `sample-web-project` showed that `next_action` could still mention a missing CTA even when the CTA check was already passing
 - Impact: `design_intelligence_audit` now exposes `recommendation_sources`, removes corrective recommendations from PASS checks, and marks unverifiable checks as `skipped` with a reason
 - Risk: stricter evidence coupling may make the audit feel less suggestive when only weak signals are available
 - Rollback: revert the recommendation-source logic and return to the previous generic summary generation

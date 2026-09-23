@@ -25,7 +25,7 @@ separate MCP stdio test.
 ## Sandbox
 
 - Path: `.atlas_test_tmp/engram_sandbox`
-- Absolute path during test: `D:\Proyectos\Codex-Atlas\.atlas_test_tmp\engram_sandbox`
+- Absolute path during test: `<atlas_root>\.atlas_test_tmp\engram_sandbox`
 - Git state: ignored by the existing `.atlas_test_tmp/` rule in `.gitignore`
 - File observed after write/read: `.atlas_test_tmp/engram_sandbox/engram.db`
 

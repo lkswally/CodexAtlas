@@ -1,7 +1,7 @@
 # SPRINT_STATUS - Codex-Atlas
 
 ## Governance
-- Atlas root: `C:\Proyectos\Codex-Atlas`
+- Atlas root: `<atlas_root>`
 - Operating mode: `ATLAS completo`
 - Project profile: `backend_service`
 - Project type: `atlas-factory-core`
@@ -38,8 +38,8 @@ Functional implementation is allowed only when:
 4. No governance or dirty-worktree blocker is present.
 
 ## Required Checks
-- `python C:\Proyectos\Codex-Atlas\tools\atlas_context_audit.py --project "C:\Proyectos\Codex-Atlas"`
-- `python C:\Proyectos\Codex-Atlas\tools\atlas_run.py --project-path "C:\Proyectos\Codex-Atlas" --task "<task>" --mode plan --dry-run --require-dispatcher true`
+- `python <atlas_root>\tools\atlas_context_audit.py --project "<atlas_root>"`
+- `python <atlas_root>\tools\atlas_run.py --project-path "<atlas_root>" --task "<task>" --mode plan --dry-run --require-dispatcher true`
 - Targeted tests only when a later approved task changes functional code.
 
 ## Next Step

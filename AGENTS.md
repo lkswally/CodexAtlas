@@ -13,12 +13,12 @@ Its job is to define and govern:
 - command contracts
 - memory conventions
 
-ATLAS is not a product runtime and is not REYESOFT.
+ATLAS is not a product runtime and does not contain downstream business logic.
 
 ## Scope Rules
 
 - Keep the Atlas core reusable and project-agnostic.
-- Do not add REYESOFT business logic to this repo.
+- Do not add downstream-project business logic to this repo.
 - Derived projects may keep only project-local runtime, adapters and `.atlas-project.json`.
 - Prefer minimal, auditable, reversible changes.
 
@@ -56,13 +56,13 @@ Every phase must leave explicit outputs, and risky work must keep a human approv
 - No `.claude` directories or Claude-only files.
 - No Engram or Pixel Bridge.
 - No automatic deploy flows.
-- Do not modify REYESOFT runtime from this repo.
+- Do not modify a downstream-project runtime from this repo.
 
 ## Canonical Boundaries
 
 - Canonical Atlas core lives in the current repository root (`<atlas_root>`).
-- REYESOFT is a derived project and may consume Atlas through adapters or copied templates.
-- If the same concept exists in both places, Atlas is the source of truth unless the file is explicitly a REYESOFT adapter.
+- A derived project may consume Atlas through adapters or copied templates.
+- If the same concept exists in both places, Atlas is the source of truth unless the file is explicitly a consumer-specific adapter.
 - Root-level directories are the primary Codex-native home of Atlas.
 - `00_SISTEMA/_meta/atlas/` is legacy compatibility only.
 
