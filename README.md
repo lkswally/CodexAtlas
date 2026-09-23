@@ -1,202 +1,304 @@
-# Codex-Atlas
+# CodexAtlas
 
-`<atlas_root>` es la fuente de verdad canónica de ATLAS: una configuración madre de Codex para crear, gobernar, auditar y certificar proyectos derivados sin mezclar el core reusable con runtimes de producto.
+**A governance and evidence toolkit for safer, more inspectable Codex-assisted software work.**
 
-REYESOFT es un derivado separado. Atlas opera sobre derivados desde afuera y no debe volver a vivir dentro de ellos.
+[![Atlas CI](https://github.com/lkswally/CodexAtlas/actions/workflows/atlas-ci.yml/badge.svg)](https://github.com/lkswally/CodexAtlas/actions/workflows/atlas-ci.yml)
 
-## Objetivo
+CodexAtlas turns recurring engineering controls—scope checks, risk classification, bounded execution, evidence capture, and repository verification—into versioned Python tools and explicit contracts. It is a local project factory and control plane for Codex workflows, not an autonomous software-development runtime.
 
-Codex-Atlas existe para:
-- bootstrappear proyectos derivados con límites claros
-- gobernar skills, workflows, policies y contratos
-- auditar y certificar derivados en modo read-only
-- mantener observabilidad mínima y continuidad entre sesiones
-- adaptar patrones útiles del ecosistema sin copiar Claude-only runtime
+## Overview
 
-## Arquitectura
+LLM-assisted engineering often leaves critical behavior implicit: the model decides what to inspect, which risks matter, when evidence is sufficient, and whether an external integration is actually available. CodexAtlas makes those boundaries inspectable.
 
-La superficie canónica vive en raíz:
-- `AGENTS.md`
-- `commands/`
-- `config/`
-- `agents/`
-- `skills/`
-- `workflows/`
-- `policies/`
-- `templates/`
-- `memory/`
-- `docs/`
-- `tools/`
-- `adapters/`
-- `tests/`
+Today it provides:
 
-Capas principales:
-- `tools/atlas_orchestrator.py`: routing sugerente, skills, modelos y MCPs controlados
-- `tools/atlas_dispatcher.py`: comandos ejecutables read-only o de escritura limitada y gobernada
-- `tools/atlas_governance_check.py`: validación canónica de estructura, contratos y límites
-- `tools/atlas_mcp_manager.py`: lifecycle controlado de MCPs experimentales
-- `tools/docs_search_adapter.py`: adapter interno read-only sobre catálogo curado
-- `tools/docs_catalog_report.py`: reporte read-only de salud y frescura del catálogo
-- `tools/operational_parity_readiness.py`: reporte read-only de paridad operativa Codex-native frente a patrones útiles de `claude-vibecoding`
+- deterministic governance, repository audit, bootstrap, and certification tools;
+- advisory task, risk, skill, and model-class routing;
+- bounded execution adapters for selected local operations;
+- evidence contracts and quality reports;
+- explicit approval boundaries for state-changing or high-risk work;
+- versioned policies, skills, workflow specifications, and regression tests.
 
-`00_SISTEMA/_meta/atlas/` se conserva solo como mirror legacy de compatibilidad. No es la fuente principal.
+CodexAtlas deliberately does **not** claim automatic model switching, a dynamic multi-agent runtime, autonomous learning, universal command interception, or live MCP connectivity.
 
-## Features actuales
+## Why CodexAtlas
 
-- gobernanza root-first validada
-- dispatcher ejecutable con `audit-repo` y `certify-project`
-- orquestador sugerente con skills, perfiles de modelo y MCPs controlados
-- skills estructuradas con `skill.md`, `skill.json`, `behavior.json` y contratos externos cuando aplica
-- `project-bootstrap` con preflight real, templates por perfil y salida mínima segura
-- `repo-audit` y `certify-project` en modo read-only
-- `decision-council` como capa read-only para decisiones dificiles con dissent explicito y chairman synthesis manual
-- `market-research-benchmark` como benchmark read-only contra `_reference/claude-vibecoding` y repos radar documentados
-- observabilidad append-only para routing, governance, MCPs y proyectos derivados
-- adapter interno `docs_search` con ranking, deduplicación, summary, confidence y política de frescura
-- reporte read-only del catálogo curado de documentación oficial
-- paridad operativa Codex-native con handoff envelope, evidence index, stop rules, resume protocol y quality hook bundle manual
+The project explores a practical agentic-systems question:
 
-## Skills disponibles
+> How much of an AI-assisted engineering workflow can be made deterministic, testable, and reviewable without hiding control inside a larger autonomous runtime?
 
-- `project-bootstrap`
-- `repo-audit`
-- `decision-council`
-- `market-research-benchmark`
-- `product-branding-review`
-- `visual-direction-checkpoint`
-- `anti-generic-ui-audit`
-- `design-system-review`
-- `business-idea-evaluator`
-- `conversion-copywriter`
+The design separates four concerns:
 
-## Workflows disponibles
+1. **Policy** — what is allowed, blocked, advisory, or approval-gated.
+2. **Routing** — which skill, model class, or verification path is recommended.
+3. **Execution** — which bounded tool or host adapter may perform work.
+4. **Evidence** — what supports a result and what remains unverified.
 
-- `atlas_project_pipeline`
-- `create_project`
-- `audit_project`
-- `audit_repo`
-- `certify_project`
-- `certify_output`
-- `change_proposal_workflow`
-- `decision_council_review`
-- `design_intelligence_pipeline`
-- `market_research_benchmark`
-- `orchestrator_routing`
+## Architecture
 
-## Cómo crear un proyecto derivado
+~~~mermaid
+flowchart TD
+    U[User or Codex host] --> I[Task intake]
+    I --> G[Governance and safety checks]
+    G --> O[Deterministic orchestrator]
+    O --> R[Skill and model-class recommendations]
+    R --> B{Execution boundary}
+    B -->|bounded local command| T[Audit / bootstrap / certification tools]
+    B -->|host-controlled| C[Codex execution adapter]
+    T --> E[Evidence and verification]
+    C --> E
+    E --> Q[Quality report and result]
 
-Atlas no crea runtime completo. Crea una base derivada segura y certificable.
+    M[Model routing policy] -. advisory .-> R
+    P[MCP profiles] -. configured / approval-gated .-> B
+    H[Human approval] -. selected risk .-> B
+~~~
 
-Inputs mínimos recomendados:
-- `project_goal`
-- `scope_and_non_scope`
-- `target_runtime_or_stack`
-- `constraints_and_approval_boundaries`
-- `output_dir`
-- opcional: `project_name`, `project_type`, `adapter_notes`, `initial_docs_scope`
+Solid arrows represent implemented control flow. Dashed arrows represent advisory policy or host-dependent integration.
 
-Perfiles soportados:
-- `backend_service`
-- `frontend_app`
-- `fullstack`
-- `internal_tool`
-- `ai_agent_system`
+Primary executable surfaces include:
 
-Flujo sugerido:
-1. Pedir routing/orquestación sobre la idea del proyecto.
-2. Ejecutar `project-bootstrap` con `output_dir` explícito.
-3. Auditar el derivado con `audit-repo`.
-4. Certificar el derivado con `certify-project`.
+- tools/atlas_governance_check.py
+- tools/atlas_verify.py
+- tools/atlas_dispatcher.py
+- tools/atlas_orchestrator.py
+- tools/atlas_project_bootstrap.py
+- tools/atlas_codex_executor.py
 
-## Cómo auditar o certificar un proyecto
+## How a task flows through CodexAtlas
 
-Auditar Atlas desde la raíz del repo:
+1. **Intake** identifies the requested operation and target repository.
+2. **Governance** checks canonical structure, project boundaries, and policy constraints.
+3. **Risk classification** identifies destructive commands, external side effects, and approval requirements.
+4. **Routing** recommends a skill, model class, and verification posture.
+5. **Execution** remains bounded: deterministic tools run directly; Codex execution remains host-controlled.
+6. **Evidence** records commands, exit status, artifacts, or structured findings.
+7. **Verification** produces a report that distinguishes supported results from blockers and unknowns.
 
-```powershell
-python tools/atlas_governance_check.py
-python tools/atlas_dispatcher.py audit-repo
-python tools/atlas_dispatcher.py surface-audit
-python tools/atlas_dispatcher.py operational-parity-report
-```
+Not every workflow specification is an executable state machine. Several documents describe operating procedures that a host or engineer must apply.
 
-Auditar un derivado:
+## Governance & Safety
 
-```powershell
-python tools/atlas_governance_check.py --project <project_root>
-python tools/atlas_dispatcher.py --project <project_root> audit-repo
-```
+CodexAtlas includes deterministic checks for canonical structure, project boundaries, dangerous-command patterns, approval-sensitive operations, skill contracts, audit requirements, and evidence bundles.
 
-Certificar un derivado:
+The Dangerous Command Policy is a classifier used by CodexAtlas entrypoints. It is not a global shell hook and does not intercept every command executed outside those entrypoints.
 
-```powershell
-python tools/atlas_dispatcher.py --project <project_root> certify-project
-```
+Human approval remains necessary for production deployment, destructive filesystem changes, sensitive external writes, and other policy-classified high-risk work. The host applies the final approval and sandbox boundary.
 
-Los derivados no necesitan shims de Atlas si exponen `.atlas-project.json`.
+## Orchestration
 
-## Estado actual
+tools/atlas_orchestrator.py performs deterministic intake, risk assessment, and recommendation. It can invoke bounded skill handlers and prepare execution plans.
 
-**Codex-Atlas V3 RC1**
+tools/intelligent_orchestrator.py is a **dry-run/advisory simulator**. It does not launch agents, switch models, call MCP servers, or mutate repositories.
 
-Atlas V3 esta congelado como release candidate baseline. Es apto para uso
-interno real como sistema gobernado, local y evidence-first para crear,
-auditar y certificar proyectos derivados. No es un runtime autonomo.
+The repository contains role specifications under agents/. These are contracts and reusable role descriptions, not independently verified executable agents.
 
-Estado de release:
-- RC1: GO
-- P0/P1: ninguno conocido
-- Suite global: `601 passed, 1 skipped`
-- Atlas CI: PASS
-- Health report: PASS con workflow observations cache y freshness policy
-- Evidence Pipeline: PASS
-- Failure Registry: PASS
-- Model Routing: PASS en modo advisory
+tools/atlas_codex_executor.py provides an adapter for codex exec. Its behavior depends on the installed Codex CLI, host sandbox, and approval capabilities. Adapter readiness is not proof that a delegated task executed end to end.
 
-## Límites actuales
+## Skills & Workflows
 
-Atlas no incluye ni habilita por defecto:
-- `.claude`
-- `CLAUDE.md` como fuente principal
-- hooks automáticos
-- MCP real
-- Engram
-- Pixel Bridge
-- deploy automático
-- instalación automática de dependencias
-- escritura fuera de `output_dir` en bootstrap
+The current repository contains:
 
-Además:
-- `docs_search` sigue siendo adapter interno, no conector MCP real
-- la creación de proyecto produce scaffold y metadata, no lógica de negocio lista
+- **10 governed skill directories**
+- **11 workflow specifications**
+- **55 policy files**
+- **12 role specification files**
+- **4 GitHub Actions workflow files**
 
-## Roadmap inmediato
+These categories are intentionally separate. Skills define bounded capabilities; workflows describe procedures; policies constrain decisions; role specifications describe operating roles; evaluators are Python tools; execution adapters connect selected operations to a host.
 
-V3 esta congelado. Solo acepta P0/P1.
+Canonical skills: `project-bootstrap`, `repo-audit`, `decision-council`, `market-research-benchmark`, `product-branding-review`, `visual-direction-checkpoint`, `anti-generic-ui-audit`, `design-system-review`, `business-idea-evaluator`, and `conversion-copywriter`.
 
-Ver `ROADMAP.md` para objetivos preliminares de V4. V4 no esta disponible en
-este release.
+Workflow specifications: `atlas_project_pipeline`, `create_project`, `audit_project`, `audit_repo`, `certify_project`, `certify_output`, `change_proposal_workflow`, `decision_council_review`, `design_intelligence_pipeline`, `market_research_benchmark`, and `orchestrator_routing`.
 
-## Desarrollo y tests
+The dispatcher exposes bounded commands including `audit-repo`, `certify-project`, and `surface-audit`.
 
-Prerequisito mínimo para correr la suite local:
+A workflow document or role specification is not automatically an active runtime component.
 
-```powershell
-pip install -r requirements-dev.txt
-pytest tests/
-```
+## Evidence & Verification
 
-Los tests resuelven la raíz del repo desde el checkout actual y aceptan override por `ATLAS_ROOT` si hiciera falta.
+Evidence is a first-class design concern in CodexAtlas. Implemented paths can capture commands and exit codes, output excerpts, file metadata and hashes, structured blockers, test results, and browser artifacts when an opt-in Playwright environment is provisioned.
 
-## Referencias rápidas
+A PASS means the checks invoked for that path succeeded. It does **not** establish correctness outside the tested scope, live availability of an external service, semantic correctness of every artifact, general autonomy, or successful browser execution when Browser Smoke was skipped.
 
-- [ARCHITECTURE.md](ARCHITECTURE.md)
-- [ROADMAP.md](ROADMAP.md)
-- [CONTRIBUTING.md](CONTRIBUTING.md)
-- [AGENTS.md](AGENTS.md)
-- [ATLAS_STATUS.md](ATLAS_STATUS.md)
-- [ATLAS_NEXT_STEPS.md](ATLAS_NEXT_STEPS.md)
-- [docs/architecture.md](docs/architecture.md)
-- [docs/release_candidate_rc1.md](docs/release_candidate_rc1.md)
-- [docs/release_notes_v3.md](docs/release_notes_v3.md)
-- [docs/codex_system_prompt.md](docs/codex_system_prompt.md)
-- [docs/mcp_read_only_evaluation.md](docs/mcp_read_only_evaluation.md)
+The tracked visual-fidelity PNG files are lightweight test fixtures, not runtime screenshots. Real browser evidence requires the separate opt-in smoke workflow or an equivalent provisioned local run.
+
+## Model Routing
+
+| Layer | Current behavior |
+|---|---|
+| Task classification | Deterministic and implemented |
+| Model-class recommendation | Implemented in advisory mode |
+| Provider resolution | Not implemented for model providers |
+| Host application | Controlled by the Codex host/operator |
+| Runtime model switching | Not implemented |
+| Fallback | Recommendation only; no automatic switch |
+
+Decision Benchmark V1 contains 45 versioned cases. Its tests pass against the current routing rules. This is evidence for that bounded dataset, not a claim of general routing accuracy.
+
+## MCP & Tool Integration
+
+CodexAtlas includes an MCP manager, permission profiles, readiness checks, and a local read-only documentation-search adapter.
+
+Current boundaries:
+
+- the internal docs_search adapter is implemented locally;
+- external MCP connectivity is not required for core governance;
+- the audited host did not have the documentation MCP configured;
+- configured profiles do not imply a successful handshake;
+- selected MCP operations require explicit approval;
+- a simulated fallback must not be read as live external execution.
+
+## Failure Handling
+
+The Failure Registry can record, validate, read, and query known failures. This supports recurrence analysis, but it is not autonomous learning.
+
+CodexAtlas provides bounded failure classification, blocker and warning states, regression tests, component-specific retries where implemented, and documented rollback expectations. It does not provide a general self-healing loop, automatic rollback, or persistent behavioral adaptation.
+
+## Observability
+
+Selected components emit structured JSON/JSONL events for governance, routing, MCP evaluation, and decision feedback. These records support local diagnosis and reports.
+
+Observability is component-scoped. Runtime logs may contain local paths or project metadata and should be treated as local operational data rather than portfolio content.
+
+## Current Verified Status
+
+Verified locally on Windows with Python 3.14.5 and pytest 9.0.3 for this branch on 2026-09-23. The CI baseline uses Python 3.13 and `requirements-dev.txt`:
+
+| Area | Status | Evidence |
+|---|---|---|
+| Full Python suite | **PASS** | 830 passed, 1 skipped |
+| Skipped test | **Expected opt-in** | Real-browser smoke requires provisioned Chromium |
+| Governance | **LIVE / verified** | Current governance command and tests |
+| Repository audit | **LIVE / verified** | atlas_verify.py and audit path |
+| Project bootstrap | **LIVE / bounded** | Temporary-project execution in tests |
+| Certification | **LIVE / bounded** | Read-only certification tests |
+| Evidence Pipeline | **PARTIAL** | Non-browser paths verified; real browser not revalidated locally |
+| Failure Registry | **LIVE / isolated** | Registry operations verified; no autonomous learning claim |
+| Decision Benchmark V1 | **PASS in scope** | 45-case deterministic dataset |
+| Intelligent Orchestrator | **DRY_RUN** | Advisory simulator only |
+| Model routing | **ADVISORY** | Recommendation implemented; no runtime switching |
+| External MCP | **PARTIAL / host-dependent** | Manager and contracts exist; live external server not verified |
+| Baseline main CI | **PASS at `ca535ac`** | GitHub Actions run `31176337424`; focused suites |
+| Autonomous model switching | **NOT IMPLEMENTED** | Host/operator remains responsible |
+
+The only repository tag is v3.0.0-rc1, which points to an earlier commit than current main. No GitHub Release exists for that tag. Current main should not be described as a published RC1 release.
+
+## Autonomy Boundaries
+
+CodexAtlas **decides deterministically**:
+
+- repository and policy validation results;
+- known dangerous-command classifications;
+- routing recommendations;
+- readiness and verification findings.
+
+CodexAtlas **recommends** skills, model classes, verification depth, and next steps.
+
+CodexAtlas **executes** local audit, bootstrap, certification, reporting, and validation tools. The Codex execution adapter can invoke `codex exec` when explicitly called, but this audit did not reproduce an end-to-end delegated-agent run.
+
+The **host or operator controls** the active model and provider, approval prompts, sandbox permissions, external MCP availability, production side effects, deployment, and publication.
+
+CodexAtlas deliberately does not automate production deployment, dependency installation, provider selection, model switching, Git history rewriting, or unrestricted cross-repository mutation.
+
+## Testing & CI
+
+Requirements:
+
+- Python 3.13 (the CI baseline; other versions are not claimed as supported)
+- Git
+- Codex CLI only for host-execution paths
+- Chromium/Playwright only for the opt-in real-browser smoke test
+
+Create an isolated environment and run the suite:
+
+~~~powershell
+git clone https://github.com/lkswally/CodexAtlas.git
+cd CodexAtlas
+
+python -m venv .venv
+.venv\Scripts\python -m pip install --upgrade pip
+.venv\Scripts\python -m pip install -r requirements-dev.txt
+.venv\Scripts\python -m pytest tests/
+~~~
+
+Core verification:
+
+~~~powershell
+.venv\Scripts\python tools\atlas_verify.py
+.venv\Scripts\python tools\atlas_governance_check.py
+.venv\Scripts\python tools\atlas_dispatcher.py audit-repo
+.venv\Scripts\python tools\mcp_readiness_check.py
+~~~
+
+Atlas CI runs on pushes and pull requests to main. It executes governance, readiness, focused governance tests, critical architecture tests, and git diff --check. The full global suite and browser smoke are separate manual workflows.
+
+## Repository Structure
+
+~~~text
+agents/       role specifications
+commands/     command contracts and registries
+config/       routing, policy, benchmark, and readiness data
+docs/         architecture studies and bounded technical reports
+memory/       local-first state formats and operational records
+policies/     human-readable governance constraints
+skills/       governed capability packages
+templates/    bootstrap templates
+tests/        deterministic regression and integration tests
+tools/        executable audit, routing, evidence, and governance tools
+validators/   schema and contract validation assets
+workflows/    procedure and transition specifications
+~~~
+
+## Getting Started
+
+For a first read-only inspection:
+
+~~~powershell
+python tools\atlas_verify.py
+python tools\atlas_governance_check.py
+python tools\atlas_dispatcher.py audit-repo
+~~~
+
+To inspect a consumer repository without modifying it:
+
+~~~powershell
+python tools\atlas_governance_check.py --project <project_root>
+python tools\atlas_dispatcher.py --project <project_root> audit-repo
+python tools\atlas_dispatcher.py --project <project_root> certify-project
+~~~
+
+Project bootstrap changes the filesystem. Review its contract and provide an explicit output directory before invoking it.
+
+## Roadmap
+
+Near-term work is intentionally conservative:
+
+- remove remaining named-consumer coupling from reusable core paths;
+- separate local runtime records from publishable repository fixtures;
+- improve reproducible real-browser evidence;
+- keep external integrations opt-in and capability-checked;
+- expand benchmarks only when new failure modes are observed.
+
+## Limitations
+
+- Some reusable core paths still contain legacy coupling to a named downstream project. This requires a separate architecture change.
+- External MCP availability is host-specific and was not live in the audited environment.
+- Browser E2E is opt-in and was skipped in the reproduced local suite.
+- Model routing is advisory; runtime switching is not implemented.
+- The execution adapter does not establish a verified multi-agent runtime.
+- Failure recording does not equal autonomous learning.
+- The repository has **no license file**. Reuse rights remain undefined until the owner selects a license.
+- Historical Git commits may retain local paths and downstream-project names after current-tree cleanup.
+
+## License
+
+**License decision required.** No license has been selected.
+
+Common options:
+
+- **MIT** — short, permissive, minimal conditions.
+- **Apache-2.0** — permissive with an explicit patent grant.
+- **Proprietary / all rights reserved** — public source visibility without reuse permission.
+
+The owner should choose based on the intended reuse model. CodexAtlas does not assign a license implicitly.
