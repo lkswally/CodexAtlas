@@ -1,8 +1,8 @@
 # Portfolio Publication Audit and Website Alignment Plan
 
-**Date:** 2026-09-23  
-**Repository:** https://github.com/lkswally/CodexAtlas  
-**Baseline:** main at ca535ac1db3e27945af6f60d1bcb76b41822b3b9  
+**Date:** 2026-09-23
+**Repository:** https://github.com/lkswally/CodexAtlas
+**Baseline:** main at ca535ac1db3e27945af6f60d1bcb76b41822b3b9
 **Working branch:** portfolio/codexatlas-readme-web
 
 ## Scope gate
@@ -49,9 +49,9 @@ Changing this safely requires a separately reviewed compatibility plan for defau
 
 ## Website source ownership
 
-WEBSITE_SOURCE_EXTERNAL  
-repository=https://github.com/lkswally/WebCodexAtlas.git  
-local_checkout=external sibling checkout (read-only)  
+WEBSITE_SOURCE_EXTERNAL
+repository=https://github.com/lkswally/WebCodexAtlas.git
+local_checkout=external sibling checkout (read-only)
 public_url=https://web-codex-atlas.vercel.app/
 
 Evidence:
