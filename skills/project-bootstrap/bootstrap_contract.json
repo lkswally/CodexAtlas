@@ -216,7 +216,7 @@
   "safety_limits": [
     "output_dir must be provided explicitly",
     "output_dir must be missing or empty before execution",
-    "do not write inside REYESOFT or its runtime paths",
+    "do not write inside an existing consumer repository or outside the explicit output_dir",
     "generate only minimal scaffold directories and metadata files",
     "do not install dependencies, connect MCPs or execute runtime code"
   ],

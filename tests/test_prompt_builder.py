@@ -14,7 +14,7 @@ def test_prompt_builder_uses_phase_and_intent_for_existing_project():
     assert result["status"] == "ok"
     assert result["current_phase"] in {"planning", "certified"}
     assert result["prompt_kind"] in {"bootstrap_brief", "next_iteration"}
-    assert "no tocar REYESOFT" in result["prompt"]
+    assert "no modificar repositorios consumidores fuera del alcance autorizado" in result["prompt"]
     assert f"Fase actual: `{result['current_phase']}`." in result["prompt"]
     assert isinstance(result["model_profile_recommendation"], dict)
     assert isinstance(result["model_cost_control_posture"], dict)

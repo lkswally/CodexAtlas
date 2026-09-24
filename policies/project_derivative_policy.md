@@ -2,7 +2,7 @@
 
 ## Goal
 
-Protect the boundary between Atlas as a parent factory and any derived project such as REYESOFT.
+Protect the boundary between Atlas as a parent factory and its derived or consumer projects.
 
 ## Rules
 
@@ -14,5 +14,5 @@ Protect the boundary between Atlas as a parent factory and any derived project s
 
 ## Current application
 
-- `adapters/reyesoft/` documents the REYESOFT relationship
+- `adapters/downstream_project/` documents the generic downstream relationship
 - `00_SISTEMA/_meta/atlas/` is a legacy compatibility mirror, not the primary Atlas home

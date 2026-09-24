@@ -155,7 +155,7 @@ REQUIRED_ROOT_FILES = (
     "docs/claude_vibecoding_assessment.md",
     "docs/claude_vibecoding_design_intelligence.md",
     "docs/mcp_read_only_evaluation.md",
-    "adapters/reyesoft/README.md",
+    "adapters/downstream_project/README.md",
     "skills/README.md",
     "skills/project-bootstrap/skill.md",
     "skills/project-bootstrap/skill.json",

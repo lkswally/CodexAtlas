@@ -95,7 +95,7 @@ def _prompt_lines(
     if top_action:
         lines.append(f"Foco principal ahora: {top_action}")
     lines.append("Restricciones:")
-    lines.append("- no tocar REYESOFT")
+    lines.append("- no modificar repositorios consumidores fuera del alcance autorizado")
     lines.append("- no hooks")
     lines.append("- no MCP real")
     lines.append("- cambios mínimos, trazables y reversibles")
