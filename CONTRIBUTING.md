@@ -14,6 +14,14 @@ the baseline unless a P0 or P1 issue requires a minimal fix.
 
 ## Running Tests
 
+Supported development contract:
+
+- Python 3.13 (the CI baseline)
+- pytest `>=8,<9`, installed through `requirements-dev.txt`
+- the built-in pytest cache provider enabled, because `pyproject.toml` configures `cache_dir`
+
+The `Unknown config option: cache_dir` warning is reproducible only when pytest is started with its built-in cache provider disabled (for example, `-p no:cacheprovider`). That invocation is outside the supported test command and should not be used to validate the repository.
+
 Install development dependencies:
 
 ```powershell
