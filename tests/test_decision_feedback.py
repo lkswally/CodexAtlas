@@ -144,7 +144,7 @@ def test_decision_feedback_cli_add_writes_append_only_entry():
         assert exit_code == 0
         payload = json.loads(buffer.getvalue())
         assert payload["status"] == "ok"
-        log_path = root / "memory" / "decision_feedback.jsonl"
+        log_path = root / ".atlas_runtime" / "decision_feedback.jsonl"
         lines = log_path.read_text(encoding="utf-8").splitlines()
         assert len(lines) == 1
         entry = json.loads(lines[0])
@@ -159,7 +159,7 @@ def test_decision_feedback_cli_list_returns_project_history_without_filters():
     shutil.rmtree(root, ignore_errors=True)
     root.mkdir(parents=True, exist_ok=True)
     try:
-        log_path = root / "memory" / "decision_feedback.jsonl"
+        log_path = root / ".atlas_runtime" / "decision_feedback.jsonl"
         log_path.parent.mkdir(parents=True, exist_ok=True)
         log_path.write_text(
             "\n".join(

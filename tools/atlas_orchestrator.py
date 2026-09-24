@@ -9,6 +9,11 @@ import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+try:
+    from tools.runtime_state import runtime_state_file
+except ModuleNotFoundError:
+    from runtime_state import runtime_state_file
 from typing import Any, Dict, List, Optional, Tuple
 
 try:
@@ -1150,7 +1155,7 @@ def _record_routing_decision(root: Path, payload: Dict[str, Any]) -> None:
         "execution_allowed": payload.get("execution_allowed"),
         "project_type": payload.get("project_type"),
     }
-    _append_jsonl_record(_memory_dir(root) / ROUTING_LOG, entry)
+    _append_jsonl_record(runtime_state_file(root, ROUTING_LOG), entry)
 
 
 def _record_derived_project_creation(root: Path, payload: Dict[str, Any]) -> None:

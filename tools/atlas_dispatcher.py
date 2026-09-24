@@ -8,6 +8,11 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+
+try:
+    from tools.runtime_state import runtime_state_file
+except ModuleNotFoundError:
+    from runtime_state import runtime_state_file
 from typing import Any, Dict, List, Optional
 
 try:
@@ -776,7 +781,7 @@ def _record_dispatch_event(
         "exit_code": exit_code,
         "result_status": result.get("status") if isinstance(result, dict) else None,
     }
-    _append_jsonl_record(root / "memory" / "routing_log.jsonl", record)
+    _append_jsonl_record(runtime_state_file(root, "routing_log.jsonl"), record)
 
 
 def _extract_envelope_tarea(command_id: str) -> str:

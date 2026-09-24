@@ -36,6 +36,7 @@ evidence-quality-report/
 evidence-quality-report.zip
 
 # Logs and local databases
+.atlas_runtime/
 *.log
 *.tmp
 *.cache

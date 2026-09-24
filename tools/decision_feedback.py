@@ -5,6 +5,11 @@ import json
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+try:
+    from tools.runtime_state import runtime_state_file
+except ModuleNotFoundError:
+    from runtime_state import runtime_state_file
 from typing import Any, Dict, List, Optional, Sequence
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -20,7 +25,7 @@ def _utc_now_iso() -> str:
 def _resolve_log_path(root: Path, log_path: Optional[Path] = None) -> Path:
     if log_path is not None:
         return log_path.resolve()
-    return (root / DEFAULT_LOG).resolve()
+    return runtime_state_file(root, DEFAULT_LOG.name).resolve()
 
 
 def _normalize_optional_text(value: Optional[str]) -> Optional[str]:

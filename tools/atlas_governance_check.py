@@ -6,6 +6,11 @@ import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
+
+try:
+    from tools.runtime_state import runtime_state_file
+except ModuleNotFoundError:
+    from runtime_state import runtime_state_file
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[1]
@@ -1613,7 +1618,7 @@ def _record_governance_event(root: Path, project: Optional[Path], result: Dict[s
             )
     except Exception:
         entry["experimental_mcp_profiles"] = []
-    _append_jsonl_record(root / "memory" / GOVERNANCE_EVENTS_LOG, entry)
+    _append_jsonl_record(runtime_state_file(root, GOVERNANCE_EVENTS_LOG), entry)
 
 
 def _finalize_governance_result(root: Path, project: Optional[Path], result: Dict[str, object]) -> Dict[str, object]:

@@ -22,21 +22,21 @@ def test_error_pattern_analyzer_detects_repeated_ignored_actions_and_mcp_blocker
     root.mkdir(parents=True, exist_ok=True)
     try:
         _write_jsonl(
-            root / "memory" / "decision_feedback.jsonl",
+            root / ".atlas_runtime" / "decision_feedback.jsonl",
             [
                 {"project_path": "C:/fake", "action": "Trim dense sections", "decision": "ignored"},
                 {"project_path": "C:/fake", "action": "Trim dense sections", "decision": "ignored"},
             ],
         )
         _write_jsonl(
-            root / "memory" / "mcp_events.jsonl",
+            root / ".atlas_runtime" / "mcp_events.jsonl",
             [
                 {"state": "blocked", "cli_error": "[WinError 5] Access is denied"},
                 {"state": "blocked", "cli_error": "[WinError 5] Access is denied"},
             ],
         )
-        _write_jsonl(root / "memory" / "routing_log.jsonl", [])
-        _write_jsonl(root / "memory" / "governance_events.jsonl", [])
+        _write_jsonl(root / ".atlas_runtime" / "routing_log.jsonl", [])
+        _write_jsonl(root / ".atlas_runtime" / "governance_events.jsonl", [])
         result = analyze_error_patterns(root=root)
     finally:
         shutil.rmtree(root, ignore_errors=True)
@@ -52,10 +52,10 @@ def test_error_pattern_analyzer_reports_no_recurrent_pattern_when_logs_are_clean
     shutil.rmtree(root, ignore_errors=True)
     root.mkdir(parents=True, exist_ok=True)
     try:
-        _write_jsonl(root / "memory" / "decision_feedback.jsonl", [])
-        _write_jsonl(root / "memory" / "mcp_events.jsonl", [])
-        _write_jsonl(root / "memory" / "routing_log.jsonl", [])
-        _write_jsonl(root / "memory" / "governance_events.jsonl", [])
+        _write_jsonl(root / ".atlas_runtime" / "decision_feedback.jsonl", [])
+        _write_jsonl(root / ".atlas_runtime" / "mcp_events.jsonl", [])
+        _write_jsonl(root / ".atlas_runtime" / "routing_log.jsonl", [])
+        _write_jsonl(root / ".atlas_runtime" / "governance_events.jsonl", [])
         result = analyze_error_patterns(root=root)
     finally:
         shutil.rmtree(root, ignore_errors=True)

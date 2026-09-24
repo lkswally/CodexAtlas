@@ -9,6 +9,11 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+try:
+    from tools.runtime_state import runtime_state_file
+except ModuleNotFoundError:
+    from runtime_state import runtime_state_file
 from typing import Any, Dict, List, Optional
 
 
@@ -144,7 +149,7 @@ def _record_mcp_event(root: Path, payload: Dict[str, Any]) -> None:
         return
 
     event = {"timestamp": _utc_now_iso(), **payload}
-    _append_jsonl_record(_memory_dir(root) / MCP_EVENTS_LOG, event)
+    _append_jsonl_record(runtime_state_file(root, MCP_EVENTS_LOG), event)
 
     governance_entry = {
         "timestamp": event["timestamp"],
@@ -159,7 +164,7 @@ def _record_mcp_event(root: Path, payload: Dict[str, Any]) -> None:
         "mcp_state": payload.get("state"),
         "experimental_mcp_profiles": [payload.get("profile")] if payload.get("state") != "blocked" else [],
     }
-    _append_jsonl_record(_memory_dir(root) / GOVERNANCE_EVENTS_LOG, governance_entry)
+    _append_jsonl_record(runtime_state_file(root, GOVERNANCE_EVENTS_LOG), governance_entry)
 
 
 def list_mcp_profiles(root: Optional[Path] = None) -> Dict[str, Any]:
