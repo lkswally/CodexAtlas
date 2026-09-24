@@ -348,6 +348,9 @@ def simulate_mcp_execution(
         "query_fingerprint": _text_fingerprint(query),
         "query_preview": _preview(query),
         "mode": "read_only_simulation",
+        "source_type": "SIMULATED",
+        "live_connection": False,
+        "requested_execution_satisfied": False,
         "simulation": {
             "provider_kind": profile_data.get("provider_kind"),
             "default_mode": profile_data.get("default_mode"),
@@ -423,6 +426,9 @@ def execute_mcp_request(
                     "query_fingerprint": _text_fingerprint(query),
                     "query_preview": _preview(query),
                     "execution_mode": "adapter_read_only",
+                    "source_type": "LOCAL_ADAPTER",
+                    "live_connection": False,
+                    "requested_execution_satisfied": True,
                     "runtime_support": runtime_support,
                     "adapter": adapter_result,
                     "blockers": [],
@@ -434,6 +440,11 @@ def execute_mcp_request(
             runtime_support["adapter_error"] = str(exc)
 
     fallback = simulate_mcp_execution(profile, query, root=resolved_root, approval=approval)
+    fallback["state"] = "degraded_simulation"
+    fallback["ok"] = False
+    fallback["source_type"] = "SIMULATED"
+    fallback["live_connection"] = False
+    fallback["requested_execution_satisfied"] = False
     fallback["fallback_reason"] = "adapter_unavailable_or_failed"
     fallback["runtime_support"] = runtime_support
     _record_mcp_event(
