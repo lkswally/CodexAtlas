@@ -45,6 +45,7 @@ def _detect_codex_exec_capabilities() -> Dict[str, Any]:
             "supports_sandbox": False,
             "supports_output_last_message": False,
             "supports_ask_for_approval": False,
+            "supports_automatic_approval_review": False,
         }
 
     help_text = "\n".join(part for part in ((process.stdout or ""), (process.stderr or "")) if part)
@@ -55,6 +56,7 @@ def _detect_codex_exec_capabilities() -> Dict[str, Any]:
         "supports_sandbox": "--sandbox" in help_text,
         "supports_output_last_message": "--output-last-message" in help_text,
         "supports_ask_for_approval": "--ask-for-approval" in help_text,
+        "supports_automatic_approval_review": "--approve-for-me" in help_text,
     }
 
 
@@ -129,6 +131,7 @@ def execute_via_atlas_codex(
     agent: str,
     skill: Optional[str],
     plan: List[str],
+    approval_required: bool = False,
 ) -> Dict[str, Any]:
     readiness = codex_executor_readiness()
     if not readiness.get("codex_executor_ready"):
@@ -162,6 +165,23 @@ def execute_via_atlas_codex(
             "compatibility_warnings": compatibility_warnings,
             "command_preview": preview_command,
             "reason": "executor_ready_but_not_invoked",
+            "approval_required": approval_required,
+            "approval_enforced": False,
+        }
+
+    if approval_required and not capabilities.get("supports_ask_for_approval"):
+        return {
+            "status": "blocked",
+            "codex_executor_ready": True,
+            "invoked": False,
+            "mode": mode,
+            "dry_run": dry_run,
+            "capabilities": capabilities,
+            "compatibility_warnings": compatibility_warnings,
+            "command_preview": preview_command,
+            "approval_required": True,
+            "approval_enforced": False,
+            "reason": "BLOCKED_APPROVAL_UNAVAILABLE",
         }
 
     with tempfile.NamedTemporaryFile(prefix="atlas-codex-last-message-", suffix=".txt", delete=False) as handle:
@@ -202,6 +222,8 @@ def execute_via_atlas_codex(
         "capabilities": capabilities,
         "compatibility_warnings": compatibility_warnings,
         "command_preview": command,
+        "approval_required": approval_required,
+        "approval_enforced": bool(approval_required and capabilities.get("supports_ask_for_approval")),
     }
 
 
@@ -226,6 +248,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         agent=args.agent,
         skill=args.skill,
         plan=list(args.plan_step),
+        approval_required=False,
     )
     print(json.dumps(result, indent=2, ensure_ascii=False))
     return 0 if result.get("status") in {"ready", "ok"} else 1

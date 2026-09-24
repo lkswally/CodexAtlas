@@ -68,6 +68,9 @@ HIGH_RISK_KEYWORDS = (
     "secret",
     "critical",
     "critico",
+    "git push",
+    "push current branch",
+    "push branch",
 )
 DESTRUCTIVE_INTENT_KEYWORDS = (
     "git reset",

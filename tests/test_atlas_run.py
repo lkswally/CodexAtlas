@@ -132,3 +132,67 @@ def test_atlas_run_blocks_non_demo_architecture_task_during_product_qa_sprint(mo
     assert result["status"] == "ready"
     assert result["functional_work_allowed"] is False
     assert result["functional_work_reason"] == "Current sprint only allows Product QA / Demo Readiness work."
+
+
+def test_atlas_run_propagates_approval_requirement_and_blocks_execute(monkeypatch):
+    project = _fresh_project_dir("atlas_run_approval_block")
+    (project / "README.md").write_text("# Demo\n\nTest project.\n", encoding="utf-8")
+    (project / "package.json").write_text(json.dumps({"dependencies": {"next": "^14.0.0"}}), encoding="utf-8")
+    (project / ".git").mkdir()
+    bootstrap_project(project)
+    (project / "SPRINT_STATUS.md").write_text("# Status\n", encoding="utf-8")
+
+    captured = {}
+
+    def _fake_executor(**kwargs):
+        captured.update(kwargs)
+        return {
+            "status": "blocked",
+            "codex_executor_ready": True,
+            "invoked": False,
+            "reason": "BLOCKED_APPROVAL_UNAVAILABLE",
+        }
+
+    monkeypatch.setattr("tools.atlas_run.execute_via_atlas_codex", _fake_executor)
+
+    result = run_atlas(
+        project_path=project,
+        task="Push current branch",
+        mode="execute",
+        dry_run=False,
+        require_dispatcher=True,
+    )
+
+    assert captured["approval_required"] is True
+    assert result["status"] == "blocked"
+    assert result["executor"]["reason"] == "BLOCKED_APPROVAL_UNAVAILABLE"
+    assert result["envelope"]["bloqueadores"][0]["code"] == "BLOCKED_APPROVAL_UNAVAILABLE"
+
+
+def test_atlas_run_does_not_invoke_executor_when_functional_gate_blocks(monkeypatch):
+    project = _fresh_project_dir("atlas_run_functional_gate_block")
+    (project / "README.md").write_text("# Demo\n\nTest project.\n", encoding="utf-8")
+    (project / "package.json").write_text(json.dumps({"dependencies": {"next": "^14.0.0"}}), encoding="utf-8")
+    (project / ".git").mkdir()
+    bootstrap_project(project)
+    (project / "SPRINT_STATUS.md").write_text(
+        "# SPRINT_STATUS - Demo\n\n## Current Sprint\n- Status: `product-qa-demo-readiness`\n\n## In Scope Now\n- Product QA\n- Demo Readiness\n",
+        encoding="utf-8",
+    )
+
+    def _unexpected_executor(**kwargs):
+        raise AssertionError("Executor must not run when the functional gate blocks execution")
+
+    monkeypatch.setattr("tools.atlas_run.execute_via_atlas_codex", _unexpected_executor)
+
+    result = run_atlas(
+        project_path=project,
+        task="document state machine architecture",
+        mode="execute",
+        dry_run=False,
+        require_dispatcher=True,
+    )
+
+    assert result["status"] == "blocked"
+    assert result["executor"]["invoked"] is False
+    assert result["executor"]["reason"] == "BLOCKED_FUNCTIONAL_GATE"
