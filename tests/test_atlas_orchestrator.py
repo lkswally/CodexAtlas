@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 os.environ["ATLAS_DISABLE_EVENT_LOGS"] = "1"
 
-from tests._support_paths import ATLAS_ROOT, REYESOFT_ROOT, TEMP_ROOT
+from tests._support_paths import ATLAS_ROOT, TEMP_ROOT
 from tools.atlas_orchestrator import orchestrate_task
 
 
@@ -248,15 +248,6 @@ def test_project_bootstrap_preflight_existing_non_empty_output_dir_blocks_execut
                 assert "project_bootstrap_output_dir_not_empty" in result["execution_blockers"]
 
 
-def test_project_bootstrap_preflight_inside_reyesoft_is_blocked():
-    target = REYESOFT_ROOT / "demo-bootstrap"
-    result = orchestrate_task("Bootstrap project for a sandbox demo.", output_dir=target)
-    assert result["recommended_skill"] == "project-bootstrap"
-    assert result["preflight"]["inside_reyesoft"] is True
-    assert result["safe_to_execute"] is False
-    assert "project_bootstrap_output_dir_inside_reyesoft" in result["execution_blockers"]
-
-
 def test_project_bootstrap_preflight_inside_atlas_root_is_blocked():
     target = ATLAS_ROOT / "demo-bootstrap"
     result = orchestrate_task("Bootstrap project for a sandbox demo.", output_dir=target)
@@ -278,7 +269,7 @@ def test_bootstrap_project_text_does_not_trigger_false_deploy_or_delete_blockers
 def test_no_deploy_restriction_does_not_trigger_deploy_intent_or_approval():
     target = TEMP_ROOT / "atlas_bootstrap_no_deploy"
     result = orchestrate_task(
-        "Bootstrap a static site with no backend, no deploy, no deployment and no tocar REYESOFT.",
+        "Bootstrap a static site with no backend, no deploy and no deployment.",
         output_dir=target,
         project_type="internal_tool",
     )

@@ -186,7 +186,7 @@ Drift found:
 
 - `agent_loop_manual_checklist.md` says V2 does not write Failure Registry, but Failure Registry V1 and lookup now exist.
 - `README.md` lists Engram and Pixel Bridge while `AGENTS.md` says no Engram/Pixel Bridge and evaluation docs defer/discard them.
-- `codex_global_factory_setup.md` contains personal/legacy paths such as `C:\Users\Lucas` and `C:\Proyectos\Codex-Atlas`; current repo is under `D:\Proyectos`.
+- `codex_global_factory_setup.md` contains personal/legacy paths such as `<user_home>` and `<atlas_root>`; current repo is under `<workspace_root>`.
 - Some docs call CLIs as direct scripts; package-import CLIs such as Evidence Report are reliably executable with `python -m tools...`, not `python tools/...` from all contexts.
 
 ### Workflows

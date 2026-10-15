@@ -4,6 +4,11 @@ import argparse
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+
+try:
+    from tools.runtime_state import runtime_state_file
+except ModuleNotFoundError:
+    from runtime_state import runtime_state_file
 from typing import Any, Dict, Iterable, List, Optional
 
 
@@ -56,7 +61,7 @@ def analyze_error_patterns(*, root: Path, project: Optional[Path] = None) -> Dic
 
     patterns: List[Dict[str, Any]] = []
 
-    routing_entries = list(_iter_jsonl(root / ROUTING_LOG_PATH))
+    routing_entries = list(_iter_jsonl(runtime_state_file(root, ROUTING_LOG_PATH.name)))
     if project_path:
         routing_entries = [entry for entry in routing_entries if str(entry.get("project", "")).strip() in {"", project_path}]
 
@@ -81,7 +86,7 @@ def analyze_error_patterns(*, root: Path, project: Optional[Path] = None) -> Dic
             severity="medium",
         )
 
-    feedback_entries = list(_iter_jsonl(root / DECISION_FEEDBACK_PATH))
+    feedback_entries = list(_iter_jsonl(runtime_state_file(root, DECISION_FEEDBACK_PATH.name)))
     if project_path:
         feedback_entries = [entry for entry in feedback_entries if str(entry.get("project_path", "")).strip() == project_path]
 
@@ -114,7 +119,7 @@ def analyze_error_patterns(*, root: Path, project: Optional[Path] = None) -> Dic
                 severity="low",
             )
 
-    mcp_entries = list(_iter_jsonl(root / MCP_LOG_PATH))
+    mcp_entries = list(_iter_jsonl(runtime_state_file(root, MCP_LOG_PATH.name)))
     blocked_mcp = [entry for entry in mcp_entries if str(entry.get("state", "")).strip() == "blocked"]
     access_denied = [
         entry for entry in mcp_entries
@@ -140,7 +145,7 @@ def analyze_error_patterns(*, root: Path, project: Optional[Path] = None) -> Dic
             severity="high",
         )
 
-    governance_entries = list(_iter_jsonl(root / GOVERNANCE_LOG_PATH))
+    governance_entries = list(_iter_jsonl(runtime_state_file(root, GOVERNANCE_LOG_PATH.name)))
     failed_governance = [entry for entry in governance_entries if not bool(entry.get("ok"))]
     if len(failed_governance) >= 2:
         _append_pattern(

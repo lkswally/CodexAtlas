@@ -14,7 +14,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 - Confirm that new pieces improve Atlas as a reusable factory rather than as a product app
 - Separate what should stay global in Codex from what belongs inside Atlas
 - Check that every new workflow has a human approval boundary if it can mutate project state
-- Keep REYESOFT adapters local and do not pull REYESOFT-specific logic into Atlas core
+- Keep consumer-specific adapters local and do not pull downstream business logic into Atlas core
 - Revalidate the registry and project state whenever the structure changes
 - Preserve compatibility for derived-project metadata and the legacy mirror while the retirement plan is still open
 - Keep model and MCP profile catalogs configurable instead of turning one provider choice into a permanent rule
@@ -124,7 +124,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 
 ## Watchlist
 
-- Python version compatibility between Atlas tooling and old REYESOFT environments
+- Python version compatibility between Atlas tooling and older consumer environments
 - Double source of truth risk if derived repos start copying Atlas docs again
 - Pressure to add MCP or hooks too early
 - Confusing `codex mcp list` success with a configured and authenticated MCP server
@@ -167,7 +167,7 @@ This document captures the next safe moves after the post-Level 3B stabilization
 
 ## Do not touch yet
 
-- REYESOFT runtime modules
+- Downstream-project runtime modules
 - Automatic deployment flows
 - MCP connectors
 - Automatic hooks or self-healing loops

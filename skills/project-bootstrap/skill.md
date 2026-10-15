@@ -81,7 +81,7 @@ Minimum generated structure:
 Safety limits:
 - execution requires an explicit `output_dir`
 - `output_dir` must be missing or empty before execution
-- do not write inside REYESOFT or any derived-project runtime path unless that project is being intentionally created there
+- do not write inside an existing consumer repository; bootstrap only into the explicit missing or empty `output_dir`
 - do not install dependencies, connect MCPs or execute runtime code
 - do not generate business logic, runtime modules or deployment artifacts
 

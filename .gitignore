@@ -36,6 +36,7 @@ evidence-quality-report/
 evidence-quality-report.zip
 
 # Logs and local databases
+.atlas_runtime/
 *.log
 *.tmp
 *.cache
@@ -61,7 +62,18 @@ tests/atlas_error_patterns_*/
 skills/project-bootstrap.md
 skills/repo-audit.md
 skills/product-branding-review.md
-ATLAS_REYESOFT_MIGRATION_AUDIT_2026-04-18.md
+ATLAS_*_MIGRATION_AUDIT_*.md
 
 # Local reference clones and research scratchpads
 _reference/
+
+# Publication hygiene: local credentials and generated browser output
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.local.json
+secrets.local.*
+playwright-report/
+test-results/
+memory/*.local.jsonl

@@ -80,7 +80,7 @@ TRIGGER_RULES = {
         "terms": (
             "derived project",
             "derived projects",
-            "reyesoft",
+            "consumer repository",
             "before touching projects",
             "project boundary",
             "certify-project",

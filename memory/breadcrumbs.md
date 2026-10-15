@@ -11,7 +11,7 @@
 ## 2026-04-23 19:35 (America/Buenos_Aires)
 - Change: promoted root-level commands, policies and memory to the primary mother configuration
 - Reason: align Atlas with a Codex-native structure and stop treating the seed under `00_SISTEMA/_meta/atlas/` as the main home
-- Files: commands/, policies/, memory/, tools/, adapters/reyesoft/, 00_SISTEMA/_meta/atlas/
+- Files: commands/, policies/, memory/, tools/, adapters/downstream_project/, 00_SISTEMA/_meta/atlas/
 - Impact: Atlas is now root-first while still preserving a reversible legacy layer
 - Residual risk: root-first and legacy files must stay synchronized
 - Rollback: switch tooling back to legacy-first path resolution

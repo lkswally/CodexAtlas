@@ -44,7 +44,7 @@
   "human_approval_triggers": [
     "the council outcome would change global Codex configuration",
     "the decision would activate MCP or external tooling",
-    "the decision would mutate a derived project or REYESOFT",
+    "the decision would mutate a derived or consumer project",
     "the review expands from framing into execution"
   ],
   "rollback_manual": [

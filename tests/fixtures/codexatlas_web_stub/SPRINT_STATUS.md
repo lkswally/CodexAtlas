@@ -1,7 +1,7 @@
 # SPRINT_STATUS - CodexAtlas Web Stub
 
 ## Governance
-- Atlas root: `C:\Proyectos\Codex-Atlas`
+- Atlas root: `<atlas_root>`
 
 ## Current Sprint
 - Status: `product-qa-demo-readiness`

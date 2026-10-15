@@ -22,7 +22,7 @@ From the n8n editor:
 3. Save the file locally as JSON.
 
 Recommended local location:
-- `C:\Proyectos\Codex-Atlas\_sandbox\`
+- `<atlas_root>\_sandbox\`
 
 Recommended filename:
 - `workflow-name.n8n.local.json`
@@ -54,7 +54,7 @@ If a field is needed for structure only, replace it with obvious fake values suc
 Atlas expects a safe example input when the workflow processes external events or form submissions.
 
 Create a small companion file such as:
-- `C:\Proyectos\Codex-Atlas\_sandbox\workflow-name-test-payload.json`
+- `<atlas_root>\_sandbox\workflow-name-test-payload.json`
 
 Keep it fake and minimal. It should show:
 - what triggers the workflow
@@ -82,7 +82,7 @@ If you want Atlas to see it explicitly, pass a small review input JSON to the re
 Direct readiness review:
 
 ```powershell
-python tools\n8n_automation_readiness.py --project C:\Proyectos\Codex-Atlas --input C:\Proyectos\Codex-Atlas\_sandbox\workflow-review-input.json
+python tools\n8n_automation_readiness.py --project <atlas_root> --input <atlas_root>\_sandbox\workflow-review-input.json
 ```
 
 If the export is stored in `_sandbox` and named like an n8n workflow export, Atlas can also pick it up from the project scan surface while staying fully local and advisory.

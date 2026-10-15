@@ -46,6 +46,7 @@ def test_codex_executor_readiness_detects_unsupported_ask_for_approval(monkeypat
     assert readiness["capabilities"]["supports_sandbox"] is True
     assert readiness["capabilities"]["supports_output_last_message"] is True
     assert readiness["capabilities"]["supports_ask_for_approval"] is False
+    assert readiness["capabilities"]["supports_automatic_approval_review"] is False
 
 
 def test_execute_via_atlas_codex_dry_run_omits_unsupported_ask_for_approval(monkeypatch):
@@ -177,3 +178,47 @@ def test_execute_via_atlas_codex_cleans_last_message_temp_file(monkeypatch):
 
     assert result["status"] == "ok"
     assert temp_output.exists() is False
+
+
+def test_execute_via_atlas_codex_fails_closed_when_required_approval_is_unavailable(monkeypatch):
+    executed = []
+
+    def fake_run(command, **kwargs):
+        if command == ["codex", "--version"]:
+            return _CompletedProcess(returncode=0, stdout="codex 1.0.0")
+        if command == ["codex", "exec", "--help"]:
+            return _CompletedProcess(
+                returncode=0,
+                stdout=(
+                    "Usage: codex exec [OPTIONS] [PROMPT]\n"
+                    "  -C, --cd <DIR>\n"
+                    "  -s, --sandbox <SANDBOX_MODE>\n"
+                    "  --approve-for-me\n"
+                    "  -o, --output-last-message <FILE>\n"
+                ),
+            )
+        executed.append(command)
+        raise AssertionError("Codex execution must not be invoked")
+
+    monkeypatch.setattr("tools.atlas_codex_executor.subprocess.run", fake_run)
+    project_path = _fresh_temp_dir("atlas_codex_executor_approval_block")
+
+    result = execute_via_atlas_codex(
+        project_path=project_path,
+        task="Push current branch",
+        mode="execute",
+        dry_run=False,
+        workflow="orchestrator_routing",
+        agent="orchestrator",
+        skill=None,
+        plan=["Push current branch"],
+        approval_required=True,
+    )
+
+    assert result["status"] == "blocked"
+    assert result["reason"] == "BLOCKED_APPROVAL_UNAVAILABLE"
+    assert result["invoked"] is False
+    assert result["approval_required"] is True
+    assert result["approval_enforced"] is False
+    assert result["capabilities"]["supports_automatic_approval_review"] is True
+    assert executed == []

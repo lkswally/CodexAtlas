@@ -2,7 +2,7 @@
 
 Date: 2026-05-08
 
-Scope: Codex-Atlas factory only. No REYESOFT changes, no derived-project changes, no MCP activation, no config mutation.
+Scope: Codex-Atlas factory only. No consumer-repository changes, no derived-project changes, no MCP activation, no config mutation.
 
 ## Executive diagnosis
 
@@ -112,7 +112,7 @@ Quiero que evalues modelos de NVIDIA Build como fallback manual para Codex-Atlas
 
 Contexto:
 - Atlas es una factory gobernada para crear y auditar proyectos.
-- No debe tocar REYESOFT, proyectos derivados ni config global.
+- No debe tocar repositorios consumidores, proyectos derivados ni config global.
 - El routing interno de Codex Desktop sigue siendo manual/advisory.
 - NVIDIA solo se evalúa como fallback externo cuando falten tokens/capacidad en otra herramienta.
 

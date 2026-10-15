@@ -8,7 +8,7 @@ Incluye:
 - `mcp_connector_policy.md`: mirror legacy del archivo principal en `policies/`
 - `context_refresh_protocol.md`: mirror legacy del archivo principal en `memory/`
 
-Derivados (ej: REYESOFT):
+Derived projects (for example, a consumer repository):
 - pueden tener un adapter registry (instancia) y punteros a estas policies
 - no deben copiar el core tooling en forma divergente
 

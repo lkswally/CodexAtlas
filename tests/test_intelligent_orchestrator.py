@@ -355,3 +355,10 @@ def test_sensitive_tasks_never_exceed_three_roles(prompt):
     report = simulate_orchestration(prompt)
 
     assert report["loop_control"]["planned_agents"] <= 3
+
+
+def test_push_task_requires_approval_before_runtime_execution():
+    report = simulate_orchestration("Push current branch")
+
+    assert report["decision_gate"]["requires_human_approval"] is True
+    assert report["final_decision"] == "NEEDS_APPROVAL"

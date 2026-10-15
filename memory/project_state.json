@@ -1,6 +1,6 @@
 {
   "system_name": "Codex-Atlas",
-  "canonical_root": "C:\\Proyectos\\Codex-Atlas",
+  "canonical_root": "<atlas_root>",
   "mode": "bootstrap",
   "status": "active",
   "layout": "root-first",

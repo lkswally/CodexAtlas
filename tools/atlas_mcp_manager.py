@@ -9,6 +9,11 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+try:
+    from tools.runtime_state import runtime_state_file
+except ModuleNotFoundError:
+    from runtime_state import runtime_state_file
 from typing import Any, Dict, List, Optional
 
 
@@ -144,7 +149,7 @@ def _record_mcp_event(root: Path, payload: Dict[str, Any]) -> None:
         return
 
     event = {"timestamp": _utc_now_iso(), **payload}
-    _append_jsonl_record(_memory_dir(root) / MCP_EVENTS_LOG, event)
+    _append_jsonl_record(runtime_state_file(root, MCP_EVENTS_LOG), event)
 
     governance_entry = {
         "timestamp": event["timestamp"],
@@ -159,7 +164,7 @@ def _record_mcp_event(root: Path, payload: Dict[str, Any]) -> None:
         "mcp_state": payload.get("state"),
         "experimental_mcp_profiles": [payload.get("profile")] if payload.get("state") != "blocked" else [],
     }
-    _append_jsonl_record(_memory_dir(root) / GOVERNANCE_EVENTS_LOG, governance_entry)
+    _append_jsonl_record(runtime_state_file(root, GOVERNANCE_EVENTS_LOG), governance_entry)
 
 
 def list_mcp_profiles(root: Optional[Path] = None) -> Dict[str, Any]:
@@ -348,6 +353,9 @@ def simulate_mcp_execution(
         "query_fingerprint": _text_fingerprint(query),
         "query_preview": _preview(query),
         "mode": "read_only_simulation",
+        "source_type": "SIMULATED",
+        "live_connection": False,
+        "requested_execution_satisfied": False,
         "simulation": {
             "provider_kind": profile_data.get("provider_kind"),
             "default_mode": profile_data.get("default_mode"),
@@ -423,6 +431,9 @@ def execute_mcp_request(
                     "query_fingerprint": _text_fingerprint(query),
                     "query_preview": _preview(query),
                     "execution_mode": "adapter_read_only",
+                    "source_type": "LOCAL_ADAPTER",
+                    "live_connection": False,
+                    "requested_execution_satisfied": True,
                     "runtime_support": runtime_support,
                     "adapter": adapter_result,
                     "blockers": [],
@@ -434,6 +445,11 @@ def execute_mcp_request(
             runtime_support["adapter_error"] = str(exc)
 
     fallback = simulate_mcp_execution(profile, query, root=resolved_root, approval=approval)
+    fallback["state"] = "degraded_simulation"
+    fallback["ok"] = False
+    fallback["source_type"] = "SIMULATED"
+    fallback["live_connection"] = False
+    fallback["requested_execution_satisfied"] = False
     fallback["fallback_reason"] = "adapter_unavailable_or_failed"
     fallback["runtime_support"] = runtime_support
     _record_mcp_event(

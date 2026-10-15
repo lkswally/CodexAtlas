@@ -11,16 +11,16 @@ The goal is:
 - explicit blocking when a project is missing the minimum Atlas governance surface
 
 Canonical Atlas root:
-- `C:\Proyectos\Codex-Atlas`
+- `<atlas_root>`
 
 ## Global Files
 
 Codex global factory behavior depends on these files:
 
-- `C:\Users\Lucas\.codex\AGENTS.md`
-- `C:\Users\Lucas\.codex\config.toml`
+- `<user_home>\.codex\AGENTS.md`
+- `<user_home>\.codex\config.toml`
 
-### `C:\Users\Lucas\.codex\AGENTS.md`
+### `<user_home>\.codex\AGENTS.md`
 
 This file defines the global operating rule:
 - all Lucas projects should operate under CODEX ATLAS by default
@@ -33,7 +33,7 @@ It also defines the operating modes:
 - `ATLAS gobernanza ligera`
 - `Codex directo bloqueado`
 
-### `C:\Users\Lucas\.codex\config.toml`
+### `<user_home>\.codex\config.toml`
 
 This file carries the global Codex configuration plus the Atlas factory section:
 
@@ -127,12 +127,12 @@ Without those files, Codex should not move into direct feature work.
 Use Atlas bootstrap instead of starting as direct Codex.
 
 Primary tool:
-- `C:\Proyectos\Codex-Atlas\tools\atlas_project_bootstrap.py`
+- `<atlas_root>\tools\atlas_project_bootstrap.py`
 
 Example:
 
 ```powershell
-python C:\Proyectos\Codex-Atlas\tools\atlas_project_bootstrap.py --project C:\Proyectos\MyProject
+python <atlas_root>\tools\atlas_project_bootstrap.py --project C:\Proyectos\MyProject
 ```
 
 What bootstrap creates:
@@ -150,12 +150,12 @@ If the project still lacks Git after bootstrap, Atlas should remain in `ATLAS go
 ## Audit an Existing Project
 
 Use:
-- `C:\Proyectos\Codex-Atlas\tools\atlas_context_audit.py`
+- `<atlas_root>\tools\atlas_context_audit.py`
 
 Example:
 
 ```powershell
-python C:\Proyectos\Codex-Atlas\tools\atlas_context_audit.py --project C:\Proyectos\SomeProject
+python <atlas_root>\tools\atlas_context_audit.py --project C:\Proyectos\SomeProject
 ```
 
 This audit reports:
@@ -173,21 +173,21 @@ This audit reports:
 ## Run a Project Through the Atlas Entrypoint
 
 For Atlas-complete projects, the preferred entrypoint is:
-- `C:\Proyectos\Codex-Atlas\tools\atlas_run.py`
+- `<atlas_root>\tools\atlas_run.py`
 
 Example:
 
 ```powershell
-python C:\Proyectos\Codex-Atlas\tools\atlas_run.py --project-path C:\Proyectos\SomeProject --task "..." --mode plan --dry-run --require-dispatcher true
+python <atlas_root>\tools\atlas_run.py --project-path C:\Proyectos\SomeProject --task "..." --mode plan --dry-run --require-dispatcher true
 ```
 
 PowerShell wrapper:
-- `C:\Proyectos\Codex-Atlas\tools\atlas.ps1`
+- `<atlas_root>\tools\atlas.ps1`
 
 Example:
 
 ```powershell
-C:\Proyectos\Codex-Atlas\tools\atlas.ps1 -ProjectPath C:\Proyectos\SomeProject -Task "..." -Mode plan
+<atlas_root>\tools\atlas.ps1 -ProjectPath C:\Proyectos\SomeProject -Task "..." -Mode plan
 ```
 
 This enforces:
@@ -200,7 +200,7 @@ This enforces:
 
 To replicate this setup on another machine:
 
-1. Clone or copy `C:\Proyectos\Codex-Atlas`.
+1. Clone or copy `<atlas_root>`.
 2. Create `C:\Users\<user>\.codex\AGENTS.md` with the Atlas-first governance rule.
 3. Create or update `C:\Users\<user>\.codex\config.toml`.
 4. Add the Atlas factory block:

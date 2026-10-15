@@ -152,7 +152,7 @@ The official docs and code show that it:
 
 On Windows the docs mention `%APPDATA%\codex\config.toml`; the code path uses
 `APPDATA\codex\config.toml` when `APPDATA` exists. This differs from the current
-local Codex Desktop config observed in V4.0 under `C:\Users\lksro\.codex`.
+local Codex Desktop config observed in V4.0 under `<user_home>\.codex`.
 That discrepancy is a concrete risk: running setup could modify a config file
 different from the one Atlas currently inspected.
 

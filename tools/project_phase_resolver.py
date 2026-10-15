@@ -4,6 +4,11 @@ import argparse
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+
+try:
+    from tools.runtime_state import runtime_state_file
+except ModuleNotFoundError:
+    from runtime_state import runtime_state_file
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 
@@ -129,7 +134,7 @@ def _phase_from_metadata_status(metadata: Dict[str, Any]) -> Optional[str]:
 def _dispatcher_command_events(root: Path, project: Path) -> List[Dict[str, Any]]:
     project_s = str(project.resolve())
     entries: List[Dict[str, Any]] = []
-    for record in _iter_jsonl(root / ROUTING_LOG_PATH):
+    for record in _iter_jsonl(runtime_state_file(root, ROUTING_LOG_PATH.name)):
         if str(record.get("event_type", "")).strip() != DISPATCH_EVENT_TYPE:
             continue
         if str(record.get("project", "")).strip() != project_s:
@@ -141,7 +146,7 @@ def _dispatcher_command_events(root: Path, project: Path) -> List[Dict[str, Any]
 def _governance_project_events(root: Path, project: Path) -> List[Dict[str, Any]]:
     project_s = str(project.resolve())
     entries: List[Dict[str, Any]] = []
-    for record in _iter_jsonl(root / GOVERNANCE_EVENTS_PATH):
+    for record in _iter_jsonl(runtime_state_file(root, GOVERNANCE_EVENTS_PATH.name)):
         if str(record.get("project", "")).strip() != project_s:
             continue
         entries.append(record)

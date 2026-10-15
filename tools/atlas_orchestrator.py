@@ -9,6 +9,11 @@ import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
+
+try:
+    from tools.runtime_state import runtime_state_file
+except ModuleNotFoundError:
+    from runtime_state import runtime_state_file
 from typing import Any, Dict, List, Optional, Tuple
 
 try:
@@ -409,7 +414,6 @@ RISK_RANK = {
     "medium": 2,
     "high": 3,
 }
-REYESOFT_ROOT = DEFAULT_ROOT.parent / "REYESOFT"
 PROJECT_BOOTSTRAP_PROJECT_MARKERS = (
     ".atlas-project.json",
     ".git",
@@ -641,7 +645,6 @@ def _is_relative_to(path: Path, base: Path) -> bool:
 
 def _project_bootstrap_preflight(output_dir: Optional[Path], root: Optional[Path] = None) -> Dict[str, Any]:
     resolved_root = (root or DEFAULT_ROOT).resolve()
-    reyesoft_root = REYESOFT_ROOT.resolve()
 
     if output_dir is None:
         return {
@@ -652,7 +655,6 @@ def _project_bootstrap_preflight(output_dir: Optional[Path], root: Optional[Path
             "seems_existing_project": False,
             "existing_project_markers": [],
             "inside_atlas_root": False,
-            "inside_reyesoft": False,
             "matches_forbidden_path": False,
             "safe_to_execute": False,
             "approval_reasons": [],
@@ -668,8 +670,7 @@ def _project_bootstrap_preflight(output_dir: Optional[Path], root: Optional[Path
     markers = [marker for marker in PROJECT_BOOTSTRAP_PROJECT_MARKERS if (target / marker).exists()] if exists and is_dir else []
     seems_existing_project = bool(markers)
     inside_atlas_root = _is_relative_to(target, resolved_root)
-    inside_reyesoft = _is_relative_to(target, reyesoft_root)
-    matches_forbidden_path = target in {resolved_root, reyesoft_root}
+    matches_forbidden_path = target == resolved_root
 
     blockers: List[str] = []
     approval_reasons: List[str] = []
@@ -680,8 +681,6 @@ def _project_bootstrap_preflight(output_dir: Optional[Path], root: Optional[Path
         blockers.append("project_bootstrap_forbidden_output_dir")
     if inside_atlas_root:
         blockers.append("project_bootstrap_output_dir_inside_atlas_root")
-    if inside_reyesoft:
-        blockers.append("project_bootstrap_output_dir_inside_reyesoft")
     if exists and is_dir and entries:
         blockers.append("project_bootstrap_output_dir_not_empty")
         approval_reasons.append("project_bootstrap_preflight_existing_non_empty_output_dir")
@@ -707,7 +706,6 @@ def _project_bootstrap_preflight(output_dir: Optional[Path], root: Optional[Path
         "seems_existing_project": seems_existing_project,
         "existing_project_markers": markers,
         "inside_atlas_root": inside_atlas_root,
-        "inside_reyesoft": inside_reyesoft,
         "matches_forbidden_path": matches_forbidden_path,
         "safe_to_execute": safe_to_execute,
         "approval_reasons": deduped_approval_reasons,
@@ -1157,7 +1155,7 @@ def _record_routing_decision(root: Path, payload: Dict[str, Any]) -> None:
         "execution_allowed": payload.get("execution_allowed"),
         "project_type": payload.get("project_type"),
     }
-    _append_jsonl_record(_memory_dir(root) / ROUTING_LOG, entry)
+    _append_jsonl_record(runtime_state_file(root, ROUTING_LOG), entry)
 
 
 def _record_derived_project_creation(root: Path, payload: Dict[str, Any]) -> None:

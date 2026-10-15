@@ -31,7 +31,7 @@ Improve design direction and visual QA quality in Atlas-derived projects without
 - no hooks
 - no hidden browser automation
 - no deploy
-- no REYESOFT mutation
+- no consumer-repository mutation
 
 ## Expected outputs
 

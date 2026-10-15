@@ -58,6 +58,9 @@ def test_docs_search_can_execute_through_adapter_after_approval():
     assert execution["ok"] is True
     assert execution["state"] == "executed_adapter"
     assert execution["execution_mode"] == "adapter_read_only"
+    assert execution["source_type"] == "LOCAL_ADAPTER"
+    assert execution["live_connection"] is False
+    assert execution["requested_execution_satisfied"] is True
     assert execution["adapter"]["mode"] == "adapter_read_only"
     assert execution["adapter"]["result_count"] >= 1
     assert execution["adapter"]["confidence_level"] in {"medium", "high"}
@@ -65,7 +68,7 @@ def test_docs_search_can_execute_through_adapter_after_approval():
     assert len(execution["adapter"]["key_points"]) >= 3
 
 
-def test_docs_search_execute_falls_back_to_simulation_if_adapter_fails():
+def test_docs_search_execute_reports_degraded_simulation_if_adapter_fails():
     approval = approve_mcp("docs_search", "Approved for fallback testing.")
 
     with patch("tools.atlas_mcp_manager.inspect_docs_search_runtime_support", return_value={"real_mcp_supported": False, "blockers": ["codex_cli_not_invocable"]}):
@@ -76,8 +79,11 @@ def test_docs_search_execute_falls_back_to_simulation_if_adapter_fails():
                 approval=approval,
             )
 
-    assert execution["ok"] is True
-    assert execution["state"] == "executed_simulated"
+    assert execution["ok"] is False
+    assert execution["state"] == "degraded_simulation"
+    assert execution["source_type"] == "SIMULATED"
+    assert execution["live_connection"] is False
+    assert execution["requested_execution_satisfied"] is False
     assert execution["fallback_reason"] == "adapter_unavailable_or_failed"
     assert execution["runtime_support"]["real_mcp_supported"] is False
 
@@ -223,3 +229,20 @@ def test_docs_search_adapter_does_not_rank_deprecated_entries_as_active_results(
     assert len(results) == 1
     assert results[0]["id"] == "active_docs"
     assert results[0]["status"] == "active"
+
+
+
+def test_explicit_simulation_is_truthful_about_provenance():
+    approval = approve_mcp("docs_search", "Approved for an explicit read-only simulation.")
+
+    simulation = simulate_mcp_execution(
+        "docs_search",
+        "current official SDK docs",
+        approval=approval,
+    )
+
+    assert simulation["ok"] is True
+    assert simulation["state"] == "executed_simulated"
+    assert simulation["source_type"] == "SIMULATED"
+    assert simulation["live_connection"] is False
+    assert simulation["requested_execution_satisfied"] is False

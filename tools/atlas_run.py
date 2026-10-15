@@ -14,6 +14,7 @@ from tools.atlas_codex_executor import execute_via_atlas_codex
 from tools.atlas_context_audit import audit_project_context
 from tools.atlas_dispatcher import dispatch
 from tools.atlas_orchestrator import get_skill_execution_behavior_specs, orchestrate_task
+from tools.intelligent_orchestrator import simulate_orchestration
 from tools.atlas_project_bootstrap import ATLAS_ROOT, DERIVED_PROJECTS_REGISTRY
 
 
@@ -130,20 +131,45 @@ def run_atlas(
         phase_report_output = phase_dispatch.output.get("result", {})
         phase_gate_checked = True
         route = orchestrate_task(task, root=ATLAS_ROOT)
+        safety_gate = simulate_orchestration(task)
         functional_gate = _functional_work_allowed(audit, task, _read_sprint_status(project_path))
         plan = _build_plan(task, phase_report_output, route)
-        executor_result = execute_via_atlas_codex(
-            project_path=project_path,
-            task=task,
-            mode=mode,
-            dry_run=dry_run,
-            workflow=str(route.get("recommended_workflow", "orchestrator_routing")),
-            agent=str(route.get("recommended_agent", "orchestrator")),
-            skill=route.get("recommended_skill"),
-            plan=plan,
+        approval_required = bool(
+            route.get("requires_human_approval")
+            or safety_gate.get("decision_gate", {}).get("requires_human_approval")
         )
+        if mode == "execute" and not dry_run and not functional_gate["allowed"]:
+            executor_result = {
+                "status": "blocked",
+                "codex_executor_ready": False,
+                "invoked": False,
+                "mode": mode,
+                "dry_run": dry_run,
+                "approval_required": approval_required,
+                "approval_enforced": False,
+                "reason": "BLOCKED_FUNCTIONAL_GATE",
+            }
+        else:
+            executor_result = execute_via_atlas_codex(
+                project_path=project_path,
+                task=task,
+                mode=mode,
+                dry_run=dry_run,
+                workflow=str(route.get("recommended_workflow", "orchestrator_routing")),
+                agent=str(route.get("recommended_agent", "orchestrator")),
+                skill=route.get("recommended_skill"),
+                plan=plan,
+                approval_required=approval_required,
+            )
 
     operating_mode = "ATLAS completo" if not blockers else audit.get("operating_mode", "Codex directo bloqueado")
+    executor_blocked = executor_result.get("status") == "blocked" and mode == "execute" and not dry_run
+    if executor_blocked:
+        blockers.append({
+            "severity": "blocker",
+            "code": str(executor_result.get("reason", "executor_blocked")),
+            "message": "Execution was blocked because its approval boundary could not be enforced.",
+        })
     status = "ready" if not blockers else "blocked"
     envelope = {
         "status": status,
@@ -175,6 +201,7 @@ def run_atlas(
         "functional_work_reason": functional_gate["reason"],
         "context_audit": audit,
         "phase_report": phase_report_output,
+        "safety_gate": safety_gate if not blockers or executor_blocked else {},
         "route": {
             "recommended_agent": route.get("recommended_agent"),
             "recommended_skill": route.get("recommended_skill"),

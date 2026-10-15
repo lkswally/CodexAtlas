@@ -69,6 +69,11 @@ HIGH_RISK_KEYWORDS = (
     "critical",
     "critico",
 )
+APPROVAL_ONLY_KEYWORDS = (
+    "git push",
+    "push current branch",
+    "push branch",
+)
 DESTRUCTIVE_INTENT_KEYWORDS = (
     "git reset",
     "git clean",
@@ -656,6 +661,8 @@ def simulate_orchestration(
     approval_reasons = []
     if intake["risk_level"] in {"high", "critical"} or intake["impact"] == "high":
         approval_reasons.append("elevated_risk")
+    if _contains_any(prompt.lower(), APPROVAL_ONLY_KEYWORDS):
+        approval_reasons.append("state_changing_task")
     if warned:
         approval_reasons.append("dangerous_policy_warning_or_unknown")
     if denied:
