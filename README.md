@@ -163,23 +163,23 @@ Observability is component-scoped. Runtime logs may contain local paths or proje
 
 ## Current Verified Status
 
-Verified locally on Windows with Python 3.14.5 and pytest 9.0.3 for this branch on 2026-09-23. The CI baseline uses Python 3.13 and `requirements-dev.txt`:
+Verified for the stabilization branch in GitHub Actions with Python 3.13 and `requirements-dev.txt` on 2026-10-14. Local focused regression checks, governance, and `atlas_verify` were also re-run before publication:
 
 | Area | Status | Evidence |
 |---|---|---|
-| Full Python suite | **PASS** | 830 passed, 1 skipped |
-| Skipped test | **Expected opt-in** | Real-browser smoke requires provisioned Chromium |
+| Full Python suite | **PASS** | 836 passed, 1 skipped; Global Test run `35940383994` at `4975261` |
+| Real-browser smoke | **PASS / opt-in** | Playwright Chromium smoke passed; run `35940386581` with artifact `10785035769` |
 | Governance | **LIVE / verified** | Current governance command and tests |
 | Repository audit | **LIVE / verified** | atlas_verify.py and audit path |
 | Project bootstrap | **LIVE / bounded** | Temporary-project execution in tests |
 | Certification | **LIVE / bounded** | Read-only certification tests |
-| Evidence Pipeline | **PARTIAL** | Non-browser paths verified; real browser not revalidated locally |
+| Evidence Pipeline | **PARTIAL** | Non-browser baseline and opt-in real-browser smoke verified; evidence semantics remain bounded by each validator |
 | Failure Registry | **LIVE / isolated** | Registry operations verified; no autonomous learning claim |
 | Decision Benchmark V1 | **PASS in scope** | 45-case deterministic dataset |
 | Intelligent Orchestrator | **DRY_RUN** | Advisory simulator only |
 | Model routing | **ADVISORY** | Recommendation implemented; no runtime switching |
 | External MCP | **PARTIAL / host-dependent** | Manager and contracts exist; live external server not verified |
-| Baseline main CI | **PASS at `ca535ac`** | GitHub Actions run `31176337424`; focused suites |
+| Stabilization CI | **PASS at `4975261`** | Global Test and Evidence Browser Smoke both succeeded on the same commit |
 | Autonomous model switching | **NOT IMPLEMENTED** | Host/operator remains responsible |
 
 The only repository tag is v3.0.0-rc1, which points to an earlier commit than current main. No GitHub Release exists for that tag. Current main should not be described as a published RC1 release.
@@ -274,17 +274,15 @@ Project bootstrap changes the filesystem. Review its contract and provide an exp
 
 Near-term work is intentionally conservative:
 
-- remove remaining named-consumer coupling from reusable core paths;
-- separate local runtime records from publishable repository fixtures;
-- improve reproducible real-browser evidence;
 - keep external integrations opt-in and capability-checked;
-- expand benchmarks only when new failure modes are observed.
+- expand benchmarks only when new failure modes are observed;
+- preserve approval fail-closed behavior as host capabilities evolve;
+- decide the repository license before encouraging third-party reuse.
 
 ## Limitations
 
-- Some reusable core paths still contain legacy coupling to a named downstream project. This requires a separate architecture change.
 - External MCP availability is host-specific and was not live in the audited environment.
-- Browser E2E is opt-in and was skipped in the reproduced local suite.
+- Browser E2E remains opt-in rather than a blocking core gate; the stabilization commit has a successful isolated CI smoke run.
 - Model routing is advisory; runtime switching is not implemented.
 - The execution adapter does not establish a verified multi-agent runtime.
 - Failure recording does not equal autonomous learning.
